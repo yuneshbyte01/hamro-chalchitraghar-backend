@@ -1,0 +1,16 @@
+spring:
+  application:
+    name: hamro-chalchitraghar-backend
+
+  datasource:
+    url: jdbc:mysql://localhost:3306/hamro_chalachitraghar_db
+    username: root
+    password: "@@Himal@@"
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQL8Dialect
