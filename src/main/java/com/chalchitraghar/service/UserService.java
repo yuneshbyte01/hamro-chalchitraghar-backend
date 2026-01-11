@@ -9,17 +9,14 @@ import com.chalchitraghar.model.User;
 import com.chalchitraghar.model.enums.Role;
 import com.chalchitraghar.repository.UserRepository;
 
+import lombok.RequiredArgsConstructor;
+
 @Service
+@RequiredArgsConstructor
 public class UserService {
-
-    private final UserRepository userRepository; // Repository for user operations
-    private final BCryptPasswordEncoder passwordEncoder; // Password encoder for user passwords
-
-    public UserService (UserRepository userRepository, BCryptPasswordEncoder passwordEncoder) {
-        this.userRepository = userRepository;
-        this.passwordEncoder = passwordEncoder;
-    }
-
+    private final UserRepository userRepository;
+    private final BCryptPasswordEncoder passwordEncoder;
+    
     /**
      * Registers a new customer user.
      * @param name User name
@@ -43,5 +40,10 @@ public class UserService {
                 .build();
 
         return userRepository.save(user);
+    }
+
+    public User getUserByEmail(String email) {
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found with email: " + email));
     }
 }
