@@ -5,6 +5,7 @@ import org.springframework.stereotype.Service;
 
 import com.chalchitraghar.dto.LoginRequest;
 import com.chalchitraghar.dto.LoginResponse;
+import com.chalchitraghar.exception.AuthenticationException;
 import com.chalchitraghar.model.User;
 import com.chalchitraghar.security.JwtUtil;
 
@@ -22,7 +23,7 @@ public class AuthService {
         User user = userService.getUserByEmail(request.getEmail());
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-            throw new RuntimeException("Invalid credentials");
+            throw new AuthenticationException("Invalid credentials");
         }
 
         String token = jwtUtil.generateToken(user);
