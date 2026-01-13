@@ -19,7 +19,7 @@ public class JwtUtil {
     // Use a secure, random secret key (at least 256 bits for HS256)
     private String secret = "4Qnni8zBXDBnVf9hOQpF5n1t8Oe9Lw1qEqnbiLdR5m4VxXXlYX09c18ZHq4JihAs";
 
-    private long EXPIRATION_MS = 86400000; // 24h
+    private long EXPIRATION_MS = 3600000; // 1h
 
     private SecretKey getSigningKey() {
         return Keys.hmacShaKeyFor(secret.getBytes());
