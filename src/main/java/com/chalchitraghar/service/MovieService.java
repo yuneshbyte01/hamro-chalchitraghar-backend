@@ -3,6 +3,9 @@ package com.chalchitraghar.service;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.chalchitraghar.dto.MovieDto;
 import com.chalchitraghar.dto.MovieResponseDto;
 import com.chalchitraghar.exception.ResourceNotFoundException;
@@ -10,9 +13,6 @@ import com.chalchitraghar.mapper.MovieMapper;
 import com.chalchitraghar.model.Movie;
 import com.chalchitraghar.model.enums.MovieStatus;
 import com.chalchitraghar.repository.MovieRepository;
-
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import lombok.RequiredArgsConstructor;
 
@@ -57,5 +57,14 @@ public class MovieService {
         Movie movie = movieRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Movie", id));
         return movieMapper.toResponseDto(movie);
+    }
+
+    public List<MovieResponseDto> getMoviesByStatus(MovieStatus status) {
+
+        List<Movie> movies = movieRepository.findAllByStatusOrderByReleaseDateAsc(status);
+    
+        return movies.stream()
+                .map(movieMapper::toResponseDto)
+                .toList();
     }
 }

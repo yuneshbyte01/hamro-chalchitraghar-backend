@@ -20,7 +20,7 @@ import com.chalchitraghar.service.MovieService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
-@RestController
+@RestController("adminMovieController")
 @RequestMapping("/api/admin/movies")
 @RequiredArgsConstructor
 public class MovieController {
