@@ -13,8 +13,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.chalchitraghar.dto.MovieDto;
-import com.chalchitraghar.dto.MovieResponseDto;
+import com.chalchitraghar.dto.movie.MovieDto;
+import com.chalchitraghar.dto.movie.MovieResponseDto;
 import com.chalchitraghar.service.MovieService;
 
 import jakarta.validation.Valid;

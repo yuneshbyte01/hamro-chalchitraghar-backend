@@ -6,8 +6,8 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.chalchitraghar.dto.MovieDto;
-import com.chalchitraghar.dto.MovieResponseDto;
+import com.chalchitraghar.dto.movie.MovieDto;
+import com.chalchitraghar.dto.movie.MovieResponseDto;
 import com.chalchitraghar.exception.ResourceNotFoundException;
 import com.chalchitraghar.mapper.MovieMapper;
 import com.chalchitraghar.model.Movie;

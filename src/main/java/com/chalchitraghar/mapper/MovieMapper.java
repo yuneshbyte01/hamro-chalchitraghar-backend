@@ -2,8 +2,8 @@ package com.chalchitraghar.mapper;
 
 import org.springframework.stereotype.Component;
 
-import com.chalchitraghar.dto.MovieDto;
-import com.chalchitraghar.dto.MovieResponseDto;
+import com.chalchitraghar.dto.movie.MovieDto;
+import com.chalchitraghar.dto.movie.MovieResponseDto;
 import com.chalchitraghar.model.Movie;
 
 @Component

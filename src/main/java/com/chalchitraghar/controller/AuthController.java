@@ -7,10 +7,10 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.chalchitraghar.dto.LoginRequest;
-import com.chalchitraghar.dto.LoginResponse;
-import com.chalchitraghar.dto.RegistrationRequestDto;
-import com.chalchitraghar.dto.RegistrationResponseDto;
+import com.chalchitraghar.dto.auth.LoginRequestDto;
+import com.chalchitraghar.dto.auth.LoginResponseDto;
+import com.chalchitraghar.dto.auth.RegistrationRequestDto;
+import com.chalchitraghar.dto.auth.RegistrationResponseDto;
 import com.chalchitraghar.model.User;
 import com.chalchitraghar.service.AuthService;
 import com.chalchitraghar.service.UserService;
@@ -43,8 +43,8 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
-        LoginResponse response = authService.login(request);
+    public ResponseEntity<LoginResponseDto> login(@Valid @RequestBody LoginRequestDto request) {
+        LoginResponseDto response = authService.login(request);
         return ResponseEntity.ok(response);
     }
 }

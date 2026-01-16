@@ -1,4 +1,4 @@
-package com.chalchitraghar.dto;
+package com.chalchitraghar.dto.auth;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

@@ -1,4 +1,4 @@
-package com.chalchitraghar.dto;
+package com.chalchitraghar.dto.movie;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
