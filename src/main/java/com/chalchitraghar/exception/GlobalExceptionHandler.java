@@ -32,6 +32,14 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
     }
 
+    @ExceptionHandler(HallConflictException.class)
+    public ResponseEntity<Map<String, String>> handleHallConflictException(HallConflictException ex) {
+        logger.warn("Hall conflict: {}", ex.getMessage());
+        Map<String, String> error = new HashMap<>();
+        error.put("error", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
+    }
+
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<Map<String, String>> handleIllegalArgumentException(IllegalArgumentException ex) {
         logger.warn("Invalid argument: {}", ex.getMessage());
