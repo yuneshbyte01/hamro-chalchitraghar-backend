@@ -7,6 +7,7 @@ import com.chalchitraghar.dto.hall.HallResponseDto;
 import com.chalchitraghar.exception.ResourceNotFoundException;
 import com.chalchitraghar.mapper.HallMapper;
 import com.chalchitraghar.model.Hall;
+import com.chalchitraghar.model.enums.Status;
 import com.chalchitraghar.repository.HallRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.transaction.annotation.Transactional;
@@ -43,7 +44,7 @@ public class HallService {
     public void deleteHall(Long id) {
         Hall hall = hallRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Hall", id));
-        hall.setActive(false);
+        hall.setStatus(Status.INACTIVE);
         hallRepository.save(hall);
     }
 
@@ -64,7 +65,7 @@ public class HallService {
 
     @Transactional(readOnly = true)
     public List<HallResponseDto> getActiveHalls() {
-        return hallRepository.findAllByIsActiveTrue()
+        return hallRepository.findAllByStatus(Status.ACTIVE)
                 .stream()
                 .map(hallMapper::toResponseDto)
                 .toList();

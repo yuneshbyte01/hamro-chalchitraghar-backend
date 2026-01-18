@@ -3,9 +3,10 @@ package com.chalchitraghar.dto.hall;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PositiveOrZero;
-import lombok.NoArgsConstructor;
-import lombok.Data;
 import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import com.chalchitraghar.model.enums.Status;
 
 @Data
 @NoArgsConstructor
@@ -21,7 +22,7 @@ public class HallRequestDto {
 
     @NotBlank(message = "Layout reference is required")
     private String layoutRef;
-    
-    @NotNull(message = "Active status is required")
-    private boolean isActive;
+
+    @NotNull(message = "Status is required")
+    private Status status;
 }

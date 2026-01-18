@@ -12,6 +12,7 @@ import com.chalchitraghar.model.Hall;
 import com.chalchitraghar.model.Movie;
 import com.chalchitraghar.model.Show;
 import com.chalchitraghar.model.enums.ShowStatus;
+import com.chalchitraghar.model.enums.Status;
 import com.chalchitraghar.repository.HallRepository;
 import com.chalchitraghar.repository.MovieRepository;
 import com.chalchitraghar.repository.ShowRepository;
@@ -55,7 +56,7 @@ public class ShowService {
         Hall hall = hallRepository.findById(dto.getHallId())
                 .orElseThrow(() -> new ResourceNotFoundException("Hall", dto.getHallId()));
 
-        if (!hall.isActive()) {
+        if (hall.getStatus() == Status.INACTIVE) {
             throw new HallConflictException("Cannot schedule show in an inactive hall");
         }
 
@@ -86,7 +87,7 @@ public class ShowService {
         Hall hall = hallRepository.findById(dto.getHallId())
                 .orElseThrow(() -> new ResourceNotFoundException("Hall", dto.getHallId()));
 
-        if (!hall.isActive()) {
+        if (hall.getStatus() == Status.INACTIVE) {
             throw new HallConflictException("Cannot schedule show in an inactive hall");
         }
 

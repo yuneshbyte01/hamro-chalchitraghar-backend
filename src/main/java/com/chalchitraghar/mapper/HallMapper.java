@@ -18,7 +18,7 @@ public class HallMapper {
                 .name(dto.getName())
                 .capacity(dto.getCapacity())
                 .layoutRef(dto.getLayoutRef())
-                .isActive(dto.isActive())
+                .status(dto.getStatus())
                 .build();
     }
 
@@ -30,7 +30,7 @@ public class HallMapper {
         hall.setName(dto.getName());
         hall.setCapacity(dto.getCapacity());
         hall.setLayoutRef(dto.getLayoutRef());
-        hall.setActive(dto.isActive());
+        hall.setStatus(dto.getStatus());
     }
 
     public HallResponseDto toResponseDto(Hall hall) {
@@ -43,7 +43,7 @@ public class HallMapper {
         dto.setName(hall.getName());
         dto.setCapacity(hall.getCapacity());
         dto.setLayoutRef(hall.getLayoutRef());
-        dto.setActive(hall.isActive());
+        dto.setStatus(hall.getStatus());
         dto.setCreatedAt(hall.getCreatedAt());
         dto.setUpdatedAt(hall.getUpdatedAt());
         return dto;

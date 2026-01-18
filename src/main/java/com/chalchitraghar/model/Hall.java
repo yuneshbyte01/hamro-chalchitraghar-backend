@@ -6,6 +6,8 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Column;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.EnumType;
 import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -17,6 +19,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
+import com.chalchitraghar.model.enums.Status;
 
 @Entity
 @Table(name = "halls")
@@ -43,8 +46,9 @@ public class Hall {
     private String layoutRef;
 
     @Column(nullable = false)
-    @NotNull(message = "Active status is required")
-    private boolean isActive;
+    @Enumerated(EnumType.STRING)
+    @NotNull(message = "Status is required")
+    private Status status;
 
     @Column(nullable = false)
     @NotNull(message = "Created at is required")
@@ -58,7 +62,7 @@ public class Hall {
     public void onCreate() {
         this.createdAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
-        this.isActive = true;
+        this.status = Status.ACTIVE;
     }
 
     @PreUpdate
