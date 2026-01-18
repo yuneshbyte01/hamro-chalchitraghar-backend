@@ -1,4 +1,4 @@
-package com.chalchitraghar.controller.user;
+package com.chalchitraghar.controller;
 
 import java.util.List;
 
@@ -14,7 +14,7 @@ import com.chalchitraghar.service.MovieService;
 
 import lombok.RequiredArgsConstructor;
 
-@RestController("userMovieController")
+@RestController
 @RequestMapping("/api/movies")
 @RequiredArgsConstructor
 public class MovieController {
