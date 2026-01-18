@@ -11,6 +11,7 @@ import com.chalchitraghar.mapper.ShowMapper;
 import com.chalchitraghar.model.Hall;
 import com.chalchitraghar.model.Movie;
 import com.chalchitraghar.model.Show;
+import com.chalchitraghar.model.enums.MovieStatus;
 import com.chalchitraghar.model.enums.ShowStatus;
 import com.chalchitraghar.model.enums.Status;
 import com.chalchitraghar.repository.HallRepository;
@@ -52,6 +53,11 @@ public class ShowService {
         Movie movie = movieRepository.findById(dto.getMovieId())
                 .orElseThrow(() -> new ResourceNotFoundException("Movie", dto.getMovieId()));
 
+        // Validate movie status - Only NOW_SHOWING movies can have shows
+        if (movie.getStatus() != MovieStatus.NOW_SHOWING) {
+            throw new HallConflictException("Shows can only be scheduled for movies with status NOW_SHOWING");
+        }
+
         // Fetch and validate hall
         Hall hall = hallRepository.findById(dto.getHallId())
                 .orElseThrow(() -> new ResourceNotFoundException("Hall", dto.getHallId()));
@@ -82,6 +88,11 @@ public class ShowService {
         // Fetch and validate movie
         Movie movie = movieRepository.findById(dto.getMovieId())
                 .orElseThrow(() -> new ResourceNotFoundException("Movie", dto.getMovieId()));
+
+        // Validate movie status - Only NOW_SHOWING movies can have shows
+        if (movie.getStatus() != MovieStatus.NOW_SHOWING) {
+            throw new HallConflictException("Shows can only be scheduled for movies with status NOW_SHOWING");
+        }
 
         // Fetch and validate hall
         Hall hall = hallRepository.findById(dto.getHallId())
@@ -125,6 +136,16 @@ public class ShowService {
     public ShowResponseDto getShowById(Long id) {
         Show show = showRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Show", id));
+        
+        if (show.getStatus() == ShowStatus.CANCELLED || show.getStatus() == ShowStatus.COMPLETED) {
+            throw new ResourceNotFoundException("Show", id);
+        }
+        
+        // Only return shows for NOW_SHOWING movies
+        if (show.getMovie().getStatus() != MovieStatus.NOW_SHOWING) {
+            throw new ResourceNotFoundException("Show", id);
+        }
+        
         return showMapper.toResponseDto(show);
     }
 
@@ -140,6 +161,24 @@ public class ShowService {
     public List<ShowResponseDto> getShowsByMovie(Long movieId) {
         return showRepository.findByMovieId(movieId)
                 .stream()
+                .map(showMapper::toResponseDto)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public List<ShowResponseDto> getShowsByMovieAndShowDate(Long movieId, LocalDate showDate) {
+        // First check if movie exists and is NOW_SHOWING
+        Movie movie = movieRepository.findById(movieId)
+                .orElseThrow(() -> new ResourceNotFoundException("Movie", movieId));
+        
+        // Only return shows for NOW_SHOWING movies
+        if (movie.getStatus() != MovieStatus.NOW_SHOWING) {
+            return List.of(); // Return empty list if movie is not NOW_SHOWING
+        }
+        
+        return showRepository.findByMovieIdAndShowDate(movieId, showDate)
+                .stream()
+                .filter(show -> show.getStatus() != ShowStatus.CANCELLED && show.getStatus() != ShowStatus.COMPLETED)
                 .map(showMapper::toResponseDto)
                 .collect(Collectors.toList());
     }

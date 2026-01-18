@@ -6,12 +6,15 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.chalchitraghar.dto.show.ShowResponseDto;
 import com.chalchitraghar.service.ShowService;
 
 import lombok.RequiredArgsConstructor;
+
+import java.time.LocalDate;
 
 @RestController("userShowController")
 @RequestMapping("/api/shows")
@@ -43,9 +46,11 @@ public class ShowController {
         return ResponseEntity.ok(shows);
     }
 
-    @GetMapping("/hall/{hallId}")
-    public ResponseEntity<List<ShowResponseDto>> getShowsByHall(@PathVariable Long hallId) {
-        List<ShowResponseDto> shows = showService.getShowsByHall(hallId);
+    @GetMapping(params = {"movieId", "date"})
+    public ResponseEntity<List<ShowResponseDto>> getShowsByMovieAndDate(
+            @RequestParam Long movieId, 
+            @RequestParam LocalDate date) {
+        List<ShowResponseDto> shows = showService.getShowsByMovieAndShowDate(movieId, date);
         return ResponseEntity.ok(shows);
     }
 }

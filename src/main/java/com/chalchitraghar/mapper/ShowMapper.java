@@ -7,7 +7,6 @@ import com.chalchitraghar.dto.show.ShowResponseDto;
 import com.chalchitraghar.model.Show;
 import com.chalchitraghar.model.Movie;
 import com.chalchitraghar.model.Hall;
-import com.chalchitraghar.model.enums.ShowStatus;
 
 import lombok.RequiredArgsConstructor;
 
