@@ -1,0 +1,111 @@
+hamro-chalchitraghar-backend/
+│
+├── pom.xml                              # Maven dependencies configuration
+├── mvnw                                  # Maven wrapper (Unix)
+├── mvnw.cmd                              # Maven wrapper (Windows)
+├── .gitignore                            # Git ignore rules
+├── .gitattributes                        # Git attributes
+│
+├── .mvn/
+│   └── wrapper/
+│       └── maven-wrapper.properties      # Maven wrapper properties
+│
+└── src/
+    ├── main/
+    │   ├── java/com/chalchitraghar/
+    │   │   ├── HamroChalchitragharBackendApplication.java  # Main Spring Boot application class
+    │   │   │
+    │   │   ├── config/                  # Configuration classes
+    │   │   │   ├── CORSConfig.java      # CORS configuration
+    │   │   │   └── SecurityConfig.java  # Spring Security configuration
+    │   │   │
+    │   │   ├── controller/              # REST Controllers (API endpoints)
+    │   │   │   ├── admin/               # Admin role endpoints
+    │   │   │   │   ├── AdminController.java
+    │   │   │   │   ├── HallController.java
+    │   │   │   │   ├── MovieController.java
+    │   │   │   │   └── ShowController.java
+    │   │   │   ├── user/                # User/Customer role endpoints
+    │   │   │   │   ├── HallController.java
+    │   │   │   │   ├── MovieController.java
+    │   │   │   │   └── ShowController.java
+    │   │   │   ├── AuthController.java  # Authentication endpoints
+    │   │   │   └── TestController.java  # Test endpoints
+    │   │   │
+    │   │   ├── dto/                     # Data Transfer Objects (Request/Response)
+    │   │   │   ├── auth/                # Authentication DTOs
+    │   │   │   │   ├── LoginRequestDto.java
+    │   │   │   │   ├── LoginResponseDto.java
+    │   │   │   │   ├── RegistrationRequestDto.java
+    │   │   │   │   └── RegistrationResponseDto.java
+    │   │   │   ├── hall/                # Hall DTOs
+    │   │   │   │   ├── HallRequestDto.java
+    │   │   │   │   └── HallResponseDto.java
+    │   │   │   ├── movie/               # Movie DTOs
+    │   │   │   │   ├── MovieDto.java
+    │   │   │   │   └── MovieResponseDto.java
+    │   │   │   └── show/                # Show DTOs
+    │   │   │       ├── ShowRequestDto.java
+    │   │   │       └── ShowResponseDto.java
+    │   │   │
+    │   │   ├── exception/               # Exception handling
+    │   │   │   ├── AuthenticationException.java
+    │   │   │   ├── GlobalExceptionHandler.java
+    │   │   │   ├── HallConflictException.java
+    │   │   │   └── ResourceNotFoundException.java
+    │   │   │
+    │   │   ├── mapper/                  # Entity-DTO mappers
+    │   │   │   ├── HallMapper.java
+    │   │   │   ├── MovieMapper.java
+    │   │   │   └── ShowMapper.java
+    │   │   │
+    │   │   ├── model/                   # Entity models (JPA entities)
+    │   │   │   ├── enums/               # Enumeration types
+    │   │   │   │   ├── MovieStatus.java
+    │   │   │   │   ├── Role.java
+    │   │   │   │   ├── ShowStatus.java
+    │   │   │   │   └── Status.java
+    │   │   │   ├── Hall.java            # Hall entity
+    │   │   │   ├── Movie.java           # Movie entity
+    │   │   │   ├── Show.java            # Show entity
+    │   │   │   ├── Seat.java            # Seat entity
+    │   │   │   └── User.java            # User entity
+    │   │   │
+    │   │   ├── repository/              # JPA Repositories (Data access layer)
+    │   │   │   ├── HallRepository.java
+    │   │   │   ├── MovieRepository.java
+    │   │   │   ├── ShowRepository.java
+    │   │   │   └── UserRepository.java
+    │   │   │
+    │   │   ├── security/                # Security & JWT implementation
+    │   │   │   ├── JwtAuthenticationFilter.java
+    │   │   │   └── JwtUtil.java
+    │   │   │
+    │   │   └── service/                 # Business logic services
+    │   │       ├── AuthService.java
+    │   │       ├── HallService.java
+    │   │       ├── MovieService.java
+    │   │       ├── ShowService.java
+    │   │       └── UserService.java
+    │   │
+    │   └── resources/
+    │       └── application.yaml         # Application configuration (database, etc.)
+    │
+    └── test/
+        └── java/com/chalchitraghar/
+            └── HamroChalchitragharBackendApplicationTests.java  # Unit tests
+
+Technology Stack:
+- Spring Boot 3.5.9
+- Java 25
+- Spring Security (JWT Authentication)
+- Spring Data JPA
+- MySQL Database
+- Maven Build Tool
+- Lombok (for reducing boilerplate code)
+
+Architecture:
+- Layered Architecture: Controller → Service → Repository
+- Role-based Access Control (Admin, Staff, Customer)
+- RESTful API Design
+- JWT Token-based Authentication
