@@ -34,6 +34,7 @@ public class ShowService {
     private final MovieRepository movieRepository;
     private final HallRepository hallRepository;
     private final ShowMapper showMapper;
+    private final SeatGenerationService seatGenerationService;
 
     /**
      * Validates that no other show is scheduled for the hall during the given time period.
@@ -78,6 +79,7 @@ public class ShowService {
         // Create show
         Show show = showMapper.toEntity(dto, movie, hall);
         Show saved = showRepository.save(show);
+        seatGenerationService.generateSeatsForShow(saved.getId());
         return showMapper.toResponseDto(saved);
     }
 
