@@ -12,6 +12,9 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+/**
+ * Response DTO containing show information with nested movie and hall details.
+ */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

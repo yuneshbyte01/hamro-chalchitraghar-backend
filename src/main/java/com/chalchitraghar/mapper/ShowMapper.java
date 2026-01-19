@@ -10,6 +10,10 @@ import com.chalchitraghar.model.Show;
 
 import lombok.RequiredArgsConstructor;
 
+/**
+ * Mapper for converting between Show entity and DTOs.
+ * Handles nested mapping of associated Movie and Hall entities.
+ */
 @Component
 @RequiredArgsConstructor
 public class ShowMapper {
@@ -17,6 +21,14 @@ public class ShowMapper {
     private final MovieMapper movieMapper;
     private final HallMapper hallMapper;
 
+    /**
+     * Converts a ShowRequest DTO to a Show entity.
+     *
+     * @param dto the request DTO to convert
+     * @param movie the Movie entity to associate
+     * @param hall the Hall entity to associate
+     * @return the Show entity, or null if dto is null
+     */
     public Show toEntity(ShowRequest dto, Movie movie, Hall hall) {
         if (dto == null) {
             return null;
@@ -32,6 +44,12 @@ public class ShowMapper {
                 .build();
     }
 
+    /**
+     * Converts a Show entity to a ShowResponse DTO.
+     *
+     * @param show the entity to convert
+     * @return the response DTO, or null if show is null
+     */
     public ShowResponse toResponseDto(Show show) {
         if (show == null) {
             return null;
@@ -51,6 +69,14 @@ public class ShowMapper {
         return dto;
     }
 
+    /**
+     * Updates an existing Show entity with values from a ShowRequest DTO.
+     *
+     * @param show the entity to update
+     * @param dto the request DTO containing new values
+     * @param movie the Movie entity to associate
+     * @param hall the Hall entity to associate
+     */
     public void updateEntityFromDto(Show show, ShowRequest dto, Movie movie, Hall hall) {
         if (show == null || dto == null) {
             return;

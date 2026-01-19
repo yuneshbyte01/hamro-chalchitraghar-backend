@@ -7,6 +7,9 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+/**
+ * Response DTO containing seat information and availability status.
+ */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

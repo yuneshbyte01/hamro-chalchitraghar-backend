@@ -3,9 +3,12 @@ package com.chalchitraghar.dto.auth;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 
+/**
+ * Response DTO for user registration operation.
+ */
 @Data
 @AllArgsConstructor
 public class RegistrationResponse {
-    private String message; // Success or error message
-    private String email; // User's email
+    private String message;
+    private String email;
 }

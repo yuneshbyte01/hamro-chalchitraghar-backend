@@ -5,9 +5,18 @@ import org.springframework.stereotype.Component;
 import com.chalchitraghar.dto.seat.SeatResponse;
 import com.chalchitraghar.model.Seat;
 
+/**
+ * Mapper for converting Seat entity to DTOs.
+ */
 @Component
 public class SeatMapper {
 
+    /**
+     * Converts a Seat entity to a SeatResponse DTO.
+     *
+     * @param seat the entity to convert
+     * @return the response DTO, or null if seat is null
+     */
     public SeatResponse toResponseDto(Seat seat) {
         if (seat == null) {
             return null;

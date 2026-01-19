@@ -5,17 +5,23 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
+/**
+ * Request DTO for user registration.
+ */
 @Data
 public class RegistrationRequest {
 
     @NotBlank(message = "Name is required")
-    private String name; // User's name
+    private String name;
 
     @Email(message = "Invalid email address")
     @NotBlank(message = "Email is required")
-    private String email; // User's email
+    private String email;
 
+    /**
+     * User password. Must be at least 8 characters long.
+     */
     @Size(min = 8, message = "Password must be at least 8 characters")
     @NotBlank(message = "Password is required")
-    private String password; // User's password
+    private String password;
 }

@@ -6,9 +6,18 @@ import com.chalchitraghar.dto.movie.MovieRequest;
 import com.chalchitraghar.dto.movie.MovieResponse;
 import com.chalchitraghar.model.Movie;
 
+/**
+ * Mapper for converting between Movie entity and DTOs.
+ */
 @Component
 public class MovieMapper {
 
+    /**
+     * Converts a MovieRequest DTO to a Movie entity.
+     *
+     * @param dto the request DTO to convert
+     * @return the Movie entity, or null if dto is null
+     */
     public Movie toEntity(MovieRequest dto) {
         if (dto == null) {
             return null;
@@ -26,6 +35,12 @@ public class MovieMapper {
                 .build();
     }
 
+    /**
+     * Updates an existing Movie entity with values from a MovieRequest DTO.
+     *
+     * @param movie the entity to update
+     * @param dto the request DTO containing new values
+     */
     public void updateEntityFromDto(Movie movie, MovieRequest dto) {
         if (movie == null || dto == null) {
             return;
@@ -41,6 +56,12 @@ public class MovieMapper {
         movie.setReleaseDate(dto.getReleaseDate());
     }
 
+    /**
+     * Converts a Movie entity to a MovieResponse DTO.
+     *
+     * @param movie the entity to convert
+     * @return the response DTO, or null if movie is null
+     */
     public MovieResponse toResponseDto(Movie movie) {
         if (movie == null) {
             return null;

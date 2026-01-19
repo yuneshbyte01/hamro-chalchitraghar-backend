@@ -6,9 +6,18 @@ import com.chalchitraghar.dto.hall.HallRequest;
 import com.chalchitraghar.dto.hall.HallResponse;
 import com.chalchitraghar.model.Hall;
 
+/**
+ * Mapper for converting between Hall entity and DTOs.
+ */
 @Component
 public class HallMapper {
 
+    /**
+     * Converts a HallRequest DTO to a Hall entity.
+     *
+     * @param dto the request DTO to convert
+     * @return the Hall entity, or null if dto is null
+     */
     public Hall toEntity(HallRequest dto) {
         if (dto == null) {
             return null;
@@ -22,6 +31,12 @@ public class HallMapper {
                 .build();
     }
 
+    /**
+     * Updates an existing Hall entity with values from a HallRequest DTO.
+     *
+     * @param hall the entity to update
+     * @param dto the request DTO containing new values
+     */
     public void updateEntityFromDto(Hall hall, HallRequest dto) {
         if (hall == null || dto == null) {
             return;
@@ -33,6 +48,12 @@ public class HallMapper {
         hall.setStatus(dto.getStatus());
     }
 
+    /**
+     * Converts a Hall entity to a HallResponse DTO.
+     *
+     * @param hall the entity to convert
+     * @return the response DTO, or null if hall is null
+     */
     public HallResponse toResponseDto(Hall hall) {
         if (hall == null) {
             return null;

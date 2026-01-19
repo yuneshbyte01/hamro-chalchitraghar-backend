@@ -6,6 +6,9 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import com.chalchitraghar.model.enums.Status;
 
+/**
+ * Response DTO containing hall information.
+ */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

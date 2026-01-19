@@ -11,6 +11,9 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+/**
+ * Request DTO for creating or updating a movie.
+ */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -20,6 +23,9 @@ public class MovieRequest {
     private String title;
     @NotBlank(message = "Genre is required")
     private String genre;
+    /**
+     * Duration in minutes. Must be at least 1 minute.
+     */
     @NotNull(message = "Duration is required")
     @PositiveOrZero(message = "Duration must be at least 1 minute")
     private Integer durationMinutes;

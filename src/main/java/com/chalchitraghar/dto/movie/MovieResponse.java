@@ -9,6 +9,9 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+/**
+ * Response DTO containing movie information.
+ */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
