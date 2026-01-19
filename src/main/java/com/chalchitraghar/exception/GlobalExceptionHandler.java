@@ -40,6 +40,30 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
     }
 
+    @ExceptionHandler(SeatAlreadyBookedException.class)
+    public ResponseEntity<Map<String, String>> handleSeatAlreadyBookedException(SeatAlreadyBookedException ex) {
+        logger.warn("Seat already booked: {}", ex.getMessage());
+        Map<String, String> error = new HashMap<>();
+        error.put("error", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
+    }
+
+    @ExceptionHandler(SeatLockedException.class)
+    public ResponseEntity<Map<String, String>> handleSeatLockedException(SeatLockedException ex) {
+        logger.warn("Seat locked: {}", ex.getMessage());
+        Map<String, String> error = new HashMap<>();
+        error.put("error", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
+    }
+
+    @ExceptionHandler(InvalidSeatSelectionException.class)
+    public ResponseEntity<Map<String, String>> handleInvalidSeatSelectionException(InvalidSeatSelectionException ex) {
+        logger.warn("Invalid seat selection: {}", ex.getMessage());
+        Map<String, String> error = new HashMap<>();
+        error.put("error", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+    }
+
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<Map<String, String>> handleIllegalArgumentException(IllegalArgumentException ex) {
         logger.warn("Invalid argument: {}", ex.getMessage());

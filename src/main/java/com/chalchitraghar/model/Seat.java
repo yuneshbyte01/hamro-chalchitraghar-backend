@@ -75,6 +75,12 @@ public class Seat {
     @NotNull(message = "Updated at is required")
     private LocalDateTime updatedAt;
 
+    @Column(nullable = true)
+    private LocalDateTime lockedAt;
+
+    @Column(nullable = true)
+    private LocalDateTime lockExpiresAt;
+
     @PrePersist
     public void onCreate() {
         this.createdAt = LocalDateTime.now();

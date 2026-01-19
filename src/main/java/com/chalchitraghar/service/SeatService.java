@@ -6,8 +6,6 @@ import java.util.List;
 import com.chalchitraghar.repository.SeatRepository;
 import com.chalchitraghar.mapper.SeatMapper;
 import com.chalchitraghar.dto.seat.SeatResponseDto;
-import com.chalchitraghar.exception.ResourceNotFoundException;
-import com.chalchitraghar.model.Seat;
 
 @Service
 @RequiredArgsConstructor
