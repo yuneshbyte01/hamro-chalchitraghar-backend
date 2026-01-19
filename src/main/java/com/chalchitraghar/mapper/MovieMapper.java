@@ -2,14 +2,14 @@ package com.chalchitraghar.mapper;
 
 import org.springframework.stereotype.Component;
 
-import com.chalchitraghar.dto.movie.MovieDto;
-import com.chalchitraghar.dto.movie.MovieResponseDto;
+import com.chalchitraghar.dto.movie.MovieRequest;
+import com.chalchitraghar.dto.movie.MovieResponse;
 import com.chalchitraghar.model.Movie;
 
 @Component
 public class MovieMapper {
 
-    public Movie toEntity(MovieDto dto) {
+    public Movie toEntity(MovieRequest dto) {
         if (dto == null) {
             return null;
         }
@@ -26,7 +26,7 @@ public class MovieMapper {
                 .build();
     }
 
-    public void updateEntityFromDto(Movie movie, MovieDto dto) {
+    public void updateEntityFromDto(Movie movie, MovieRequest dto) {
         if (movie == null || dto == null) {
             return;
         }
@@ -41,12 +41,12 @@ public class MovieMapper {
         movie.setReleaseDate(dto.getReleaseDate());
     }
 
-    public MovieResponseDto toResponseDto(Movie movie) {
+    public MovieResponse toResponseDto(Movie movie) {
         if (movie == null) {
             return null;
         }
 
-        MovieResponseDto dto = new MovieResponseDto();
+        MovieResponse dto = new MovieResponse();
         dto.setId(movie.getId());
         dto.setTitle(movie.getTitle());
         dto.setGenre(movie.getGenre());

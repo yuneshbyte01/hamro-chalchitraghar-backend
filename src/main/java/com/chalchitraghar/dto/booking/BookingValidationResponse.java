@@ -7,7 +7,7 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class BookingValidationResponseDto {
+public class BookingValidationResponse {
 
     private String message;
     private Long showId;

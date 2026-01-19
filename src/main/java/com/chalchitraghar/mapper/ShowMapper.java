@@ -2,11 +2,11 @@ package com.chalchitraghar.mapper;
 
 import org.springframework.stereotype.Component;
 
-import com.chalchitraghar.dto.show.ShowRequestDto;
-import com.chalchitraghar.dto.show.ShowResponseDto;
-import com.chalchitraghar.model.Show;
-import com.chalchitraghar.model.Movie;
+import com.chalchitraghar.dto.show.ShowRequest;
+import com.chalchitraghar.dto.show.ShowResponse;
 import com.chalchitraghar.model.Hall;
+import com.chalchitraghar.model.Movie;
+import com.chalchitraghar.model.Show;
 
 import lombok.RequiredArgsConstructor;
 
@@ -17,7 +17,7 @@ public class ShowMapper {
     private final MovieMapper movieMapper;
     private final HallMapper hallMapper;
 
-    public Show toEntity(ShowRequestDto dto, Movie movie, Hall hall) {
+    public Show toEntity(ShowRequest dto, Movie movie, Hall hall) {
         if (dto == null) {
             return null;
         }
@@ -32,12 +32,12 @@ public class ShowMapper {
                 .build();
     }
 
-    public ShowResponseDto toResponseDto(Show show) {
+    public ShowResponse toResponseDto(Show show) {
         if (show == null) {
             return null;
         }
 
-        ShowResponseDto dto = new ShowResponseDto();
+        ShowResponse dto = new ShowResponse();
         dto.setId(show.getId());
         dto.setMovie(movieMapper.toResponseDto(show.getMovie()));
         dto.setHall(hallMapper.toResponseDto(show.getHall()));
@@ -51,7 +51,7 @@ public class ShowMapper {
         return dto;
     }
 
-    public void updateEntityFromDto(Show show, ShowRequestDto dto, Movie movie, Hall hall) {
+    public void updateEntityFromDto(Show show, ShowRequest dto, Movie movie, Hall hall) {
         if (show == null || dto == null) {
             return;
         }

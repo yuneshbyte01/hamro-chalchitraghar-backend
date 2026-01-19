@@ -14,7 +14,7 @@ import java.time.LocalTime;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class ShowRequestDto {
+public class ShowRequest {
 
     @NotNull(message = "Movie ID is required")
     private Long movieId;

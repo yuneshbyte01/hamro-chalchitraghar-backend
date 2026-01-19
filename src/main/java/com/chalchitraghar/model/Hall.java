@@ -1,37 +1,33 @@
 package com.chalchitraghar.model;
 
-import java.time.LocalDateTime;
+import com.chalchitraghar.model.enums.Status;
 
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
 import jakarta.persistence.Column;
-import jakarta.persistence.Enumerated;
+import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
-import jakarta.validation.constraints.PositiveOrZero;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.PositiveOrZero;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Table;
-import jakarta.persistence.PrePersist;
-import jakarta.persistence.PreUpdate;
-import com.chalchitraghar.model.enums.Status;
 
 @Entity
-@Table(name = "halls")
+@Table(name = "halls", indexes = {
+    @jakarta.persistence.Index(name = "idx_hall_name", columnList = "name"),
+    @jakarta.persistence.Index(name = "idx_hall_status", columnList = "status")
+})
 @Data
+@EqualsAndHashCode(callSuper = true)
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Hall {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+public class Hall extends GenericEntity {
 
     @Column(nullable = false, unique = true)
     @NotBlank(message = "Name is required")
@@ -50,23 +46,10 @@ public class Hall {
     @NotNull(message = "Status is required")
     private Status status;
 
-    @Column(nullable = false)
-    @NotNull(message = "Created at is required")
-    private LocalDateTime createdAt;
-
-    @Column(nullable = false)
-    @NotNull(message = "Updated at is required")
-    private LocalDateTime updatedAt;
-
     @PrePersist
-    public void onCreate() {
-        this.createdAt = LocalDateTime.now();
-        this.updatedAt = LocalDateTime.now();
+    @Override
+    protected void onCreate() {
+        super.onCreate();
         this.status = Status.ACTIVE;
-    }
-
-    @PreUpdate
-    public void onUpdate() {
-        this.updatedAt = LocalDateTime.now();
     }
 }

@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.chalchitraghar.dto.show.ShowResponseDto;
+import com.chalchitraghar.dto.show.ShowResponse;
 import com.chalchitraghar.service.ShowService;
 
 import lombok.RequiredArgsConstructor;
@@ -23,34 +23,29 @@ public class ShowController {
 
     private final ShowService showService;
 
-    @GetMapping("/test")
-    public ResponseEntity<String> test() {
-        return ResponseEntity.ok("Working....");
-    }
-
     @GetMapping
-    public ResponseEntity<List<ShowResponseDto>> getAllShows() {
-        List<ShowResponseDto> shows = showService.getAllShows();
+    public ResponseEntity<List<ShowResponse>> getAllShows() {
+        List<ShowResponse> shows = showService.getAllShows();
         return ResponseEntity.ok(shows);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ShowResponseDto> getShowById(@PathVariable Long id) {
-        ShowResponseDto show = showService.getShowById(id);
+    public ResponseEntity<ShowResponse> getShowById(@PathVariable Long id) {
+        ShowResponse show = showService.getShowById(id);
         return ResponseEntity.ok(show);
     }
 
     @GetMapping("/movie/{movieId}")
-    public ResponseEntity<List<ShowResponseDto>> getShowsByMovie(@PathVariable Long movieId) {
-        List<ShowResponseDto> shows = showService.getShowsByMovie(movieId);
+    public ResponseEntity<List<ShowResponse>> getShowsByMovie(@PathVariable Long movieId) {
+        List<ShowResponse> shows = showService.getShowsByMovie(movieId);
         return ResponseEntity.ok(shows);
     }
 
     @GetMapping(params = {"movieId", "date"})
-    public ResponseEntity<List<ShowResponseDto>> getShowsByMovieAndDate(
+    public ResponseEntity<List<ShowResponse>> getShowsByMovieAndDate(
             @RequestParam Long movieId, 
             @RequestParam LocalDate date) {
-        List<ShowResponseDto> shows = showService.getShowsByMovieAndShowDate(movieId, date);
+        List<ShowResponse> shows = showService.getShowsByMovieAndShowDate(movieId, date);
         return ResponseEntity.ok(shows);
     }
 }

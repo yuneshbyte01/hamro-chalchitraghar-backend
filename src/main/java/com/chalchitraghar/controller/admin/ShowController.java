@@ -13,8 +13,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.chalchitraghar.dto.show.ShowRequestDto;
-import com.chalchitraghar.dto.show.ShowResponseDto;
+import com.chalchitraghar.dto.show.ShowRequest;
+import com.chalchitraghar.dto.show.ShowResponse;
 import com.chalchitraghar.service.ShowService;
 
 import jakarta.validation.Valid;
@@ -27,32 +27,27 @@ public class ShowController {
 
     private final ShowService showService;
 
-    @GetMapping("/test")
-    public ResponseEntity<String> test() {
-        return ResponseEntity.ok("Working....");
-    }
-
     @GetMapping
-    public ResponseEntity<List<ShowResponseDto>> getAllShows() {
-        List<ShowResponseDto> shows = showService.getAllShows();
+    public ResponseEntity<List<ShowResponse>> getAllShows() {
+        List<ShowResponse> shows = showService.getAllShows();
         return ResponseEntity.ok(shows);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ShowResponseDto> getShowById(@PathVariable Long id) {
-        ShowResponseDto show = showService.getShowById(id);
+    public ResponseEntity<ShowResponse> getShowById(@PathVariable Long id) {
+        ShowResponse show = showService.getShowById(id);
         return ResponseEntity.ok(show);
     }
 
     @PostMapping
-    public ResponseEntity<ShowResponseDto> createShow(@Valid @RequestBody ShowRequestDto dto) {
-        ShowResponseDto createdShow = showService.addShow(dto);
+    public ResponseEntity<ShowResponse> createShow(@Valid @RequestBody ShowRequest dto) {
+        ShowResponse createdShow = showService.addShow(dto);
         return ResponseEntity.status(HttpStatus.CREATED).body(createdShow);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<ShowResponseDto> updateShow(@PathVariable Long id, @Valid @RequestBody ShowRequestDto dto) {
-        ShowResponseDto updatedShow = showService.updateShow(id, dto);
+    public ResponseEntity<ShowResponse> updateShow(@PathVariable Long id, @Valid @RequestBody ShowRequest dto) {
+        ShowResponse updatedShow = showService.updateShow(id, dto);
         return ResponseEntity.ok(updatedShow);
     }
 

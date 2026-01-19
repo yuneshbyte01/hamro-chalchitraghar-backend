@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import lombok.RequiredArgsConstructor;
-import com.chalchitraghar.dto.seat.SeatResponseDto;
+import com.chalchitraghar.dto.seat.SeatResponse;
 import com.chalchitraghar.service.SeatService;
 
 @RestController
@@ -19,7 +19,7 @@ public class SeatController {
     private final SeatService seatService;
 
     @GetMapping("/{showId}/seats")
-    public ResponseEntity<List<SeatResponseDto>> getAllSeatsForShow(@PathVariable Long showId) {
+    public ResponseEntity<List<SeatResponse>> getAllSeatsForShow(@PathVariable Long showId) {
         return ResponseEntity.ok(seatService.getAllSeatsForShow(showId));
     }
 

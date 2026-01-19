@@ -9,8 +9,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.chalchitraghar.dto.booking.BookingValidationRequestDto;
-import com.chalchitraghar.dto.booking.BookingValidationResponseDto;
+import com.chalchitraghar.dto.booking.BookingValidationRequest;
+import com.chalchitraghar.dto.booking.BookingValidationResponse;
 import com.chalchitraghar.model.User;
 import com.chalchitraghar.service.BookingService;
 
@@ -28,12 +28,12 @@ public class BookingController {
      * Validates and locks seats for booking.
      * This endpoint requires JWT authentication and is accessible to authenticated users.
      * 
-     * @param requestDto Contains showId and list of seatIds to validate and lock
+     * @param request Contains showId and list of seatIds to validate and lock
      * @return Success response with validation details
      */
     @PostMapping("/validate")
-    public ResponseEntity<BookingValidationResponseDto> validateAndLockSeats(
-            @Valid @RequestBody BookingValidationRequestDto requestDto) {
+    public ResponseEntity<BookingValidationResponse> validateAndLockSeats(
+            @Valid @RequestBody BookingValidationRequest request) {
         
         // Get current authenticated user
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -45,16 +45,16 @@ public class BookingController {
         
         // Validate and lock seats
         bookingService.validateAndLockSeats(
-                requestDto.getShowId(),
-                requestDto.getSeatIds(),
+                request.getShowId(),
+                request.getSeatIds(),
                 currentUser.getId()
         );
         
         // Build success response
-        BookingValidationResponseDto response = new BookingValidationResponseDto(
+        BookingValidationResponse response = new BookingValidationResponse(
                 "Seats validated and locked successfully",
-                requestDto.getShowId(),
-                requestDto.getSeatIds().size()
+                request.getShowId(),
+                request.getSeatIds().size()
         );
         
         return ResponseEntity.status(HttpStatus.OK).body(response);

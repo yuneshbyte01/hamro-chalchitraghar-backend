@@ -2,14 +2,14 @@ package com.chalchitraghar.mapper;
 
 import org.springframework.stereotype.Component;
 
-import com.chalchitraghar.dto.hall.HallRequestDto;
-import com.chalchitraghar.dto.hall.HallResponseDto;
+import com.chalchitraghar.dto.hall.HallRequest;
+import com.chalchitraghar.dto.hall.HallResponse;
 import com.chalchitraghar.model.Hall;
 
 @Component
 public class HallMapper {
 
-    public Hall toEntity(HallRequestDto dto) {
+    public Hall toEntity(HallRequest dto) {
         if (dto == null) {
             return null;
         }
@@ -22,7 +22,7 @@ public class HallMapper {
                 .build();
     }
 
-    public void updateEntityFromDto(Hall hall, HallRequestDto dto) {
+    public void updateEntityFromDto(Hall hall, HallRequest dto) {
         if (hall == null || dto == null) {
             return;
         }
@@ -33,12 +33,12 @@ public class HallMapper {
         hall.setStatus(dto.getStatus());
     }
 
-    public HallResponseDto toResponseDto(Hall hall) {
+    public HallResponse toResponseDto(Hall hall) {
         if (hall == null) {
             return null;
         }
 
-        HallResponseDto dto = new HallResponseDto();
+        HallResponse dto = new HallResponse();
         dto.setId(hall.getId());
         dto.setName(hall.getName());
         dto.setCapacity(hall.getCapacity());

@@ -2,18 +2,18 @@ package com.chalchitraghar.mapper;
 
 import org.springframework.stereotype.Component;
 
-import com.chalchitraghar.dto.seat.SeatResponseDto;
+import com.chalchitraghar.dto.seat.SeatResponse;
 import com.chalchitraghar.model.Seat;
 
 @Component
 public class SeatMapper {
 
-    public SeatResponseDto toResponseDto(Seat seat) {
+    public SeatResponse toResponseDto(Seat seat) {
         if (seat == null) {
             return null;
         }
 
-        SeatResponseDto dto = new SeatResponseDto();
+        SeatResponse dto = new SeatResponse();
         dto.setId(seat.getId());
         dto.setRowLabel(seat.getRowLabel());
         dto.setSeatNumber(seat.getSeatNumber());

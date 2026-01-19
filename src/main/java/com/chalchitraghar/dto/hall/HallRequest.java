@@ -11,7 +11,7 @@ import com.chalchitraghar.model.enums.Status;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class HallRequestDto {
+public class HallRequest {
 
     @NotBlank(message = "Name is required")
     private String name;

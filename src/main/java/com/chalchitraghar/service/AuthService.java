@@ -3,8 +3,10 @@ package com.chalchitraghar.service;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import com.chalchitraghar.dto.auth.LoginRequestDto;
-import com.chalchitraghar.dto.auth.LoginResponseDto;
+import com.chalchitraghar.dto.auth.LoginRequest;
+import com.chalchitraghar.dto.auth.LoginResponse;
+import com.chalchitraghar.dto.auth.RegistrationRequest;
+import com.chalchitraghar.dto.auth.RegistrationResponse;
 import com.chalchitraghar.exception.AuthenticationException;
 import com.chalchitraghar.model.User;
 import com.chalchitraghar.security.JwtUtil;
@@ -19,7 +21,30 @@ public class AuthService {
     private final BCryptPasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
 
-    public LoginResponseDto login(LoginRequestDto request) {
+    /**
+     * Registers a new user and returns a registration response.
+     * @param request Registration request containing user details
+     * @return Registration response with success message and email
+     */
+    public RegistrationResponse register(RegistrationRequest request) {
+        User user = userService.addUser(
+                request.getName(),
+                request.getEmail(),
+                request.getPassword()
+        );
+
+        return new RegistrationResponse(
+                "User registered successfully",
+                user.getEmail()
+        );
+    }
+
+    /**
+     * Authenticates a user and returns a login response with JWT token.
+     * @param request Login request containing email and password
+     * @return Login response with JWT token and user details
+     */
+    public LoginResponse login(LoginRequest request) {
         User user = userService.getUserByEmail(request.getEmail());
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
@@ -28,7 +53,7 @@ public class AuthService {
 
         String token = jwtUtil.generateToken(user);
 
-        return new LoginResponseDto(
+        return new LoginResponse(
             token,
             user.getEmail(),
             user.getName(),

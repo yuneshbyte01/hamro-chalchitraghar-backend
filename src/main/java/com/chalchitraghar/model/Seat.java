@@ -1,40 +1,34 @@
 package com.chalchitraghar.model;
 
-import jakarta.persistence.Id;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
+import java.time.LocalDateTime;
+
+import com.chalchitraghar.model.enums.SeatStatus;
+import com.chalchitraghar.model.enums.SeatType;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.Table;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Table;
-
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.FetchType;
-import jakarta.validation.constraints.NotNull;
-import jakarta.persistence.Column;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.EnumType;
-import com.chalchitraghar.model.enums.SeatType;
-import com.chalchitraghar.model.enums.SeatStatus;
-import java.time.LocalDateTime;
-
-import jakarta.persistence.PrePersist;
-import jakarta.persistence.PreUpdate;
 
 @Entity
 @Table(name = "seats")
 @Data
+@EqualsAndHashCode(callSuper = true)
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Seat {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+public class Seat extends GenericEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "show_id", nullable = false)
@@ -67,14 +61,6 @@ public class Seat {
     @NotNull(message = "Position index is required")
     private Integer positionIndex;
 
-    @Column(nullable = false)
-    @NotNull(message = "Created at is required")
-    private LocalDateTime createdAt;
-
-    @Column(nullable = false)
-    @NotNull(message = "Updated at is required")
-    private LocalDateTime updatedAt;
-
     @Column(nullable = true)
     private LocalDateTime lockedAt;
 
@@ -82,14 +68,9 @@ public class Seat {
     private LocalDateTime lockExpiresAt;
 
     @PrePersist
-    public void onCreate() {
-        this.createdAt = LocalDateTime.now();
-        this.updatedAt = LocalDateTime.now();
+    @Override
+    protected void onCreate() {
+        super.onCreate();
         this.seatStatus = SeatStatus.AVAILABLE;
-    }
-
-    @PreUpdate
-    public void onUpdate() {
-        this.updatedAt = LocalDateTime.now();
     }
 }

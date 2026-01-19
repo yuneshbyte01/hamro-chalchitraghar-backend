@@ -10,7 +10,7 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class SeatResponseDto {
+public class SeatResponse {
 
     private Long id;
     private String rowLabel;

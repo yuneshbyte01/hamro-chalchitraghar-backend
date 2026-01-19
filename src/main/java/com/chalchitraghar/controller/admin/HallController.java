@@ -13,8 +13,8 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.DeleteMapping;
 
-import com.chalchitraghar.dto.hall.HallRequestDto;
-import com.chalchitraghar.dto.hall.HallResponseDto;
+import com.chalchitraghar.dto.hall.HallRequest;
+import com.chalchitraghar.dto.hall.HallResponse;
 import com.chalchitraghar.service.HallService;
 
 import jakarta.validation.Valid;
@@ -27,32 +27,27 @@ public class HallController {
     
     private final HallService hallService;
 
-    @GetMapping("/test")
-    public ResponseEntity<String> test() {
-        return ResponseEntity.ok("Working....");
-    }
-
     @GetMapping
-    public ResponseEntity<List<HallResponseDto>> getAllHalls() {
-        List<HallResponseDto> halls = hallService.getAllHalls();
+    public ResponseEntity<List<HallResponse>> getAllHalls() {
+        List<HallResponse> halls = hallService.getAllHalls();
         return ResponseEntity.ok(halls);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<HallResponseDto> getHallById(@PathVariable Long id) {
-        HallResponseDto hall = hallService.getHallById(id);
+    public ResponseEntity<HallResponse> getHallById(@PathVariable Long id) {
+        HallResponse hall = hallService.getHallById(id);
         return ResponseEntity.ok(hall);
     }
 
     @PostMapping
-    public ResponseEntity<HallResponseDto> createHall(@Valid @RequestBody HallRequestDto dto) {
-        HallResponseDto hall = hallService.addHall(dto);
+    public ResponseEntity<HallResponse> createHall(@Valid @RequestBody HallRequest dto) {
+        HallResponse hall = hallService.addHall(dto);
         return ResponseEntity.status(HttpStatus.CREATED).body(hall);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<HallResponseDto> updateHall(@PathVariable Long id, @Valid @RequestBody HallRequestDto dto) {
-        HallResponseDto hall = hallService.updateHall(id, dto);
+    public ResponseEntity<HallResponse> updateHall(@PathVariable Long id, @Valid @RequestBody HallRequest dto) {
+        HallResponse hall = hallService.updateHall(id, dto);
         return ResponseEntity.ok(hall);
     }
 
@@ -63,8 +58,8 @@ public class HallController {
     }
 
     @GetMapping("/active")
-    public ResponseEntity<List<HallResponseDto>> getActiveHalls() {
-        List<HallResponseDto> halls = hallService.getActiveHalls();
+    public ResponseEntity<List<HallResponse>> getActiveHalls() {
+        List<HallResponse> halls = hallService.getActiveHalls();
         return ResponseEntity.ok(halls);
     }
 }

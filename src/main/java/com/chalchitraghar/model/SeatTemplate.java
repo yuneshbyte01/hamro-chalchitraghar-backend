@@ -2,20 +2,17 @@ package com.chalchitraghar.model;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
-import jakarta.persistence.Id;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import jakarta.persistence.Column;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Positive;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.EnumType;
-import java.time.LocalDateTime;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import com.chalchitraghar.model.enums.SeatType;
@@ -26,14 +23,11 @@ import jakarta.persistence.FetchType;
 @Entity
 @Table(name = "seat_templates")
 @Data
+@EqualsAndHashCode(callSuper = true)
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class SeatTemplate {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+public class SeatTemplate extends GenericEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "hall_id", nullable = false)
@@ -62,24 +56,17 @@ public class SeatTemplate {
     @NotNull(message = "Position index is required")
     private Integer positionIndex;
 
-    @Column(nullable = false)
-    @NotNull(message = "Created at is required")
-    private LocalDateTime createdAt;
-
-    @Column(nullable = false)
-    @NotNull(message = "Updated at is required")
-    private LocalDateTime updatedAt;
-
     @PrePersist
-    public void onCreate() {
-        this.createdAt = LocalDateTime.now();
-        this.updatedAt = LocalDateTime.now();
+    @Override
+    protected void onCreate() {
+        super.onCreate();
         this.generateSeatCode();
     }
 
     @PreUpdate
-    public void onUpdate() {
-        this.updatedAt = LocalDateTime.now();
+    @Override
+    protected void onUpdate() {
+        super.onUpdate();
         this.generateSeatCode();
     }
 

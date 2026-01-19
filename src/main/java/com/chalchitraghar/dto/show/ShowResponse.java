@@ -1,7 +1,7 @@
 package com.chalchitraghar.dto.show;
 
-import com.chalchitraghar.dto.movie.MovieResponseDto;
-import com.chalchitraghar.dto.hall.HallResponseDto;
+import com.chalchitraghar.dto.movie.MovieResponse;
+import com.chalchitraghar.dto.hall.HallResponse;
 import com.chalchitraghar.model.enums.ShowStatus;
 
 import java.time.LocalDate;
@@ -15,11 +15,11 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class ShowResponseDto {
+public class ShowResponse {
     
     private Long id;
-    private MovieResponseDto movie;
-    private HallResponseDto hall;
+    private MovieResponse movie;
+    private HallResponse hall;
     private Double price;
     private ShowStatus status;
     private LocalDate showDate;

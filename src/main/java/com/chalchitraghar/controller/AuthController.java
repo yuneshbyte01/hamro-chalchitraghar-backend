@@ -7,13 +7,11 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.chalchitraghar.dto.auth.LoginRequestDto;
-import com.chalchitraghar.dto.auth.LoginResponseDto;
-import com.chalchitraghar.dto.auth.RegistrationRequestDto;
-import com.chalchitraghar.dto.auth.RegistrationResponseDto;
-import com.chalchitraghar.model.User;
+import com.chalchitraghar.dto.auth.LoginRequest;
+import com.chalchitraghar.dto.auth.LoginResponse;
+import com.chalchitraghar.dto.auth.RegistrationRequest;
+import com.chalchitraghar.dto.auth.RegistrationResponse;
 import com.chalchitraghar.service.AuthService;
-import com.chalchitraghar.service.UserService;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -23,28 +21,17 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class AuthController {
 
-    private final UserService userService;
     private final AuthService authService;
 
     @PostMapping("/register")
-    public ResponseEntity<RegistrationResponseDto> register(@Valid @RequestBody RegistrationRequestDto requestDto) {
-        User user = userService.registerUser(
-                requestDto.getName(),
-                requestDto.getEmail(),
-                requestDto.getPassword()
-        );
-
-        RegistrationResponseDto response = new RegistrationResponseDto(
-                "User registered successfully",
-                user.getEmail()
-        );
-
+    public ResponseEntity<RegistrationResponse> register(@Valid @RequestBody RegistrationRequest request) {
+        RegistrationResponse response = authService.register(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @PostMapping("/login")
-    public ResponseEntity<LoginResponseDto> login(@Valid @RequestBody LoginRequestDto request) {
-        LoginResponseDto response = authService.login(request);
+    public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
+        LoginResponse response = authService.login(request);
         return ResponseEntity.ok(response);
     }
 }

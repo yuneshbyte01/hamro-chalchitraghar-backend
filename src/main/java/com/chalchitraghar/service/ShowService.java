@@ -3,8 +3,8 @@ package com.chalchitraghar.service;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.chalchitraghar.dto.show.ShowRequestDto;
-import com.chalchitraghar.dto.show.ShowResponseDto;
+import com.chalchitraghar.dto.show.ShowRequest;
+import com.chalchitraghar.dto.show.ShowResponse;
 import com.chalchitraghar.exception.HallConflictException;
 import com.chalchitraghar.exception.ResourceNotFoundException;
 import com.chalchitraghar.mapper.ShowMapper;
@@ -49,7 +49,7 @@ public class ShowService {
         }
     }
 
-    public ShowResponseDto addShow(ShowRequestDto dto) {
+    public ShowResponse addShow(ShowRequest dto) {
         // Fetch and validate movie
         Movie movie = movieRepository.findById(dto.getMovieId())
                 .orElseThrow(() -> new ResourceNotFoundException("Movie", dto.getMovieId()));
@@ -83,7 +83,7 @@ public class ShowService {
         return showMapper.toResponseDto(saved);
     }
 
-    public ShowResponseDto updateShow(Long id, ShowRequestDto dto) {
+    public ShowResponse updateShow(Long id, ShowRequest dto) {
         Show show = showRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Show", id));
 
@@ -127,7 +127,7 @@ public class ShowService {
     }
 
     @Transactional(readOnly = true)
-    public List<ShowResponseDto> getAllShows() {
+    public List<ShowResponse> getAllShows() {
         return showRepository.findAll()
                 .stream()
                 .map(showMapper::toResponseDto)
@@ -135,7 +135,7 @@ public class ShowService {
     }
 
     @Transactional(readOnly = true)
-    public ShowResponseDto getShowById(Long id) {
+    public ShowResponse getShowById(Long id) {
         Show show = showRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Show", id));
         
@@ -152,7 +152,7 @@ public class ShowService {
     }
 
     @Transactional(readOnly = true)
-    public List<ShowResponseDto> getShowsByHall(Long hallId) {
+    public List<ShowResponse> getShowsByHall(Long hallId) {
         return showRepository.findByHallId(hallId)
                 .stream()
                 .map(showMapper::toResponseDto)
@@ -160,7 +160,7 @@ public class ShowService {
     }
 
     @Transactional(readOnly = true)
-    public List<ShowResponseDto> getShowsByMovie(Long movieId) {
+    public List<ShowResponse> getShowsByMovie(Long movieId) {
         return showRepository.findByMovieId(movieId)
                 .stream()
                 .map(showMapper::toResponseDto)
@@ -168,7 +168,7 @@ public class ShowService {
     }
 
     @Transactional(readOnly = true)
-    public List<ShowResponseDto> getShowsByMovieAndShowDate(Long movieId, LocalDate showDate) {
+    public List<ShowResponse> getShowsByMovieAndShowDate(Long movieId, LocalDate showDate) {
         // First check if movie exists and is NOW_SHOWING
         Movie movie = movieRepository.findById(movieId)
                 .orElseThrow(() -> new ResourceNotFoundException("Movie", movieId));

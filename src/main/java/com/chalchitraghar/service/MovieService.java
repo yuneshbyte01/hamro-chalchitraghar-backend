@@ -6,8 +6,8 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.chalchitraghar.dto.movie.MovieDto;
-import com.chalchitraghar.dto.movie.MovieResponseDto;
+import com.chalchitraghar.dto.movie.MovieRequest;
+import com.chalchitraghar.dto.movie.MovieResponse;
 import com.chalchitraghar.exception.ResourceNotFoundException;
 import com.chalchitraghar.mapper.MovieMapper;
 import com.chalchitraghar.model.Movie;
@@ -24,13 +24,13 @@ public class MovieService {
     private final MovieRepository movieRepository;
     private final MovieMapper movieMapper;
 
-    public MovieResponseDto addMovie(MovieDto dto) {
+    public MovieResponse addMovie(MovieRequest dto) {
         Movie movie = movieMapper.toEntity(dto);
         Movie saved = movieRepository.save(movie);
         return movieMapper.toResponseDto(saved);
     }
 
-    public MovieResponseDto updateMovie(Long id, MovieDto dto) {
+    public MovieResponse updateMovie(Long id, MovieRequest dto) {
         Movie movie = movieRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Movie", id));
 
@@ -46,20 +46,20 @@ public class MovieService {
         movieRepository.save(movie);
     }
 
-    public List<MovieResponseDto> getAllMovies() {
+    public List<MovieResponse> getAllMovies() {
         return movieRepository.findAll()
                 .stream()
                 .map(movieMapper::toResponseDto)
                 .collect(Collectors.toList());
     }
 
-    public MovieResponseDto getMovieById(Long id) {
+    public MovieResponse getMovieById(Long id) {
         Movie movie = movieRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Movie", id));
         return movieMapper.toResponseDto(movie);
     }
 
-    public List<MovieResponseDto> getMoviesByStatus(MovieStatus status) {
+    public List<MovieResponse> getMoviesByStatus(MovieStatus status) {
 
         List<Movie> movies = movieRepository.findAllByStatusOrderByReleaseDateAsc(status);
     

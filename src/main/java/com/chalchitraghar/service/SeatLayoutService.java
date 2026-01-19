@@ -13,7 +13,6 @@ import com.chalchitraghar.exception.ResourceNotFoundException;
 
 @Service
 @RequiredArgsConstructor
-@Transactional
 public class SeatLayoutService {
 
     private final SeatTemplateRepository seatTemplateRepository;

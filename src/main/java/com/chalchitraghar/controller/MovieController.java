@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.chalchitraghar.dto.movie.MovieResponseDto;
+import com.chalchitraghar.dto.movie.MovieResponse;
 import com.chalchitraghar.model.enums.MovieStatus;
 import com.chalchitraghar.service.MovieService;
 
@@ -21,32 +21,27 @@ public class MovieController {
 
     private final MovieService movieService;
 
-    @GetMapping("/test")
-    public ResponseEntity<String> test() {
-        return ResponseEntity.ok("Working....");
-    }
-
     @GetMapping
-    public ResponseEntity<List<MovieResponseDto>> getAllMovies() {
-        List<MovieResponseDto> movies = movieService.getAllMovies();
+    public ResponseEntity<List<MovieResponse>> getAllMovies() {
+        List<MovieResponse> movies = movieService.getAllMovies();
         return ResponseEntity.ok(movies);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<MovieResponseDto> getMovieById(@PathVariable Long id) {
-        MovieResponseDto movie = movieService.getMovieById(id);
+    public ResponseEntity<MovieResponse> getMovieById(@PathVariable Long id) {
+        MovieResponse movie = movieService.getMovieById(id);
         return ResponseEntity.ok(movie);
     }
 
     @GetMapping("/now-showing")
-    public ResponseEntity<List<MovieResponseDto>> getNowShowingMovies() {
-        List<MovieResponseDto> movies = movieService.getMoviesByStatus(MovieStatus.NOW_SHOWING);
+    public ResponseEntity<List<MovieResponse>> getNowShowingMovies() {
+        List<MovieResponse> movies = movieService.getMoviesByStatus(MovieStatus.NOW_SHOWING);
         return ResponseEntity.ok(movies);
     }
 
     @GetMapping("/upcoming")
-    public ResponseEntity<List<MovieResponseDto>> getUpcomingMovies() {
-        List<MovieResponseDto> movies = movieService.getMoviesByStatus(MovieStatus.UPCOMING);
+    public ResponseEntity<List<MovieResponse>> getUpcomingMovies() {
+        List<MovieResponse> movies = movieService.getMoviesByStatus(MovieStatus.UPCOMING);
         return ResponseEntity.ok(movies);
     }
 }

@@ -12,7 +12,7 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class MovieResponseDto {
+public class MovieResponse {
     private Long id;
     private String title;
     private String genre;

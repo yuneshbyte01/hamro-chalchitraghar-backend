@@ -2,8 +2,8 @@ package com.chalchitraghar.service;
 
 import org.springframework.stereotype.Service;
 
-import com.chalchitraghar.dto.hall.HallRequestDto;
-import com.chalchitraghar.dto.hall.HallResponseDto;
+import com.chalchitraghar.dto.hall.HallRequest;
+import com.chalchitraghar.dto.hall.HallResponse;
 import com.chalchitraghar.exception.ResourceNotFoundException;
 import com.chalchitraghar.mapper.HallMapper;
 import com.chalchitraghar.model.Hall;
@@ -22,7 +22,7 @@ public class HallService {
     private final HallRepository hallRepository;
     private final HallMapper hallMapper;
 
-    public HallResponseDto addHall(HallRequestDto dto) {
+    public HallResponse addHall(HallRequest dto) {
 
         if (hallRepository.existsByName(dto.getName())) {
             throw new IllegalArgumentException("Hall with this name already exists");
@@ -33,7 +33,7 @@ public class HallService {
         return hallMapper.toResponseDto(saved);
     }
     
-    public HallResponseDto updateHall(Long id, HallRequestDto dto) {
+    public HallResponse updateHall(Long id, HallRequest dto) {
         Hall hall = hallRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Hall", id));
         hallMapper.updateEntityFromDto(hall, dto);
@@ -49,7 +49,7 @@ public class HallService {
     }
 
     @Transactional(readOnly = true)
-    public List<HallResponseDto> getAllHalls() {
+    public List<HallResponse> getAllHalls() {
         return hallRepository.findAll()
                 .stream()
                 .map(hallMapper::toResponseDto)
@@ -57,14 +57,14 @@ public class HallService {
     }
 
     @Transactional(readOnly = true)
-    public HallResponseDto getHallById(Long id) {
+    public HallResponse getHallById(Long id) {
         Hall hall = hallRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Hall", id));
         return hallMapper.toResponseDto(hall);
     }
 
     @Transactional(readOnly = true)
-    public List<HallResponseDto> getActiveHalls() {
+    public List<HallResponse> getActiveHalls() {
         return hallRepository.findAllByStatus(Status.ACTIVE)
                 .stream()
                 .map(hallMapper::toResponseDto)

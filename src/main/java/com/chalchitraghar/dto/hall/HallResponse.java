@@ -9,7 +9,7 @@ import com.chalchitraghar.model.enums.Status;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class HallResponseDto {
+public class HallResponse {
     private Long id;
     private String name;
     private Integer capacity;

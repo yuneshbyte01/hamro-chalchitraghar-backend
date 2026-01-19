@@ -1,16 +1,11 @@
 package com.chalchitraghar.model;
 
-import java.time.LocalDateTime;
-
 import com.chalchitraghar.model.enums.Role;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -19,19 +14,17 @@ import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
 @Entity
 @Table(name = "users")
 @Data
+@EqualsAndHashCode(callSuper = true)
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class User {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id; // Primary key
+public class User extends GenericEntity {
 
     @Column(nullable = false)
     @NotBlank(message = "Name is required")
@@ -51,12 +44,4 @@ public class User {
     @Column(nullable = false)
     @NotNull(message = "Role is required")
     private Role role; // User's role
-
-    @Column(nullable = false)
-    @NotNull(message = "Created at is required")
-    private LocalDateTime createdAt; // Timestamp of user creation
-
-    @Column(nullable = false)
-    @NotNull(message = "Updated at is required")
-    private LocalDateTime updatedAt; // Timestamp of last update
 }
