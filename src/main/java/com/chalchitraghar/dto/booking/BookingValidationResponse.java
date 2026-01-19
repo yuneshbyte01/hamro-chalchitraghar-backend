@@ -14,8 +14,5 @@ public class BookingValidationResponse {
 
     private String message;
     private Long showId;
-    /**
-     * Number of seats successfully locked for booking.
-     */
     private Integer lockedSeatCount;
 }

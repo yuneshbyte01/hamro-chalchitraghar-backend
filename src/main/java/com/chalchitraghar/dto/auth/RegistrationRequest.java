@@ -18,9 +18,6 @@ public class RegistrationRequest {
     @NotBlank(message = "Email is required")
     private String email;
 
-    /**
-     * User password. Must be at least 8 characters long.
-     */
     @Size(min = 8, message = "Password must be at least 8 characters")
     @NotBlank(message = "Password is required")
     private String password;

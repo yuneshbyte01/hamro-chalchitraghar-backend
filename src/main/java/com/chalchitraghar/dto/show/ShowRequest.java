@@ -25,16 +25,10 @@ public class ShowRequest {
     @NotNull(message = "Hall ID is required")
     private Long hallId;
 
-    /**
-     * Ticket price. Must be greater than zero.
-     */
     @NotNull(message = "Price is required")
     @Positive(message = "Price must be greater than 0")
     private Double price;
 
-    /**
-     * Show date. Must be in the future.
-     */
     @NotNull(message = "Show date is required")
     @Future(message = "Show date must be in the future")
     private LocalDate showDate;

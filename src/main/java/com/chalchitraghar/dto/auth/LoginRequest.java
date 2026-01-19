@@ -15,9 +15,6 @@ public class LoginRequest {
     @Email(message = "Invalid email address")
     private String email;
 
-    /**
-     * User password. Must be at least 8 characters long.
-     */
     @NotBlank(message = "Password is required")
     @Size(min = 8, message = "Password must be at least 8 characters")
     private String password;

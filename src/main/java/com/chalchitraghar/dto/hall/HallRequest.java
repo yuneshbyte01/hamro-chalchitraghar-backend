@@ -19,9 +19,6 @@ public class HallRequest {
     @NotBlank(message = "Name is required")
     private String name;
 
-    /**
-     * Maximum seating capacity. Must be at least 1.
-     */
     @PositiveOrZero(message = "Capacity must be at least 1")
     @NotNull(message = "Capacity is required")
     private Integer capacity;
