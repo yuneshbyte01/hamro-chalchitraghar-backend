@@ -13,19 +13,38 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 
+/**
+ * Utility class for JWT token generation, validation, and claim extraction.
+ */
 @Component
 public class JwtUtil {
 
-    // Use a secure, random secret key (at least 256 bits for HS256)
-    private String secret = "4Qnni8zBXDBnVf9hOQpF5n1t8Oe9Lw1qEqnbiLdR5m4VxXXlYX09c18ZHq4JihAs";
+    /**
+     * Secret key for signing and verifying JWT tokens.
+     * Must be at least 256 bits for HS256 algorithm.
+     */
+    private final String secret = "4Qnni8zBXDBnVf9hOQpF5n1t8Oe9Lw1qEqnbiLdR5m4VxXXlYX09c18ZHq4JihAs";
 
-    private long EXPIRATION_MS = 3600000; // 1h
+    /**
+     * Token expiration time in milliseconds (1 hour).
+     */
+    private final long EXPIRATION_MS = 3600000;
 
+    /**
+     * Generates a signing key from the secret string.
+     *
+     * @return the secret key for JWT operations
+     */
     private SecretKey getSigningKey() {
         return Keys.hmacShaKeyFor(secret.getBytes());
     }
 
-    // Generate a JWT token for the given user, embedding email and role
+    /**
+     * Generates a JWT token for the given user with email and role claims.
+     *
+     * @param user the user for whom to generate the token
+     * @return the generated JWT token
+     */
     public String generateToken(User user) {
         return Jwts.builder()
                 .setSubject(user.getEmail())
@@ -36,28 +55,48 @@ public class JwtUtil {
                 .compact();
     }
 
-    // Extract the username/email (subject) from a JWT token
+    /**
+     * Extracts the email (subject) from a JWT token.
+     *
+     * @param token the JWT token
+     * @return the email address from the token subject
+     */
     public String extractUsername(String token) {
         return extractAllClaims(token).getSubject();
     }
 
-    // Extract role from the token
+    /**
+     * Extracts the role claim from a JWT token.
+     *
+     * @param token the JWT token
+     * @return the role as a string, or null if not present
+     */
     public String extractRole(String token) {
         Object role = extractAllClaims(token).get("role");
         return (role == null) ? null : role.toString();
     }
 
-    // Validate the integrity and expiration of a JWT token
+    /**
+     * Validates the integrity and expiration of a JWT token.
+     *
+     * @param token the JWT token to validate
+     * @return true if the token is valid and not expired, false otherwise
+     */
     public boolean validateToken(String token) {
         try {
-            extractAllClaims(token); // will throw if invalid or expired
+            extractAllClaims(token);
             return true;
         } catch (Exception e) {
             return false;
         }
     }
 
-    // Helper: extract all claims
+    /**
+     * Extracts all claims from a JWT token.
+     *
+     * @param token the JWT token
+     * @return the claims contained in the token
+     */
     private Claims extractAllClaims(String token) {
         return Jwts.parserBuilder()
                 .setSigningKey(getSigningKey())

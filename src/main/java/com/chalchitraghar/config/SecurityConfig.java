@@ -19,17 +19,31 @@ import com.chalchitraghar.security.JwtAuthenticationFilter;
 
 import lombok.RequiredArgsConstructor;
 
+/**
+ * Security configuration for Spring Security.
+ * Configures JWT-based authentication, CORS, and role-based access control.
+ */
 @Configuration
 @RequiredArgsConstructor
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
+    /**
+     * Provides BCrypt password encoder bean for password hashing.
+     *
+     * @return BCryptPasswordEncoder instance
+     */
     @Bean
     public BCryptPasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
+    /**
+     * Configures CORS settings to allow requests from the frontend application.
+     *
+     * @return CORS configuration source
+     */
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
@@ -44,6 +58,13 @@ public class SecurityConfig {
         return source;
     }
 
+    /**
+     * Configures the security filter chain with JWT authentication and role-based authorization.
+     *
+     * @param http HttpSecurity instance
+     * @return configured SecurityFilterChain
+     * @throws Exception if configuration fails
+     */
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
