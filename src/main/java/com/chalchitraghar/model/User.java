@@ -17,6 +17,9 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
+/**
+ * Represents a user account with authentication credentials and role-based access.
+ */
 @Entity
 @Table(name = "users")
 @Data
@@ -26,22 +29,35 @@ import lombok.NoArgsConstructor;
 @Builder
 public class User extends GenericEntity {
 
+    /**
+     * Name of the user. Must be not blank.
+     */
     @Column(nullable = false)
     @NotBlank(message = "Name is required")
-    private String name; // User's name
+    private String name;
 
+    /**
+     * Unique email address used for authentication and identification.
+     */
     @Column(nullable = false, unique = true)
     @NotBlank(message = "Email is required")
     @Email(message = "Invalid email address")
-    private String email; // User's email
+    private String email;
 
+    /**
+     * Encrypted password. Must be at least 8 characters long.
+     */
     @Column(nullable = false)
     @NotBlank(message = "Password is required")
     @Size(min = 8, message = "Password must be at least 8 characters long")
-    private String password; // User's password
+    private String password;
 
-    @Enumerated(EnumType.STRING)
+    /**
+     * Role of the user. Must be not null.
+     * CUSTOMER, STAFF, ADMIN
+     */
     @Column(nullable = false)
     @NotNull(message = "Role is required")
-    private Role role; // User's role
+    @Enumerated(EnumType.STRING)
+    private Role role;
 }

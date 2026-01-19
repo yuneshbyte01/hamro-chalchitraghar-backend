@@ -14,12 +14,9 @@ import lombok.Getter;
 import lombok.Setter;
 
 /**
- * Base entity class containing common fields and lifecycle methods.
- * All entity classes should extend this class to inherit:
- * - id (Primary key)
- * - createdAt (Timestamp of creation)
- * - updatedAt (Timestamp of last update)
- * - Automatic timestamp management via @PrePersist and @PreUpdate
+ * Base entity class providing common fields and automatic timestamp management.
+ * Entities extending this class inherit primary key and audit timestamp fields
+ * with automatic lifecycle management.
  */
 @MappedSuperclass
 @Getter
@@ -30,18 +27,24 @@ public abstract class GenericEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    /**
+     * Timestamp when the entity was created. Set automatically on first persist
+     * and cannot be modified thereafter.
+     */
     @Column(nullable = false, updatable = false)
     @NotNull(message = "Created at is required")
     private LocalDateTime createdAt;
 
+    /**
+     * Timestamp of the last update. Automatically maintained by lifecycle callbacks.
+     */
     @Column(nullable = false)
     @NotNull(message = "Updated at is required")
     private LocalDateTime updatedAt;
 
     /**
-     * Called before entity is persisted (inserted).
-     * Sets createdAt and updatedAt timestamps.
-     * Subclasses can override this method to add additional initialization logic.
+     * Lifecycle callback invoked before entity persistence.
+     * Initializes both createdAt and updatedAt timestamps.
      */
     @PrePersist
     protected void onCreate() {
@@ -51,9 +54,8 @@ public abstract class GenericEntity {
     }
 
     /**
-     * Called before entity is updated.
-     * Updates the updatedAt timestamp.
-     * Subclasses can override this method to add additional update logic.
+     * Lifecycle callback invoked before entity update.
+     * Refreshes the updatedAt timestamp.
      */
     @PreUpdate
     protected void onUpdate() {

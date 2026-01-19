@@ -22,6 +22,9 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
+/**
+ * Represents a scheduled movie screening in a specific hall with pricing and timing.
+ */
 @Entity
 @Table(name = "shows")
 @Data
@@ -31,38 +34,63 @@ import lombok.NoArgsConstructor;
 @Builder
 public class Show extends GenericEntity {
 
+    /**
+     * Movie associated with this show.
+     */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "movie_id", nullable = false)
     @NotNull(message = "Movie is required")
     private Movie movie;
 
+    /**
+     * Hall associated with this show.
+     */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "hall_id", nullable = false)
     @NotNull(message = "Hall is required")
     private Hall hall;
 
+    /**
+     * Ticket price for this show. Must be greater than zero.
+     */
     @Column(nullable = false)
     @NotNull(message = "Price is required")
     @Positive(message = "Price must be greater than 0")
     private Double price;
 
+    /**
+     * Current status of the show. Automatically set to SCHEDULED on creation.
+     */
     @Column(nullable = false)
     @NotNull(message = "Status is required")
     @Enumerated(EnumType.STRING)
     private ShowStatus status;
 
+    /**
+     * Show date of the show. Must be not null.
+     */
     @Column(nullable = false)
     @NotNull(message = "Show date is required")
     private LocalDate showDate;
 
+    /**
+     * Show time of the show. Must be not null.
+     */
     @Column(nullable = false)
     @NotNull(message = "Show time is required")
     private LocalTime showTime;
 
+    /**
+     * End time of the show. Must be not null.
+     */
     @Column(nullable = false)
     @NotNull(message = "End time is required")
     private LocalTime endTime;
 
+    /**
+     * Lifecycle callback invoked before entity persistence.
+     * Sets default status to SCHEDULED.
+     */
     @PrePersist
     @Override
     protected void onCreate() {

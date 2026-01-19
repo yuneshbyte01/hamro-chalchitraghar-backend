@@ -18,6 +18,9 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
+/**
+ * Represents a movie with its metadata, release information, and current status.
+ */
 @Entity
 @Table(name = "movies")
 @Data
@@ -27,35 +30,59 @@ import lombok.NoArgsConstructor;
 @Builder
 public class Movie extends GenericEntity {
 
+    /**
+     * Title of the movie. Must be unique and not blank.
+     */
     @Column(nullable = false)
     @NotBlank(message = "Title is required")
     private String title;
 
+    /**
+     * Genre of the movie. Must be not blank.
+     */
     @Column(nullable = false)
     @NotBlank(message = "Genre is required")
     private String genre;
 
+    /**
+     * Duration of the movie in minutes. Must be at least 1 minute.
+     */
     @Column(nullable = false)
     @NotNull(message = "Duration is required")
     @PositiveOrZero(message = "Duration must be at least 1 minute")
     private Integer durationMinutes;
 
+    /**
+     * Language of the movie. Must be not blank.
+     */
     @Column(nullable = false)
     @NotBlank(message = "Language is required")
     private String language;
 
+    /**
+     * Description of the movie. Must be not blank.
+     */
     @Column(nullable = false)
     @NotBlank(message = "Description is required")
     private String description;
 
+    /**
+     * Poster URL of the movie. Must be not blank.
+     */
     @Column(nullable = false)
     @NotBlank(message = "Poster URL is required")
     private String posterUrl;
 
+    /**
+     * Release date of the movie. Must be not null.
+     */
     @Column(nullable = false)
     @NotNull(message = "Release date is required")
     private LocalDate releaseDate;
 
+    /**
+     * Status of the movie. Must be not null.
+     */
     @Column(nullable = false)
     @NotNull(message = "Status is required")
     @Enumerated(EnumType.STRING)
