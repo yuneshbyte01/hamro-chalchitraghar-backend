@@ -16,6 +16,9 @@ import com.chalchitraghar.repository.MovieRepository;
 
 import lombok.RequiredArgsConstructor;
 
+/**
+ * Service for movie management operations.
+ */
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -24,6 +27,12 @@ public class MovieService {
     private final MovieRepository movieRepository;
     private final MovieMapper movieMapper;
 
+    /**
+     * Creates a new movie.
+     *
+     * @param dto movie request containing movie details
+     * @return created movie response
+     */
     public MovieResponse addMovie(MovieRequest dto) {
         Movie movie = movieMapper.toEntity(dto);
         Movie saved = movieRepository.save(movie);
@@ -39,6 +48,12 @@ public class MovieService {
         return movieMapper.toResponseDto(updated);
     }
 
+    /**
+     * Soft deletes a movie by setting its status to ENDED.
+     *
+     * @param id the movie ID
+     * @throws ResourceNotFoundException if movie is not found
+     */
     public void deleteMovie(Long id) {
         Movie movie = movieRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Movie", id));
@@ -53,12 +68,25 @@ public class MovieService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Retrieves a movie by ID.
+     *
+     * @param id the movie ID
+     * @return movie response
+     * @throws ResourceNotFoundException if movie is not found
+     */
     public MovieResponse getMovieById(Long id) {
         Movie movie = movieRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Movie", id));
         return movieMapper.toResponseDto(movie);
     }
 
+    /**
+     * Retrieves movies filtered by status, ordered by release date ascending.
+     *
+     * @param status the movie status to filter by
+     * @return list of movie responses matching the status
+     */
     public List<MovieResponse> getMoviesByStatus(MovieStatus status) {
 
         List<Movie> movies = movieRepository.findAllByStatusOrderByReleaseDateAsc(status);

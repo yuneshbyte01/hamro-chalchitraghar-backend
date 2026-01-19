@@ -18,11 +18,18 @@ import com.chalchitraghar.repository.SeatRepository;
 
 import lombok.RequiredArgsConstructor;
 
+/**
+ * Service for seat booking validation and lock management.
+ * Handles concurrent seat locking with pessimistic locking to prevent double-booking.
+ */
 @Service
 @RequiredArgsConstructor
 @Transactional
 public class BookingService {
 
+    /**
+     * Duration in minutes that a seat lock remains valid before expiring.
+     */
     private static final int LOCK_DURATION_MINUTES = 10;
 
     private final SeatRepository seatRepository;
@@ -60,7 +67,6 @@ public class BookingService {
             );
         }
 
-        // Validate all seats belong to the same show
         boolean allSeatsBelongToShow = seats.stream()
                 .allMatch(seat -> seat.getShow().getId().equals(showId));
         if (!allSeatsBelongToShow) {
@@ -71,25 +77,20 @@ public class BookingService {
 
         LocalDateTime now = LocalDateTime.now();
 
-        // Validate and process each seat
         for (Seat seat : seats) {
-            // Check if seat is locked and not expired
             if (seat.getSeatStatus() == SeatStatus.LOCKED) {
                 if (seat.getLockExpiresAt() != null && seat.getLockExpiresAt().isAfter(now)) {
-                    // Seat is still locked and not expired
                     throw new SeatLockedException(
                             String.format("Seat %s (%s) is currently locked by another user", 
                                     seat.getSeatCode(), seat.getId())
                     );
                 } else {
-                    // Lock has expired, treat as available
                     seat.setSeatStatus(SeatStatus.AVAILABLE);
                     seat.setLockedAt(null);
                     seat.setLockExpiresAt(null);
                 }
             }
 
-            // Check if seat is already booked
             if (seat.getSeatStatus() == SeatStatus.BOOKED) {
                 throw new SeatAlreadyBookedException(
                         String.format("Seat %s (%s) is already booked", 
@@ -105,7 +106,6 @@ public class BookingService {
                 );
             }
 
-            // Lock the seat
             seat.setSeatStatus(SeatStatus.LOCKED);
             seat.setLockedAt(now);
             seat.setLockExpiresAt(now.plusMinutes(LOCK_DURATION_MINUTES));
@@ -116,10 +116,10 @@ public class BookingService {
     }
 
     /**
-     * Releases locks on seats (sets them back to AVAILABLE).
+     * Releases locks on seats, setting them back to AVAILABLE status.
      * Used when a booking is cancelled or expires.
-     * 
-     * @param seatIds List of seat IDs to release
+     *
+     * @param seatIds list of seat IDs to release
      */
     public void releaseSeatLocks(List<Long> seatIds) {
         if (seatIds == null || seatIds.isEmpty()) {
@@ -131,7 +131,6 @@ public class BookingService {
 
         for (Seat seat : seats) {
             if (seat.getSeatStatus() == SeatStatus.LOCKED) {
-                // Only release if lock hasn't expired or if explicitly requested
                 if (seat.getLockExpiresAt() == null || seat.getLockExpiresAt().isAfter(now)) {
                     seat.setSeatStatus(SeatStatus.AVAILABLE);
                     seat.setLockedAt(null);

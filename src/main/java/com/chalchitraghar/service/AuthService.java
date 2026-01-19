@@ -13,6 +13,9 @@ import com.chalchitraghar.security.JwtUtil;
 
 import lombok.RequiredArgsConstructor;
 
+/**
+ * Service for user authentication and registration operations.
+ */
 @Service
 @RequiredArgsConstructor
 public class AuthService {
@@ -23,8 +26,9 @@ public class AuthService {
 
     /**
      * Registers a new user and returns a registration response.
-     * @param request Registration request containing user details
-     * @return Registration response with success message and email
+     *
+     * @param request registration request containing user details
+     * @return registration response with success message and email
      */
     public RegistrationResponse register(RegistrationRequest request) {
         User user = userService.addUser(
@@ -41,8 +45,10 @@ public class AuthService {
 
     /**
      * Authenticates a user and returns a login response with JWT token.
-     * @param request Login request containing email and password
-     * @return Login response with JWT token and user details
+     *
+     * @param request login request containing email and password
+     * @return login response with JWT token and user details
+     * @throws AuthenticationException if credentials are invalid
      */
     public LoginResponse login(LoginRequest request) {
         User user = userService.getUserByEmail(request.getEmail());

@@ -25,6 +25,10 @@ import java.time.LocalTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * Service for show management operations.
+ * Handles show scheduling with validation for hall availability and movie status.
+ */
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -39,6 +43,13 @@ public class ShowService {
     /**
      * Validates that no other show is scheduled for the hall during the given time period.
      * Rule: One show per hall at a time.
+     *
+     * @param hallId the hall ID
+     * @param showDate the show date
+     * @param showTime the start time
+     * @param endTime the end time
+     * @param excludeShowId optional show ID to exclude from conflict check (for updates)
+     * @throws HallConflictException if an overlapping show exists
      */
     private void validateHallAvailability(Long hallId, LocalDate showDate, LocalTime showTime, LocalTime endTime, Long excludeShowId) {
         if (showRepository.existsOverlappingShow(hallId, showDate, showTime, endTime, excludeShowId)) {
@@ -49,17 +60,22 @@ public class ShowService {
         }
     }
 
+    /**
+     * Creates a new show and generates seats for it.
+     *
+     * @param dto show request containing show details
+     * @return created show response
+     * @throws ResourceNotFoundException if movie or hall is not found
+     * @throws HallConflictException if movie status is invalid, hall is inactive, or hall is already booked
+     */
     public ShowResponse addShow(ShowRequest dto) {
-        // Fetch and validate movie
         Movie movie = movieRepository.findById(dto.getMovieId())
                 .orElseThrow(() -> new ResourceNotFoundException("Movie", dto.getMovieId()));
 
-        // Validate movie status - Only NOW_SHOWING movies can have shows
         if (movie.getStatus() != MovieStatus.NOW_SHOWING) {
             throw new HallConflictException("Shows can only be scheduled for movies with status NOW_SHOWING");
         }
 
-        // Fetch and validate hall
         Hall hall = hallRepository.findById(dto.getHallId())
                 .orElseThrow(() -> new ResourceNotFoundException("Hall", dto.getHallId()));
 
@@ -67,7 +83,6 @@ public class ShowService {
             throw new HallConflictException("Cannot schedule show in an inactive hall");
         }
 
-        // Validate hall availability - RULE: One show per hall at a time
         validateHallAvailability(
             dto.getHallId(),
             dto.getShowDate(),
@@ -76,7 +91,6 @@ public class ShowService {
             null
         );
 
-        // Create show
         Show show = showMapper.toEntity(dto, movie, hall);
         Show saved = showRepository.save(show);
         seatGenerationService.generateSeatsForShow(saved.getId());
@@ -87,16 +101,13 @@ public class ShowService {
         Show show = showRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Show", id));
 
-        // Fetch and validate movie
         Movie movie = movieRepository.findById(dto.getMovieId())
                 .orElseThrow(() -> new ResourceNotFoundException("Movie", dto.getMovieId()));
 
-        // Validate movie status - Only NOW_SHOWING movies can have shows
         if (movie.getStatus() != MovieStatus.NOW_SHOWING) {
             throw new HallConflictException("Shows can only be scheduled for movies with status NOW_SHOWING");
         }
 
-        // Fetch and validate hall
         Hall hall = hallRepository.findById(dto.getHallId())
                 .orElseThrow(() -> new ResourceNotFoundException("Hall", dto.getHallId()));
 
@@ -104,7 +115,6 @@ public class ShowService {
             throw new HallConflictException("Cannot schedule show in an inactive hall");
         }
 
-        // Validate hall availability - exclude current show from conflict check
         validateHallAvailability(
             dto.getHallId(),
             dto.getShowDate(),
@@ -119,6 +129,12 @@ public class ShowService {
         return showMapper.toResponseDto(updated);
     }
 
+    /**
+     * Soft deletes a show by setting its status to CANCELLED.
+     *
+     * @param id the show ID
+     * @throws ResourceNotFoundException if show is not found
+     */
     public void deleteShow(Long id) {
         Show show = showRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Show", id));
@@ -126,6 +142,11 @@ public class ShowService {
         showRepository.save(show);
     }
 
+    /**
+     * Retrieves all shows.
+     *
+     * @return list of all show responses
+     */
     @Transactional(readOnly = true)
     public List<ShowResponse> getAllShows() {
         return showRepository.findAll()
@@ -134,6 +155,13 @@ public class ShowService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Retrieves a show by ID, only if it's active and the movie is NOW_SHOWING.
+     *
+     * @param id the show ID
+     * @return show response
+     * @throws ResourceNotFoundException if show is not found, cancelled, completed, or movie is not NOW_SHOWING
+     */
     @Transactional(readOnly = true)
     public ShowResponse getShowById(Long id) {
         Show show = showRepository.findById(id)
@@ -143,7 +171,6 @@ public class ShowService {
             throw new ResourceNotFoundException("Show", id);
         }
         
-        // Only return shows for NOW_SHOWING movies
         if (show.getMovie().getStatus() != MovieStatus.NOW_SHOWING) {
             throw new ResourceNotFoundException("Show", id);
         }
@@ -159,6 +186,12 @@ public class ShowService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Retrieves all shows for a specific movie.
+     *
+     * @param movieId the movie ID
+     * @return list of show responses for the movie
+     */
     @Transactional(readOnly = true)
     public List<ShowResponse> getShowsByMovie(Long movieId) {
         return showRepository.findByMovieId(movieId)
@@ -167,15 +200,22 @@ public class ShowService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Retrieves shows for a specific movie on a specific date.
+     * Only returns shows for NOW_SHOWING movies and excludes cancelled/completed shows.
+     *
+     * @param movieId the movie ID
+     * @param showDate the show date
+     * @return list of show responses matching the criteria
+     * @throws ResourceNotFoundException if movie is not found
+     */
     @Transactional(readOnly = true)
     public List<ShowResponse> getShowsByMovieAndShowDate(Long movieId, LocalDate showDate) {
-        // First check if movie exists and is NOW_SHOWING
         Movie movie = movieRepository.findById(movieId)
                 .orElseThrow(() -> new ResourceNotFoundException("Movie", movieId));
         
-        // Only return shows for NOW_SHOWING movies
         if (movie.getStatus() != MovieStatus.NOW_SHOWING) {
-            return List.of(); // Return empty list if movie is not NOW_SHOWING
+            return List.of();
         }
         
         return showRepository.findByMovieIdAndShowDate(movieId, showDate)

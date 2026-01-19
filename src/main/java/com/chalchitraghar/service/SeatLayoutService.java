@@ -11,6 +11,10 @@ import com.chalchitraghar.model.SeatTemplate;
 import com.chalchitraghar.model.enums.SeatType;
 import com.chalchitraghar.exception.ResourceNotFoundException;
 
+/**
+ * Service for generating seat layout templates for halls.
+ * Creates a standard layout: Row A (8 PREMIUM seats), Rows B-J (20 PLATINUM seats each).
+ */
 @Service
 @RequiredArgsConstructor
 public class SeatLayoutService {
@@ -18,6 +22,13 @@ public class SeatLayoutService {
     private final SeatTemplateRepository seatTemplateRepository;
     private final HallRepository hallRepository;
 
+    /**
+     * Generates seat templates for a hall with a standard layout configuration.
+     *
+     * @param hallId the hall ID
+     * @throws IllegalArgumentException if seat layout already exists for this hall
+     * @throws ResourceNotFoundException if hall is not found
+     */
     @Transactional
     public void generateSeatTemplates(Long hallId) {
 
@@ -30,14 +41,12 @@ public class SeatLayoutService {
 
         int index = 0;
 
-        // PREMIUM – Row A (8 seats)
         for (int seat = 1; seat <= 8; seat++) {
             seatTemplateRepository.save(buildSeat(
                     hall, "A", seat, SeatType.PREMIUM, index++
             ));
         }
 
-        // PLATINUM – Rows B to J (20 seats each)
         for (char row = 'B'; row <= 'J'; row++) {
             for (int seat = 1; seat <= 20; seat++) {
                 seatTemplateRepository.save(buildSeat(
@@ -48,6 +57,16 @@ public class SeatLayoutService {
         }
     }
 
+    /**
+     * Builds a seat template with the specified properties.
+     *
+     * @param hall the hall
+     * @param rowLabel the row label
+     * @param seatNumber the seat number
+     * @param seatType the seat type
+     * @param positionIndex the position index
+     * @return the built seat template
+     */
     private SeatTemplate buildSeat(Hall hall, String rowLabel, int seatNumber, SeatType seatType, int positionIndex) {
         return SeatTemplate.builder()
                 .hall(hall)

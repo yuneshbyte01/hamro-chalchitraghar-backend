@@ -13,6 +13,9 @@ import com.chalchitraghar.exception.ResourceNotFoundException;
 import java.util.List;
 import com.chalchitraghar.model.SeatTemplate;
 
+/**
+ * Service for generating seats for shows based on hall seat templates.
+ */
 @Service
 @RequiredArgsConstructor
 public class SeatGenerationService {
@@ -21,6 +24,13 @@ public class SeatGenerationService {
     private final SeatTemplateRepository seatTemplateRepository;
     private final ShowRepository showRepository;
 
+    /**
+     * Generates seats for a show based on the hall's seat templates.
+     *
+     * @param showId the show ID
+     * @throws IllegalStateException if seats already exist for this show
+     * @throws ResourceNotFoundException if show or seat templates are not found
+     */
     @Transactional
     public void generateSeatsForShow(Long showId) {
 
