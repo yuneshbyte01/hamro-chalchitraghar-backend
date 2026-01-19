@@ -20,6 +20,10 @@ import com.chalchitraghar.service.ShowService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
+/**
+ * REST controller for admin show management endpoints.
+ * Requires ADMIN role for all operations.
+ */
 @RestController("adminShowController")
 @RequestMapping("/api/admin/shows")
 @RequiredArgsConstructor
@@ -27,12 +31,23 @@ public class ShowController {
 
     private final ShowService showService;
 
+    /**
+     * Retrieves all shows.
+     *
+     * @return list of all show responses
+     */
     @GetMapping
     public ResponseEntity<List<ShowResponse>> getAllShows() {
         List<ShowResponse> shows = showService.getAllShows();
         return ResponseEntity.ok(shows);
     }
 
+    /**
+     * Retrieves a show by ID.
+     *
+     * @param id the show ID
+     * @return show response
+     */
     @GetMapping("/{id}")
     public ResponseEntity<ShowResponse> getShowById(@PathVariable Long id) {
         ShowResponse show = showService.getShowById(id);
@@ -45,12 +60,25 @@ public class ShowController {
         return ResponseEntity.status(HttpStatus.CREATED).body(createdShow);
     }
 
+    /**
+     * Updates an existing show.
+     *
+     * @param id the show ID
+     * @param dto show request containing updated details
+     * @return updated show response
+     */
     @PutMapping("/{id}")
     public ResponseEntity<ShowResponse> updateShow(@PathVariable Long id, @Valid @RequestBody ShowRequest dto) {
         ShowResponse updatedShow = showService.updateShow(id, dto);
         return ResponseEntity.ok(updatedShow);
     }
 
+    /**
+     * Soft deletes a show by setting its status to CANCELLED.
+     *
+     * @param id the show ID
+     * @return no content response
+     */
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteShow(@PathVariable Long id) {
         showService.deleteShow(id);

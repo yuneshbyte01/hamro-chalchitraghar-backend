@@ -16,6 +16,9 @@ import com.chalchitraghar.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
+/**
+ * REST controller for user authentication and registration endpoints.
+ */
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
@@ -23,12 +26,24 @@ public class AuthController {
 
     private final AuthService authService;
 
+    /**
+     * Registers a new user account.
+     *
+     * @param request registration request containing user details
+     * @return registration response with success message and email
+     */
     @PostMapping("/register")
     public ResponseEntity<RegistrationResponse> register(@Valid @RequestBody RegistrationRequest request) {
         RegistrationResponse response = authService.register(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
+    /**
+     * Authenticates a user and returns a JWT token.
+     *
+     * @param request login request containing email and password
+     * @return login response with JWT token and user details
+     */
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
         LoginResponse response = authService.login(request);

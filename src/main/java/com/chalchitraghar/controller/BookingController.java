@@ -17,6 +17,10 @@ import com.chalchitraghar.service.BookingService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
+/**
+ * REST controller for booking-related endpoints.
+ * Requires authentication for all operations.
+ */
 @RestController
 @RequestMapping("/api/bookings")
 @RequiredArgsConstructor
@@ -27,15 +31,14 @@ public class BookingController {
     /**
      * Validates and locks seats for booking.
      * This endpoint requires JWT authentication and is accessible to authenticated users.
-     * 
-     * @param request Contains showId and list of seatIds to validate and lock
-     * @return Success response with validation details
+     *
+     * @param request contains showId and list of seatIds to validate and lock
+     * @return success response with validation details
      */
     @PostMapping("/validate")
     public ResponseEntity<BookingValidationResponse> validateAndLockSeats(
             @Valid @RequestBody BookingValidationRequest request) {
         
-        // Get current authenticated user
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || authentication.getPrincipal() == null) {
             throw new com.chalchitraghar.exception.AuthenticationException("User not authenticated");
@@ -50,7 +53,6 @@ public class BookingController {
                 currentUser.getId()
         );
         
-        // Build success response
         BookingValidationResponse response = new BookingValidationResponse(
                 "Seats validated and locked successfully",
                 request.getShowId(),
