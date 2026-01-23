@@ -5,6 +5,8 @@ hamro-chalchitraghar-backend/
 ├── mvnw.cmd                              # Maven wrapper (Windows)
 ├── .gitignore                            # Git ignore rules
 ├── .gitattributes                        # Git attributes
+├── PROJECT_STRUCTURE.txt                 # Project structure documentation
+├── PROJECT_REPORT.md                     # Project report documentation
 │
 ├── .mvn/
 │   └── wrapper/
@@ -24,56 +26,74 @@ hamro-chalchitraghar-backend/
     │   │   │   │   ├── AdminController.java
     │   │   │   │   ├── HallController.java
     │   │   │   │   ├── MovieController.java
-    │   │   │   │   └── ShowController.java
-    │   │   │   ├── user/                # User/Customer role endpoints
-    │   │   │   │   ├── HallController.java
-    │   │   │   │   ├── MovieController.java
+    │   │   │   │   ├── SeatLayoutController.java
     │   │   │   │   └── ShowController.java
     │   │   │   ├── AuthController.java  # Authentication endpoints
-    │   │   │   └── TestController.java  # Test endpoints
+    │   │   │   ├── BookingController.java  # Booking endpoints
+    │   │   │   ├── HallController.java  # Public hall endpoints
+    │   │   │   ├── MovieController.java  # Public movie endpoints
+    │   │   │   ├── SeatController.java  # Seat endpoints
+    │   │   │   └── ShowController.java  # Public show endpoints
     │   │   │
     │   │   ├── dto/                     # Data Transfer Objects (Request/Response)
     │   │   │   ├── auth/                # Authentication DTOs
-    │   │   │   │   ├── LoginRequestDto.java
-    │   │   │   │   ├── LoginResponseDto.java
-    │   │   │   │   ├── RegistrationRequestDto.java
-    │   │   │   │   └── RegistrationResponseDto.java
+    │   │   │   │   ├── LoginRequest.java
+    │   │   │   │   ├── LoginResponse.java
+    │   │   │   │   ├── RegistrationRequest.java
+    │   │   │   │   └── RegistrationResponse.java
+    │   │   │   ├── booking/             # Booking DTOs
+    │   │   │   │   ├── BookingValidationRequest.java
+    │   │   │   │   └── BookingValidationResponse.java
+    │   │   │   ├── error/               # Error DTOs
+    │   │   │   │   └── ErrorResponse.java
     │   │   │   ├── hall/                # Hall DTOs
-    │   │   │   │   ├── HallRequestDto.java
-    │   │   │   │   └── HallResponseDto.java
+    │   │   │   │   ├── HallRequest.java
+    │   │   │   │   └── HallResponse.java
     │   │   │   ├── movie/               # Movie DTOs
-    │   │   │   │   ├── MovieDto.java
-    │   │   │   │   └── MovieResponseDto.java
+    │   │   │   │   ├── MovieRequest.java
+    │   │   │   │   └── MovieResponse.java
+    │   │   │   ├── seat/                # Seat DTOs
+    │   │   │   │   └── SeatResponse.java
     │   │   │   └── show/                # Show DTOs
-    │   │   │       ├── ShowRequestDto.java
-    │   │   │       └── ShowResponseDto.java
+    │   │   │       ├── ShowRequest.java
+    │   │   │       └── ShowResponse.java
     │   │   │
     │   │   ├── exception/               # Exception handling
     │   │   │   ├── AuthenticationException.java
     │   │   │   ├── GlobalExceptionHandler.java
     │   │   │   ├── HallConflictException.java
-    │   │   │   └── ResourceNotFoundException.java
+    │   │   │   ├── InvalidSeatSelectionException.java
+    │   │   │   ├── ResourceNotFoundException.java
+    │   │   │   ├── SeatAlreadyBookedException.java
+    │   │   │   └── SeatLockedException.java
     │   │   │
     │   │   ├── mapper/                  # Entity-DTO mappers
     │   │   │   ├── HallMapper.java
     │   │   │   ├── MovieMapper.java
+    │   │   │   ├── SeatMapper.java
     │   │   │   └── ShowMapper.java
     │   │   │
     │   │   ├── model/                   # Entity models (JPA entities)
     │   │   │   ├── enums/               # Enumeration types
     │   │   │   │   ├── MovieStatus.java
     │   │   │   │   ├── Role.java
+    │   │   │   │   ├── SeatStatus.java
+    │   │   │   │   ├── SeatType.java
     │   │   │   │   ├── ShowStatus.java
     │   │   │   │   └── Status.java
+    │   │   │   ├── GenericEntity.java   # Base entity with common fields
     │   │   │   ├── Hall.java            # Hall entity
     │   │   │   ├── Movie.java           # Movie entity
-    │   │   │   ├── Show.java            # Show entity
     │   │   │   ├── Seat.java            # Seat entity
+    │   │   │   ├── SeatTemplate.java    # Seat template entity
+    │   │   │   ├── Show.java            # Show entity
     │   │   │   └── User.java            # User entity
     │   │   │
     │   │   ├── repository/              # JPA Repositories (Data access layer)
     │   │   │   ├── HallRepository.java
     │   │   │   ├── MovieRepository.java
+    │   │   │   ├── SeatRepository.java
+    │   │   │   ├── SeatTemplateRepository.java
     │   │   │   ├── ShowRepository.java
     │   │   │   └── UserRepository.java
     │   │   │
@@ -83,8 +103,12 @@ hamro-chalchitraghar-backend/
     │   │   │
     │   │   └── service/                 # Business logic services
     │   │       ├── AuthService.java
+    │   │       ├── BookingService.java
     │   │       ├── HallService.java
     │   │       ├── MovieService.java
+    │   │       ├── SeatGenerationService.java
+    │   │       ├── SeatLayoutService.java
+    │   │       ├── SeatService.java
     │   │       ├── ShowService.java
     │   │       └── UserService.java
     │   │
@@ -109,3 +133,5 @@ Architecture:
 - Role-based Access Control (Admin, Staff, Customer)
 - RESTful API Design
 - JWT Token-based Authentication
+- Seat Management System with Templates
+- Booking Validation System

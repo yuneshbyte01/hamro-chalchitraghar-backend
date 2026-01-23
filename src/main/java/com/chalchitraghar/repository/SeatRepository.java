@@ -1,12 +1,16 @@
 package com.chalchitraghar.repository;
 
+import java.time.LocalDateTime;
+import java.util.List;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
-import jakarta.persistence.LockModeType;
-import java.util.List;
+
 import com.chalchitraghar.model.Seat;
+
+import jakarta.persistence.LockModeType;
 
 /**
  * Repository interface for Seat entity persistence operations.
@@ -51,4 +55,12 @@ public interface SeatRepository extends JpaRepository<Seat, Long> {
     @Query("SELECT s FROM Seat s WHERE s.show.id = :showId AND s.id IN :seatIds")
     List<Seat> findByShowIdAndSeatIdsWithLock(@Param("showId") Long showId, @Param("seatIds") List<Long> seatIds);
 
+    /**
+     * Finds expired locked seats.
+     *
+     * @param now the current time
+     * @return list of expired locked seats
+     */
+    @Query("SELECT s FROM Seat s WHERE s.seatStatus = 'LOCKED' AND s.lockExpiresAt < :now")
+    List<Seat> findExpiredLockedSeats(@Param("now") LocalDateTime now);
 }

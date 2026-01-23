@@ -1,8 +1,6 @@
 package com.chalchitraghar.exception;
 
-import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.Map;
+import java.time.OffsetDateTime;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
@@ -25,7 +23,6 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 import com.chalchitraghar.dto.error.ErrorResponse;
 
 import jakarta.persistence.EntityNotFoundException;
-import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 
 /**
@@ -48,11 +45,10 @@ public class GlobalExceptionHandler {
             ResourceNotFoundException ex, WebRequest request) {
         logger.warn("Resource not found: {}", ex.getMessage());
         ErrorResponse errorResponse = ErrorResponse.builder()
+                .timestamp(OffsetDateTime.now())
                 .status(HttpStatus.NOT_FOUND.value())
-                .message("Resource not found")
-                .details(ex.getMessage())
-                .timestamp(LocalDateTime.now())
-                .errorCode("RESOURCE_NOT_FOUND")
+                .error(HttpStatus.NOT_FOUND.getReasonPhrase())
+                .message(ex.getMessage() != null ? ex.getMessage() : "Resource not found")
                 .path(getRequestPath(request))
                 .build();
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
@@ -70,11 +66,10 @@ public class GlobalExceptionHandler {
             AuthenticationException ex, WebRequest request) {
         logger.warn("Authentication failed: {}", ex.getMessage());
         ErrorResponse errorResponse = ErrorResponse.builder()
+                .timestamp(OffsetDateTime.now())
                 .status(HttpStatus.UNAUTHORIZED.value())
-                .message("Authentication failed")
-                .details(ex.getMessage())
-                .timestamp(LocalDateTime.now())
-                .errorCode("AUTHENTICATION_FAILED")
+                .error(HttpStatus.UNAUTHORIZED.getReasonPhrase())
+                .message(ex.getMessage() != null ? ex.getMessage() : "Authentication failed")
                 .path(getRequestPath(request))
                 .build();
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(errorResponse);
@@ -92,11 +87,10 @@ public class GlobalExceptionHandler {
             AccessDeniedException ex, WebRequest request) {
         logger.warn("Access denied: {}", ex.getMessage());
         ErrorResponse errorResponse = ErrorResponse.builder()
+                .timestamp(OffsetDateTime.now())
                 .status(HttpStatus.FORBIDDEN.value())
-                .message("Access denied")
-                .details("You do not have permission to access this resource")
-                .timestamp(LocalDateTime.now())
-                .errorCode("ACCESS_DENIED")
+                .error(HttpStatus.FORBIDDEN.getReasonPhrase())
+                .message(ex.getMessage() != null ? ex.getMessage() : "Access denied")
                 .path(getRequestPath(request))
                 .build();
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(errorResponse);
@@ -114,11 +108,10 @@ public class GlobalExceptionHandler {
             HallConflictException ex, WebRequest request) {
         logger.warn("Hall conflict: {}", ex.getMessage());
         ErrorResponse errorResponse = ErrorResponse.builder()
+                .timestamp(OffsetDateTime.now())
                 .status(HttpStatus.CONFLICT.value())
-                .message("Hall conflict")
-                .details(ex.getMessage())
-                .timestamp(LocalDateTime.now())
-                .errorCode("HALL_CONFLICT")
+                .error(HttpStatus.CONFLICT.getReasonPhrase())
+                .message(ex.getMessage() != null ? ex.getMessage() : "Hall conflict")
                 .path(getRequestPath(request))
                 .build();
         return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse);
@@ -136,11 +129,10 @@ public class GlobalExceptionHandler {
             SeatAlreadyBookedException ex, WebRequest request) {
         logger.warn("Seat already booked: {}", ex.getMessage());
         ErrorResponse errorResponse = ErrorResponse.builder()
+                .timestamp(OffsetDateTime.now())
                 .status(HttpStatus.CONFLICT.value())
-                .message("Seat already booked")
-                .details(ex.getMessage())
-                .timestamp(LocalDateTime.now())
-                .errorCode("SEAT_ALREADY_BOOKED")
+                .error(HttpStatus.CONFLICT.getReasonPhrase())
+                .message(ex.getMessage() != null ? ex.getMessage() : "Seat already booked")
                 .path(getRequestPath(request))
                 .build();
         return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse);
@@ -158,11 +150,10 @@ public class GlobalExceptionHandler {
             SeatLockedException ex, WebRequest request) {
         logger.warn("Seat locked: {}", ex.getMessage());
         ErrorResponse errorResponse = ErrorResponse.builder()
+                .timestamp(OffsetDateTime.now())
                 .status(HttpStatus.CONFLICT.value())
-                .message("Seat locked")
-                .details(ex.getMessage())
-                .timestamp(LocalDateTime.now())
-                .errorCode("SEAT_LOCKED")
+                .error(HttpStatus.CONFLICT.getReasonPhrase())
+                .message(ex.getMessage() != null ? ex.getMessage() : "Seat locked")
                 .path(getRequestPath(request))
                 .build();
         return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse);
@@ -180,11 +171,31 @@ public class GlobalExceptionHandler {
             InvalidSeatSelectionException ex, WebRequest request) {
         logger.warn("Invalid seat selection: {}", ex.getMessage());
         ErrorResponse errorResponse = ErrorResponse.builder()
+                .timestamp(OffsetDateTime.now())
                 .status(HttpStatus.BAD_REQUEST.value())
-                .message("Invalid seat selection")
-                .details(ex.getMessage())
-                .timestamp(LocalDateTime.now())
-                .errorCode("INVALID_SEAT_SELECTION")
+                .error(HttpStatus.BAD_REQUEST.getReasonPhrase())
+                .message(ex.getMessage() != null ? ex.getMessage() : "Invalid seat selection")
+                .path(getRequestPath(request))
+                .build();
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+    }
+
+    /**
+     * Handles InvalidBookingStateException and returns a 400 Bad Request response.
+     *
+     * @param ex the exception to handle
+     * @param request the web request
+     * @return the response entity with the error response
+     */
+    @ExceptionHandler(InvalidBookingStateException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidBookingStateException(
+            InvalidBookingStateException ex, WebRequest request) {
+        logger.warn("Invalid booking state: {}", ex.getMessage());
+        ErrorResponse errorResponse = ErrorResponse.builder()
+                .timestamp(OffsetDateTime.now())
+                .status(HttpStatus.BAD_REQUEST.value())
+                .error(HttpStatus.BAD_REQUEST.getReasonPhrase())
+                .message(ex.getMessage() != null ? ex.getMessage() : "Invalid booking state")
                 .path(getRequestPath(request))
                 .build();
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
@@ -202,11 +213,10 @@ public class GlobalExceptionHandler {
             IllegalArgumentException ex, WebRequest request) {
         logger.warn("Invalid argument: {}", ex.getMessage());
         ErrorResponse errorResponse = ErrorResponse.builder()
+                .timestamp(OffsetDateTime.now())
                 .status(HttpStatus.BAD_REQUEST.value())
-                .message("Invalid argument")
-                .details(ex.getMessage())
-                .timestamp(LocalDateTime.now())
-                .errorCode("INVALID_ARGUMENT")
+                .error(HttpStatus.BAD_REQUEST.getReasonPhrase())
+                .message(ex.getMessage() != null ? ex.getMessage() : "Invalid argument")
                 .path(getRequestPath(request))
                 .build();
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
@@ -223,15 +233,14 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleValidationExceptions(
             MethodArgumentNotValidException ex, WebRequest request) {
         logger.warn("Validation error: {}", ex.getMessage());
-        Map<String, String> fieldErrors = new HashMap<>();
-        ex.getBindingResult().getFieldErrors().forEach(error -> fieldErrors.put(error.getField(), error.getDefaultMessage()));
+        String errorMessage = ex.getBindingResult().getFieldErrors().stream()
+                .map(error -> error.getField() + ": " + error.getDefaultMessage())
+                .collect(Collectors.joining(", "));
         ErrorResponse errorResponse = ErrorResponse.builder()
+                .timestamp(OffsetDateTime.now())
                 .status(HttpStatus.BAD_REQUEST.value())
-                .message("Validation failed")
-                .details("One or more fields have validation errors")
-                .timestamp(LocalDateTime.now())
-                .errorCode("VALIDATION_FAILED")
-                .fieldErrors(fieldErrors)
+                .error(HttpStatus.BAD_REQUEST.getReasonPhrase())
+                .message(errorMessage.isEmpty() ? "Validation failed" : errorMessage)
                 .path(getRequestPath(request))
                 .build();
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
@@ -248,17 +257,14 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleConstraintViolationException(
             ConstraintViolationException ex, WebRequest request) {
         logger.warn("Constraint violation: {}", ex.getMessage());
-        Map<String, String> fieldErrors = ex.getConstraintViolations().stream()
-                .collect(Collectors.toMap(
-                        violation -> violation.getPropertyPath().toString(),
-                        ConstraintViolation::getMessage));
+        String errorMessage = ex.getConstraintViolations().stream()
+                .map(violation -> violation.getPropertyPath() + ": " + violation.getMessage())
+                .collect(Collectors.joining(", "));
         ErrorResponse errorResponse = ErrorResponse.builder()
+                .timestamp(OffsetDateTime.now())
                 .status(HttpStatus.BAD_REQUEST.value())
-                .message("Constraint violation")
-                .details("One or more constraints were violated")
-                .timestamp(LocalDateTime.now())
-                .errorCode("CONSTRAINT_VIOLATION")
-                .fieldErrors(fieldErrors)
+                .error(HttpStatus.BAD_REQUEST.getReasonPhrase())
+                .message(errorMessage.isEmpty() ? "Constraint violation" : errorMessage)
                 .path(getRequestPath(request))
                 .build();
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
@@ -276,11 +282,10 @@ public class GlobalExceptionHandler {
             MethodArgumentTypeMismatchException ex, WebRequest request) {
         logger.warn("Type mismatch for parameter '{}': {}", ex.getName(), ex.getMessage());
         ErrorResponse errorResponse = ErrorResponse.builder()
+                .timestamp(OffsetDateTime.now())
                 .status(HttpStatus.BAD_REQUEST.value())
-                .message("Invalid parameter type")
-                .details(String.format("Parameter '%s' has invalid type", ex.getName()))
-                .timestamp(LocalDateTime.now())
-                .errorCode("TYPE_MISMATCH")
+                .error(HttpStatus.BAD_REQUEST.getReasonPhrase())
+                .message(String.format("Parameter '%s' has invalid type", ex.getName()))
                 .path(getRequestPath(request))
                 .build();
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
@@ -298,11 +303,10 @@ public class GlobalExceptionHandler {
             MissingServletRequestParameterException ex, WebRequest request) {
         logger.warn("Missing required parameter: {}", ex.getParameterName());
         ErrorResponse errorResponse = ErrorResponse.builder()
+                .timestamp(OffsetDateTime.now())
                 .status(HttpStatus.BAD_REQUEST.value())
-                .message("Missing required parameter")
-                .details(String.format("Required parameter '%s' is missing", ex.getParameterName()))
-                .timestamp(LocalDateTime.now())
-                .errorCode("MISSING_PARAMETER")
+                .error(HttpStatus.BAD_REQUEST.getReasonPhrase())
+                .message(String.format("Required parameter '%s' is missing", ex.getParameterName()))
                 .path(getRequestPath(request))
                 .build();
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
@@ -320,11 +324,10 @@ public class GlobalExceptionHandler {
             HttpMessageNotReadableException ex, WebRequest request) {
         logger.warn("Malformed request body: {}", ex.getMessage());
         ErrorResponse errorResponse = ErrorResponse.builder()
+                .timestamp(OffsetDateTime.now())
                 .status(HttpStatus.BAD_REQUEST.value())
-                .message("Malformed request body")
-                .details("The request body is invalid or cannot be parsed")
-                .timestamp(LocalDateTime.now())
-                .errorCode("MALFORMED_REQUEST")
+                .error(HttpStatus.BAD_REQUEST.getReasonPhrase())
+                .message("The request body is invalid or cannot be parsed")
                 .path(getRequestPath(request))
                 .build();
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
@@ -342,11 +345,10 @@ public class GlobalExceptionHandler {
             EntityNotFoundException ex, WebRequest request) {
         logger.warn("Entity not found: {}", ex.getMessage());
         ErrorResponse errorResponse = ErrorResponse.builder()
+                .timestamp(OffsetDateTime.now())
                 .status(HttpStatus.NOT_FOUND.value())
-                .message("Entity not found")
-                .details(ex.getMessage())
-                .timestamp(LocalDateTime.now())
-                .errorCode("ENTITY_NOT_FOUND")
+                .error(HttpStatus.NOT_FOUND.getReasonPhrase())
+                .message(ex.getMessage() != null ? ex.getMessage() : "Entity not found")
                 .path(getRequestPath(request))
                 .build();
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
@@ -364,11 +366,10 @@ public class GlobalExceptionHandler {
             EmptyResultDataAccessException ex, WebRequest request) {
         logger.warn("No result found: {}", ex.getMessage());
         ErrorResponse errorResponse = ErrorResponse.builder()
+                .timestamp(OffsetDateTime.now())
                 .status(HttpStatus.NOT_FOUND.value())
-                .message("Resource not found")
-                .details("The requested resource does not exist")
-                .timestamp(LocalDateTime.now())
-                .errorCode("RESOURCE_NOT_FOUND")
+                .error(HttpStatus.NOT_FOUND.getReasonPhrase())
+                .message("The requested resource does not exist")
                 .path(getRequestPath(request))
                 .build();
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
@@ -387,11 +388,10 @@ public class GlobalExceptionHandler {
         logger.error("Data integrity violation: ", ex);
         final var details = getDetails(ex);
         ErrorResponse errorResponse = ErrorResponse.builder()
+                .timestamp(OffsetDateTime.now())
                 .status(HttpStatus.CONFLICT.value())
-                .message("Data integrity violation")
-                .details(details)
-                .timestamp(LocalDateTime.now())
-                .errorCode("DATA_INTEGRITY_VIOLATION")
+                .error(HttpStatus.CONFLICT.getReasonPhrase())
+                .message(details)
                 .path(getRequestPath(request))
                 .build();
         return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse);
@@ -428,11 +428,10 @@ public class GlobalExceptionHandler {
             DataAccessException ex, WebRequest request) {
         logger.error("Data access error: ", ex);
         ErrorResponse errorResponse = ErrorResponse.builder()
+                .timestamp(OffsetDateTime.now())
                 .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
-                .message("Database error")
-                .details("An error occurred while accessing the database")
-                .timestamp(LocalDateTime.now())
-                .errorCode("DATA_ACCESS_ERROR")
+                .error(HttpStatus.INTERNAL_SERVER_ERROR.getReasonPhrase())
+                .message("An error occurred while accessing the database")
                 .path(getRequestPath(request))
                 .build();
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
@@ -450,11 +449,12 @@ public class GlobalExceptionHandler {
             Exception ex, WebRequest request) {
         logger.error("Unexpected error: ", ex);
         ErrorResponse errorResponse = ErrorResponse.builder()
+                .timestamp(OffsetDateTime.now())
                 .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
-                .message("Internal server error")
-                .details("An unexpected error occurred while processing your request")
-                .timestamp(LocalDateTime.now())
-                .errorCode("INTERNAL_SERVER_ERROR")
+                .error(HttpStatus.INTERNAL_SERVER_ERROR.getReasonPhrase())
+                .message(ex.getMessage() != null && !ex.getMessage().isEmpty() 
+                    ? ex.getMessage() 
+                    : "An unexpected error occurred while processing your request")
                 .path(getRequestPath(request))
                 .build();
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
