@@ -140,4 +140,30 @@ public class BookingController {
         
         return ResponseEntity.status(HttpStatus.OK).body(bookings);
     }
+
+    /**
+     * Cancels a booking and releases all associated seats.
+     * This endpoint requires JWT authentication and is accessible only to users with CUSTOMER role.
+     * Only the booking owner can cancel their booking.
+     * Only INITIATED bookings can be cancelled. CONFIRMED bookings cannot be cancelled.
+     * Showtime must not have passed.
+     *
+     * @param bookingId the ID of the booking to cancel
+     * @return cancelled booking response with updated status
+     */
+    @PostMapping("/{bookingId}/cancel")
+    public ResponseEntity<BookingResponse> cancelBooking(@PathVariable Long bookingId) {
+        
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || authentication.getPrincipal() == null) {
+            throw new com.chalchitraghar.exception.AuthenticationException("User not authenticated");
+        }
+        
+        User currentUser = (User) authentication.getPrincipal();
+        
+        // Cancel booking
+        BookingResponse response = bookingService.cancelBooking(bookingId, currentUser);
+        
+        return ResponseEntity.status(HttpStatus.OK).body(response);
+    }
 }

@@ -1,6 +1,8 @@
 package com.chalchitraghar.service;
 
 import java.time.LocalDateTime;
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -304,5 +306,95 @@ public class BookingService {
                     return bookingMapper.toResponseDto(booking, seats);
                 })
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * Cancels a booking and releases all associated seats.
+     * Validates booking ownership, status, and cancellation eligibility before cancellation.
+     * Only INITIATED bookings can be cancelled. CONFIRMED bookings cannot be cancelled.
+     * All operations are performed within a single transaction.
+     *
+     * @param bookingId the ID of the booking to cancel
+     * @param user the authenticated user attempting to cancel the booking
+     * @return the cancelled booking response
+     * @throws ResourceNotFoundException if booking is not found
+     * @throws AccessDeniedException if booking does not belong to the user
+     * @throws InvalidBookingStateException if booking is not eligible for cancellation (not INITIATED or showtime has passed)
+     */
+    @Transactional
+    public BookingResponse cancelBooking(Long bookingId, User user) {
+        // Fetch booking
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new ResourceNotFoundException("Booking", bookingId));
+
+        // Validate booking ownership
+        if (!booking.getUser().getId().equals(user.getId())) {
+            throw new AccessDeniedException(
+                    String.format("Booking %d does not belong to user %d", bookingId, user.getId()));
+        }
+
+        // Validate booking status is INITIATED (only INITIATED bookings can be cancelled)
+        if (booking.getStatus() != BookingStatus.INITIATED) {
+            throw new InvalidBookingStateException(
+                    String.format("Booking %d cannot be cancelled. Current status: %s. Only INITIATED bookings can be cancelled.",
+                            bookingId, booking.getStatus().name()));
+        }
+
+        // Validate cancellation window: booking can only be cancelled before showtime
+        Show show = booking.getShow();
+        LocalDate showDate = show.getShowDate();
+        LocalTime showTime = show.getShowTime();
+        LocalDateTime showDateTime = LocalDateTime.of(showDate, showTime);
+        LocalDateTime now = LocalDateTime.now();
+
+        if (now.isAfter(showDateTime) || now.isEqual(showDateTime)) {
+            throw new InvalidBookingStateException(
+                    String.format("Booking %d cannot be cancelled. Show time has passed or is in progress. Show time: %s",
+                            bookingId, showDateTime));
+        }
+
+        // Fetch all associated seats for this booking
+        List<BookingSeat> bookingSeats = bookingSeatRepository.findByBookingId(bookingId);
+        if (bookingSeats.isEmpty()) {
+            throw new ResourceNotFoundException(
+                    String.format("No seats found for booking %d", bookingId));
+        }
+
+        // Extract seat IDs
+        List<Long> seatIds = bookingSeats.stream()
+                .map(bs -> bs.getSeat().getId())
+                .collect(Collectors.toList());
+
+        // Re-fetch seats with pessimistic lock to prevent concurrent modifications
+        List<Seat> seats = seatRepository.findByShowIdAndSeatIdsWithLock(
+                booking.getShow().getId(), seatIds);
+
+        // Validate all seats exist
+        if (seats.size() != seatIds.size()) {
+            List<Long> foundSeatIds = seats.stream()
+                    .map(Seat::getId)
+                    .collect(Collectors.toList());
+            List<Long> missingSeatIds = seatIds.stream()
+                    .filter(id -> !foundSeatIds.contains(id))
+                    .collect(Collectors.toList());
+            throw new ResourceNotFoundException(
+                    String.format("Seats not found: %s", missingSeatIds));
+        }
+
+        // Release all seats: set status to AVAILABLE
+        for (Seat seat : seats) {
+            seat.setSeatStatus(SeatStatus.AVAILABLE);
+            // Clear any lock information
+            seat.setLockedAt(null);
+            seat.setLockExpiresAt(null);
+        }
+        seatRepository.saveAll(seats);
+
+        // Update booking status to CANCELLED
+        booking.setStatus(BookingStatus.CANCELLED);
+        booking = bookingRepository.save(booking);
+
+        // Map booking and seats to response DTO
+        return bookingMapper.toResponseDto(booking, seats);
     }
 }
