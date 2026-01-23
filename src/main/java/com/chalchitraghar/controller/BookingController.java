@@ -1,9 +1,12 @@
 package com.chalchitraghar.controller;
 
+import java.util.List;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -113,5 +116,28 @@ public class BookingController {
         BookingResponse response = bookingService.confirmBooking(bookingId, currentUser);
         
         return ResponseEntity.status(HttpStatus.OK).body(response);
+    }
+
+    /**
+     * Retrieves all bookings for the authenticated user.
+     * This endpoint requires JWT authentication and is accessible only to users with CUSTOMER role.
+     * Returns bookings sorted by booking time descending (most recent first).
+     *
+     * @return list of booking responses for the authenticated user
+     */
+    @GetMapping("/my")
+    public ResponseEntity<List<BookingResponse>> getMyBookings() {
+        
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || authentication.getPrincipal() == null) {
+            throw new com.chalchitraghar.exception.AuthenticationException("User not authenticated");
+        }
+        
+        User currentUser = (User) authentication.getPrincipal();
+        
+        // Get all bookings for the authenticated user
+        List<BookingResponse> bookings = bookingService.getMyBookings(currentUser);
+        
+        return ResponseEntity.status(HttpStatus.OK).body(bookings);
     }
 }

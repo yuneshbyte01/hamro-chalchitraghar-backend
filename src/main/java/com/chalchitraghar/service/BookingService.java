@@ -278,4 +278,31 @@ public class BookingService {
         // Map booking and seats to response DTO
         return bookingMapper.toResponseDto(booking, seats);
     }
+
+    /**
+     * Retrieves all bookings for the authenticated user.
+     * Returns bookings sorted by booking time descending (most recent first).
+     *
+     * @param user the authenticated user
+     * @return list of booking responses for the user
+     */
+    @Transactional(readOnly = true)
+    public List<BookingResponse> getMyBookings(User user) {
+        // Fetch all bookings for the user, sorted by bookingTime descending
+        List<Booking> bookings = bookingRepository.findByUserIdOrderByBookingTimeDesc(user.getId());
+
+        // Map each booking to response DTO
+        return bookings.stream()
+                .map(booking -> {
+                    // Fetch associated seats for this booking
+                    List<BookingSeat> bookingSeats = bookingSeatRepository.findByBookingId(booking.getId());
+                    List<Seat> seats = bookingSeats.stream()
+                            .map(BookingSeat::getSeat)
+                            .collect(Collectors.toList());
+                    
+                    // Map to response DTO
+                    return bookingMapper.toResponseDto(booking, seats);
+                })
+                .collect(Collectors.toList());
+    }
 }
