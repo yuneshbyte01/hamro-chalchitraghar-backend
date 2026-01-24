@@ -37,7 +37,6 @@ public class ShowMapper {
         return Show.builder()
                 .movie(movie)
                 .hall(hall)
-                .price(dto.getPrice())
                 .showDate(dto.getShowDate())
                 .showTime(dto.getShowTime())
                 .endTime(dto.getEndTime())
@@ -59,7 +58,6 @@ public class ShowMapper {
         dto.setId(show.getId());
         dto.setMovie(movieMapper.toResponseDto(show.getMovie()));
         dto.setHall(hallMapper.toResponseDto(show.getHall()));
-        dto.setPrice(show.getPrice());
         dto.setStatus(show.getStatus());
         dto.setShowDate(show.getShowDate());
         dto.setShowTime(show.getShowTime());
@@ -84,7 +82,6 @@ public class ShowMapper {
 
         show.setMovie(movie);
         show.setHall(hall);
-        show.setPrice(dto.getPrice());
         show.setShowDate(dto.getShowDate());
         show.setShowTime(dto.getShowTime());
         show.setEndTime(dto.getEndTime());

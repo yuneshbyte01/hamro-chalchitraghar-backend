@@ -41,8 +41,12 @@ public class BookingMapper {
                         .collect(Collectors.toList())
                 : List.of();
 
-        // Calculate total price
-        Double totalPrice = booking.getShow().getPrice() * (seats != null ? seats.size() : 0);
+        // Calculate total price from individual seat prices
+        Double totalPrice = seats != null 
+                ? seats.stream()
+                        .mapToDouble(Seat::getPrice)
+                        .sum()
+                : 0.0;
 
         // Build response
         BookingResponse response = new BookingResponse();

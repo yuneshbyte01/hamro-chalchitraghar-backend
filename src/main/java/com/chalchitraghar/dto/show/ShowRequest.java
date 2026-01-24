@@ -5,7 +5,6 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Positive; 
 import jakarta.validation.constraints.Future;
 
 import java.time.LocalDate;
@@ -24,10 +23,6 @@ public class ShowRequest {
 
     @NotNull(message = "Hall ID is required")
     private Long hallId;
-
-    @NotNull(message = "Price is required")
-    @Positive(message = "Price must be greater than 0")
-    private Double price;
 
     @NotNull(message = "Show date is required")
     @Future(message = "Show date must be in the future")

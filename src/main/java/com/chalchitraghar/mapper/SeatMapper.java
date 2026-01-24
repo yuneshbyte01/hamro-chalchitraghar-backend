@@ -28,6 +28,7 @@ public class SeatMapper {
         dto.setSeatNumber(seat.getSeatNumber());
         dto.setSeatCode(seat.getSeatCode());
         dto.setSeatType(seat.getSeatType());
+        dto.setPrice(seat.getPrice());
         dto.setPositionIndex(seat.getPositionIndex());
         dto.setSeatStatus(seat.getSeatStatus());
         return dto;

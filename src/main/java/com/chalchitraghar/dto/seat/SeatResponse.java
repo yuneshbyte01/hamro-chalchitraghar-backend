@@ -20,6 +20,7 @@ public class SeatResponse {
     private Integer seatNumber;
     private String seatCode;
     private SeatType seatType;
+    private Double price;
     private Integer positionIndex;
     private SeatStatus seatStatus;
 }

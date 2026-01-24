@@ -15,7 +15,6 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Positive;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -49,14 +48,6 @@ public class Show extends GenericEntity {
     @JoinColumn(name = "hall_id", nullable = false)
     @NotNull(message = "Hall is required")
     private Hall hall;
-
-    /**
-     * Ticket price for this show. Must be greater than zero.
-     */
-    @Column(nullable = false)
-    @NotNull(message = "Price is required")
-    @Positive(message = "Price must be greater than 0")
-    private Double price;
 
     /**
      * Current status of the show. Automatically set to SCHEDULED on creation.

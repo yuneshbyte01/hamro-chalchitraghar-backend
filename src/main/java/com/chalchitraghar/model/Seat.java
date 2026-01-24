@@ -15,6 +15,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -69,6 +70,14 @@ public class Seat extends GenericEntity {
     @NotNull(message = "Seat type is required")
     @Enumerated(EnumType.STRING)
     private SeatType seatType;
+
+    /**
+     * Price for this seat. Must be greater than zero.
+     */
+    @Column(nullable = false)
+    @NotNull(message = "Price is required")
+    @Positive(message = "Price must be greater than 0")
+    private Double price;
 
     /**
      * Current availability status. Automatically set to AVAILABLE on creation.

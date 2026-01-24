@@ -23,7 +23,6 @@ public class ShowResponse {
     private Long id;
     private MovieResponse movie;
     private HallResponse hall;
-    private Double price;
     private ShowStatus status;
     private LocalDate showDate;
     private LocalTime showTime;
