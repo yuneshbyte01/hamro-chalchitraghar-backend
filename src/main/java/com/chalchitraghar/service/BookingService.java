@@ -24,6 +24,7 @@ import com.chalchitraghar.model.Seat;
 import com.chalchitraghar.model.Show;
 import com.chalchitraghar.model.User;
 import com.chalchitraghar.model.enums.BookingStatus;
+import com.chalchitraghar.model.enums.Role;
 import com.chalchitraghar.model.enums.SeatStatus;
 import com.chalchitraghar.repository.BookingRepository;
 import com.chalchitraghar.repository.BookingSeatRepository;
@@ -395,6 +396,33 @@ public class BookingService {
         booking = bookingRepository.save(booking);
 
         // Map booking and seats to response DTO
+        return bookingMapper.toResponseDto(booking, seats);
+    }
+
+    /**
+     * Fetches a booking by ID. Customers may only fetch their own; STAFF and ADMIN may fetch any.
+     *
+     * @param bookingId the booking ID
+     * @param user the authenticated user
+     * @return the booking response
+     * @throws ResourceNotFoundException if booking is not found
+     * @throws AccessDeniedException if customer tries to access another user's booking
+     */
+    @Transactional(readOnly = true)
+    public BookingResponse getBookingById(Long bookingId, User user) {
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new ResourceNotFoundException("Booking", bookingId));
+
+        if (user.getRole() != Role.ADMIN && user.getRole() != Role.STAFF) {
+            if (!booking.getUser().getId().equals(user.getId())) {
+                throw new AccessDeniedException("You do not have access to this booking");
+            }
+        }
+
+        List<BookingSeat> bookingSeats = bookingSeatRepository.findByBookingId(bookingId);
+        List<Seat> seats = bookingSeats.stream()
+                .map(BookingSeat::getSeat)
+                .collect(Collectors.toList());
         return bookingMapper.toResponseDto(booking, seats);
     }
 }

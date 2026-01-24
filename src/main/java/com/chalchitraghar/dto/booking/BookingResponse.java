@@ -22,7 +22,10 @@ public class BookingResponse {
     private BookingStatus bookingStatus;
     private Long showId;
     private String movieName;
+    private String hallName;
     private LocalDateTime showDateTime;
+    private String startTime;
+    private String endTime;
     private List<SeatResponse> selectedSeats;
     private Double totalPrice;
     private LocalDateTime bookingTime;

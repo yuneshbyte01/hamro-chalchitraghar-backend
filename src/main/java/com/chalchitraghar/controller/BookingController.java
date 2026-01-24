@@ -142,6 +142,23 @@ public class BookingController {
     }
 
     /**
+     * Fetches a booking by ID. Customers may only fetch their own; STAFF and ADMIN may fetch any (e.g. for box office ticket/reprint).
+     *
+     * @param bookingId the booking ID
+     * @return the booking response
+     */
+    @GetMapping("/{bookingId}")
+    public ResponseEntity<BookingResponse> getBookingById(@PathVariable Long bookingId) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || authentication.getPrincipal() == null) {
+            throw new com.chalchitraghar.exception.AuthenticationException("User not authenticated");
+        }
+        User currentUser = (User) authentication.getPrincipal();
+        BookingResponse response = bookingService.getBookingById(bookingId, currentUser);
+        return ResponseEntity.ok(response);
+    }
+
+    /**
      * Cancels a booking and releases all associated seats.
      * This endpoint requires JWT authentication and is accessible only to users with CUSTOMER role.
      * Only the booking owner can cancel their booking.

@@ -54,9 +54,12 @@ public class BookingMapper {
         response.setBookingStatus(booking.getStatus());
         response.setShowId(booking.getShow().getId());
         response.setMovieName(booking.getShow().getMovie().getTitle());
+        response.setHallName(booking.getShow().getHall().getName());
         response.setShowDateTime(LocalDateTime.of(
                 booking.getShow().getShowDate(),
                 booking.getShow().getShowTime()));
+        response.setStartTime(booking.getShow().getShowTime().toString());
+        response.setEndTime(booking.getShow().getEndTime().toString());
         response.setSelectedSeats(seatResponses);
         response.setTotalPrice(totalPrice);
         response.setBookingTime(booking.getBookingTime());
