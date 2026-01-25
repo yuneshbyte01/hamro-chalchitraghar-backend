@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -24,6 +25,7 @@ import lombok.RequiredArgsConstructor;
  * Configures JWT-based authentication, CORS, and role-based access control.
  */
 @Configuration
+@EnableMethodSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
 
@@ -74,9 +76,12 @@ public class SecurityConfig {
                     .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                     .requestMatchers("/api/auth/**").permitAll()
-                    .requestMatchers("/api/customer/**").hasRole("CUSTOMER")
-                    .requestMatchers("/api/staff/**").hasRole("STAFF")
+                    .requestMatchers("/api/health", "/api/health/**").permitAll()
+                    .requestMatchers("/api/movies/**").permitAll()
+                    .requestMatchers("/api/halls/**").permitAll()
+                    .requestMatchers("/api/shows/**").permitAll()
                     .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                    .requestMatchers("/api/bookings/**").authenticated()
                     .anyRequest().authenticated()
             )
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

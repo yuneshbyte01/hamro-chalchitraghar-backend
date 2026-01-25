@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -21,64 +22,37 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 /**
- * REST controller for admin show management endpoints.
- * Requires ADMIN role for all operations.
+ * REST controller for admin show management. CRUD operations. Admin only.
  */
-@RestController("adminShowController")
+@RestController
 @RequestMapping("/api/admin/shows")
+@PreAuthorize("hasRole('ADMIN')")
 @RequiredArgsConstructor
-public class ShowController {
+public class AdminShowController {
 
     private final ShowService showService;
 
-    /**
-     * Retrieves all shows.
-     *
-     * @return list of all show responses
-     */
     @GetMapping
     public ResponseEntity<List<ShowResponse>> getAllShows() {
-        List<ShowResponse> shows = showService.getAllShows();
-        return ResponseEntity.ok(shows);
+        return ResponseEntity.ok(showService.getAllShows());
     }
 
-    /**
-     * Retrieves a show by ID.
-     *
-     * @param id the show ID
-     * @return show response
-     */
     @GetMapping("/{id}")
     public ResponseEntity<ShowResponse> getShowById(@PathVariable Long id) {
-        ShowResponse show = showService.getShowById(id);
-        return ResponseEntity.ok(show);
+        return ResponseEntity.ok(showService.getShowById(id));
     }
 
     @PostMapping
     public ResponseEntity<ShowResponse> createShow(@Valid @RequestBody ShowRequest dto) {
-        ShowResponse createdShow = showService.addShow(dto);
-        return ResponseEntity.status(HttpStatus.CREATED).body(createdShow);
+        ShowResponse created = showService.addShow(dto);
+        return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
-    /**
-     * Updates an existing show.
-     *
-     * @param id the show ID
-     * @param dto show request containing updated details
-     * @return updated show response
-     */
     @PutMapping("/{id}")
     public ResponseEntity<ShowResponse> updateShow(@PathVariable Long id, @Valid @RequestBody ShowRequest dto) {
-        ShowResponse updatedShow = showService.updateShow(id, dto);
-        return ResponseEntity.ok(updatedShow);
+        return ResponseEntity.ok(showService.updateShow(id, dto));
     }
 
-    /**
-     * Soft deletes a show by setting its status to CANCELLED.
-     *
-     * @param id the show ID
-     * @return no content response
-     */
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteShow(@PathVariable Long id) {
         showService.deleteShow(id);

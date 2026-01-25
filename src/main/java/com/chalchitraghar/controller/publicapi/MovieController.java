@@ -1,4 +1,4 @@
-package com.chalchitraghar.controller;
+package com.chalchitraghar.controller.publicapi;
 
 import java.util.List;
 
@@ -15,7 +15,7 @@ import com.chalchitraghar.service.MovieService;
 import lombok.RequiredArgsConstructor;
 
 /**
- * REST controller for public movie information endpoints.
+ * REST controller for public movie information. Read-only. No authentication required.
  */
 @RestController
 @RequestMapping("/api/movies")
@@ -24,48 +24,23 @@ public class MovieController {
 
     private final MovieService movieService;
 
-    /**
-     * Retrieves all movies.
-     *
-     * @return list of all movie responses
-     */
     @GetMapping
     public ResponseEntity<List<MovieResponse>> getAllMovies() {
-        List<MovieResponse> movies = movieService.getAllMovies();
-        return ResponseEntity.ok(movies);
+        return ResponseEntity.ok(movieService.getAllMovies());
     }
 
-    /**
-     * Retrieves a movie by ID.
-     *
-     * @param id the movie ID
-     * @return movie response
-     */
     @GetMapping("/{id}")
     public ResponseEntity<MovieResponse> getMovieById(@PathVariable Long id) {
-        MovieResponse movie = movieService.getMovieById(id);
-        return ResponseEntity.ok(movie);
+        return ResponseEntity.ok(movieService.getMovieById(id));
     }
 
-    /**
-     * Retrieves all movies currently showing.
-     *
-     * @return list of now-showing movie responses
-     */
     @GetMapping("/now-showing")
     public ResponseEntity<List<MovieResponse>> getNowShowingMovies() {
-        List<MovieResponse> movies = movieService.getMoviesByStatus(MovieStatus.NOW_SHOWING);
-        return ResponseEntity.ok(movies);
+        return ResponseEntity.ok(movieService.getMoviesByStatus(MovieStatus.NOW_SHOWING));
     }
 
-    /**
-     * Retrieves all upcoming movies.
-     *
-     * @return list of upcoming movie responses
-     */
     @GetMapping("/upcoming")
     public ResponseEntity<List<MovieResponse>> getUpcomingMovies() {
-        List<MovieResponse> movies = movieService.getMoviesByStatus(MovieStatus.UPCOMING);
-        return ResponseEntity.ok(movies);
+        return ResponseEntity.ok(movieService.getMoviesByStatus(MovieStatus.UPCOMING));
     }
 }

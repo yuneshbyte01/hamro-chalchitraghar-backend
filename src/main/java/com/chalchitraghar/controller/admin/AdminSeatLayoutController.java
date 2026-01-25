@@ -1,9 +1,10 @@
 package com.chalchitraghar.controller.admin;
 
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.chalchitraghar.service.SeatLayoutService;
@@ -11,13 +12,13 @@ import com.chalchitraghar.service.SeatLayoutService;
 import lombok.RequiredArgsConstructor;
 
 /**
- * REST controller for admin seat layout management endpoints.
- * Requires ADMIN role for all operations.
+ * REST controller for admin seat layout management. Admin only.
  */
 @RestController
 @RequestMapping("/api/admin/halls")
+@PreAuthorize("hasRole('ADMIN')")
 @RequiredArgsConstructor
-public class SeatLayoutController {
+public class AdminSeatLayoutController {
 
     private final SeatLayoutService seatLayoutService;
 
@@ -32,5 +33,4 @@ public class SeatLayoutController {
         seatLayoutService.generateSeatTemplates(hallId);
         return ResponseEntity.ok().build();
     }
-
 }

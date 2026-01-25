@@ -1,4 +1,4 @@
-package com.chalchitraghar.controller;
+package com.chalchitraghar.controller.auth;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.chalchitraghar.dto.auth.LoginRequest;
 import com.chalchitraghar.dto.auth.LoginResponse;
+import com.chalchitraghar.dto.auth.RefreshTokenRequest;
 import com.chalchitraghar.dto.auth.RegistrationRequest;
 import com.chalchitraghar.dto.auth.RegistrationResponse;
 import com.chalchitraghar.service.AuthService;
@@ -17,7 +18,8 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 /**
- * REST controller for user authentication and registration endpoints.
+ * REST controller for authentication endpoints.
+ * All endpoints are public (no authentication required): login, register, token refresh.
  */
 @RestController
 @RequestMapping("/api/auth")
@@ -47,6 +49,18 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
         LoginResponse response = authService.login(request);
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Refreshes a valid JWT token and returns a new token with user details.
+     *
+     * @param request refresh request containing the current token
+     * @return login response with new JWT token and user details
+     */
+    @PostMapping("/refresh")
+    public ResponseEntity<LoginResponse> refreshToken(@Valid @RequestBody RefreshTokenRequest request) {
+        LoginResponse response = authService.refreshToken(request);
         return ResponseEntity.ok(response);
     }
 }

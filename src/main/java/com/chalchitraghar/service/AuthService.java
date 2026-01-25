@@ -5,6 +5,7 @@ import org.springframework.stereotype.Service;
 
 import com.chalchitraghar.dto.auth.LoginRequest;
 import com.chalchitraghar.dto.auth.LoginResponse;
+import com.chalchitraghar.dto.auth.RefreshTokenRequest;
 import com.chalchitraghar.dto.auth.RegistrationRequest;
 import com.chalchitraghar.dto.auth.RegistrationResponse;
 import com.chalchitraghar.exception.AuthenticationException;
@@ -64,6 +65,29 @@ public class AuthService {
             user.getEmail(),
             user.getName(),
             user.getRole().name()
+        );
+    }
+
+    /**
+     * Refreshes a valid JWT token and returns a new login response.
+     *
+     * @param request refresh request containing the current token
+     * @return login response with new JWT token and user details
+     * @throws AuthenticationException if the token is invalid or expired
+     */
+    public LoginResponse refreshToken(RefreshTokenRequest request) {
+        String token = request.getToken();
+        if (!jwtUtil.validateToken(token)) {
+            throw new AuthenticationException("Invalid or expired token");
+        }
+        String email = jwtUtil.extractUsername(token);
+        User user = userService.getUserByEmail(email);
+        String newToken = jwtUtil.generateToken(user);
+        return new LoginResponse(
+                newToken,
+                user.getEmail(),
+                user.getName(),
+                user.getRole().name()
         );
     }
 

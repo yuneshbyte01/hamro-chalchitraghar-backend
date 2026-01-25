@@ -1,8 +1,11 @@
 package com.chalchitraghar.service;
 
+import java.util.List;
+
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import com.chalchitraghar.exception.ResourceNotFoundException;
 import com.chalchitraghar.model.User;
 import com.chalchitraghar.model.enums.Role;
 import com.chalchitraghar.repository.UserRepository;
@@ -52,5 +55,26 @@ public class UserService {
     public User getUserByEmail(String email) {
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found with email: " + email));
+    }
+
+    /**
+     * Retrieves all users. For admin use.
+     *
+     * @return list of all users
+     */
+    public List<User> getAllUsers() {
+        return userRepository.findAll();
+    }
+
+    /**
+     * Retrieves a user by ID.
+     *
+     * @param id the user ID
+     * @return user entity
+     * @throws ResourceNotFoundException if user is not found
+     */
+    public User getUserById(Long id) {
+        return userRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("User", id));
     }
 }
