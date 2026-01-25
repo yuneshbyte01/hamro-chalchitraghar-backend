@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.chalchitraghar.dto.show.ShowRequest;
 import com.chalchitraghar.dto.show.ShowResponse;
-import com.chalchitraghar.service.ShowService;
+import com.chalchitraghar.service.show.ShowService;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

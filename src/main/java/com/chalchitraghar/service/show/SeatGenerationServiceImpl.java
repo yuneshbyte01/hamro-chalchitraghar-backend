@@ -1,4 +1,4 @@
-package com.chalchitraghar.service;
+package com.chalchitraghar.service.show;
 
 import java.util.List;
 import java.util.Map;
@@ -18,50 +18,31 @@ import com.chalchitraghar.repository.ShowRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 
-/**
- * Service for generating seats for shows based on hall seat templates.
- */
 @Service
 @RequiredArgsConstructor
-public class SeatGenerationService {
+public class SeatGenerationServiceImpl implements SeatGenerationService {
+
+    private static final double PRICE_PLATINUM = 500.0;
+    private static final double PRICE_PREMIUM = 750.0;
 
     private final SeatRepository seatRepository;
     private final SeatTemplateRepository seatTemplateRepository;
     private final ShowRepository showRepository;
 
-    private static final double PRICE_PLATINUM = 500.0;
-    private static final double PRICE_PREMIUM = 750.0;
-
-    /**
-     * Generates seats for a show based on the hall's seat templates.
-     * Seat prices are hardcoded: PLATINUM = 500, PREMIUM = 750.
-     *
-     * @param showId the show ID
-     * @throws IllegalStateException if seats already exist for this show
-     * @throws ResourceNotFoundException if show or seat templates are not found
-     */
+    @Override
     @Transactional
     public void generateSeatsForShow(Long showId) {
-
         if (seatRepository.existsByShowId(showId)) {
             throw new IllegalStateException("Seats already generated for this show");
         }
-
         Show show = showRepository.findById(showId)
                 .orElseThrow(() -> new ResourceNotFoundException("Show", showId));
-
         List<SeatTemplate> templates = seatTemplateRepository
                 .findByHallIdOrderByPositionIndexAsc(show.getHall().getId());
-        
         if (templates.isEmpty()) {
             throw new ResourceNotFoundException("Seat template", show.getHall().getId());
         }
-
-        Map<SeatType, Double> priceMap = Map.of(
-                SeatType.PLATINUM, PRICE_PLATINUM,
-                SeatType.PREMIUM, PRICE_PREMIUM
-        );
-
+        Map<SeatType, Double> priceMap = Map.of(SeatType.PLATINUM, PRICE_PLATINUM, SeatType.PREMIUM, PRICE_PREMIUM);
         for (SeatTemplate template : templates) {
             Double seatPrice = priceMap.get(template.getSeatType());
             Seat seat = Seat.builder()
@@ -74,7 +55,6 @@ public class SeatGenerationService {
                     .positionIndex(template.getPositionIndex())
                     .seatStatus(SeatStatus.AVAILABLE)
                     .build();
-
             seatRepository.save(seat);
         }
     }

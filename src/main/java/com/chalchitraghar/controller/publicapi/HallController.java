@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.chalchitraghar.dto.hall.HallResponse;
-import com.chalchitraghar.service.HallService;
+import com.chalchitraghar.service.hall.HallService;
 
 import lombok.RequiredArgsConstructor;
 

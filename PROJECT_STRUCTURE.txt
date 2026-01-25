@@ -119,17 +119,34 @@ hamro-chalchitraghar-backend/
     │   │   │   ├── JwtAuthenticationFilter.java
     │   │   │   └── JwtUtil.java
     │   │   │
-    │   │   └── service/                 # Business logic services
-    │   │       ├── AuthService.java
-    │   │       ├── BookingService.java
-    │   │       ├── HallService.java
-    │   │       ├── MovieService.java
-    │   │       ├── SeatGenerationService.java
-    │   │       ├── SeatLayoutService.java
-    │   │       ├── SeatLockService.java
-    │   │       ├── SeatService.java
-    │   │       ├── ShowService.java
-    │   │       └── UserService.java
+    │   │   └── service/                 # Business logic (interface + Impl)
+    │   │       ├── auth/
+    │   │       │   ├── AuthService.java         # interface
+    │   │       │   └── AuthServiceImpl.java
+    │   │       ├── admin/
+    │   │       │   ├── UserService.java         # interface
+    │   │       │   └── UserServiceImpl.java
+    │   │       ├── booking/
+    │   │       │   ├── BookingService.java     # interface
+    │   │       │   ├── BookingServiceImpl.java
+    │   │       │   ├── SeatLockService.java     # interface
+    │   │       │   └── SeatLockServiceImpl.java
+    │   │       ├── hall/
+    │   │       │   ├── HallService.java         # interface
+    │   │       │   ├── HallServiceImpl.java
+    │   │       │   ├── SeatLayoutService.java   # interface
+    │   │       │   └── SeatLayoutServiceImpl.java
+    │   │       ├── movie/
+    │   │       │   ├── MovieService.java        # interface
+    │   │       │   └── MovieServiceImpl.java
+    │   │       ├── show/
+    │   │       │   ├── SeatGenerationService.java   # interface
+    │   │       │   ├── SeatGenerationServiceImpl.java
+    │   │       │   ├── ShowService.java         # interface
+    │   │       │   └── ShowServiceImpl.java
+    │   │       └── seat/
+    │   │           ├── SeatService.java         # interface
+    │   │           └── SeatServiceImpl.java
     │   │
     │   └── resources/
     │       └── application.yaml         # Application configuration (database, etc.)

@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.chalchitraghar.dto.user.UserResponse;
 import com.chalchitraghar.model.User;
-import com.chalchitraghar.service.UserService;
+import com.chalchitraghar.service.admin.UserService;
 
 import lombok.RequiredArgsConstructor;
 

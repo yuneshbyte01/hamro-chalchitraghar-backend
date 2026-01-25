@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.chalchitraghar.dto.show.ShowResponse;
-import com.chalchitraghar.service.ShowService;
+import com.chalchitraghar.service.show.ShowService;
 
 import lombok.RequiredArgsConstructor;
 

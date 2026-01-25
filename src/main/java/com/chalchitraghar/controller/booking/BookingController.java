@@ -18,8 +18,8 @@ import com.chalchitraghar.dto.booking.BookingResponse;
 import com.chalchitraghar.dto.booking.BookingValidationRequest;
 import com.chalchitraghar.dto.booking.BookingValidationResponse;
 import com.chalchitraghar.model.User;
-import com.chalchitraghar.service.BookingService;
-import com.chalchitraghar.service.SeatLockService;
+import com.chalchitraghar.service.booking.BookingService;
+import com.chalchitraghar.service.booking.SeatLockService;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

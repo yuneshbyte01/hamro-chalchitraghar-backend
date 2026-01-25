@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.chalchitraghar.dto.movie.MovieResponse;
 import com.chalchitraghar.model.enums.MovieStatus;
-import com.chalchitraghar.service.MovieService;
+import com.chalchitraghar.service.movie.MovieService;
 
 import lombok.RequiredArgsConstructor;
 

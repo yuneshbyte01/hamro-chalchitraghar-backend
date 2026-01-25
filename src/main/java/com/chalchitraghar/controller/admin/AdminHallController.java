@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.chalchitraghar.dto.hall.HallRequest;
 import com.chalchitraghar.dto.hall.HallResponse;
-import com.chalchitraghar.service.HallService;
+import com.chalchitraghar.service.hall.HallService;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.chalchitraghar.dto.seat.SeatResponse;
-import com.chalchitraghar.service.SeatService;
+import com.chalchitraghar.service.seat.SeatService;
 
 import lombok.RequiredArgsConstructor;
 

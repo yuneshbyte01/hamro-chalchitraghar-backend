@@ -12,7 +12,7 @@ import com.chalchitraghar.dto.auth.LoginResponse;
 import com.chalchitraghar.dto.auth.RefreshTokenRequest;
 import com.chalchitraghar.dto.auth.RegistrationRequest;
 import com.chalchitraghar.dto.auth.RegistrationResponse;
-import com.chalchitraghar.service.AuthService;
+import com.chalchitraghar.service.auth.AuthService;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
