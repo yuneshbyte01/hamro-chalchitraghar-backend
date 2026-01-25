@@ -5,7 +5,6 @@ import java.util.List;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -22,10 +21,12 @@ import lombok.RequiredArgsConstructor;
 
 /**
  * Security configuration for Spring Security.
- * Configures JWT-based authentication, CORS, and role-based access control.
+ * Access control is enforced here via requestMatchers; controllers do not use @PreAuthorize.
+ * - Public: auth, health, movies, halls, shows
+ * - Admin only: /api/admin/**
+ * - Authenticated: /api/bookings/**
  */
 @Configuration
-@EnableMethodSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
 

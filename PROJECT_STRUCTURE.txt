@@ -23,20 +23,20 @@ hamro-chalchitraghar-backend/
     │   │   │   └── SecurityConfig.java  # Spring Security configuration
     │   │   │
     │   │   ├── controller/              # REST Controllers (API endpoints)
-    │   │   │   ├── auth/                # Authentication (public: login, register, refresh)
+    │   │   │   ├── auth/                # Authentication
     │   │   │   │   └── AuthController.java
-    │   │   │   ├── admin/               # Admin-only (@PreAuthorize hasRole('ADMIN'))
+    │   │   │   ├── admin/               # Admin-only
     │   │   │   │   ├── AdminMovieController.java
     │   │   │   │   ├── AdminHallController.java
     │   │   │   │   ├── AdminShowController.java
     │   │   │   │   ├── AdminSeatLayoutController.java
     │   │   │   │   └── AdminUserController.java
-    │   │   │   ├── publicapi/           # Public read-only (no auth; "public" is Java keyword)
+    │   │   │   ├── publicapi/           # Public read-only
     │   │   │   │   ├── MovieController.java
     │   │   │   │   ├── HallController.java
     │   │   │   │   ├── ShowController.java
     │   │   │   │   └── SeatController.java
-    │   │   │   ├── booking/             # Authenticated users (@PreAuthorize isAuthenticated())
+    │   │   │   ├── booking/             # Authenticated users
     │   │   │   │   └── BookingController.java
     │   │   │   └── health/              # Public health check
     │   │   │       └── HealthController.java
