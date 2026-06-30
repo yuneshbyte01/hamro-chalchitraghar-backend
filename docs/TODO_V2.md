@@ -145,11 +145,11 @@ git push
 
 ## Phase 3: PostgreSQL Migration
 
-* [ ] Replace MySQL dependency with PostgreSQL driver.
-* [ ] Update `application.yaml` datasource config.
+* [x] Replace MySQL dependency with PostgreSQL driver.
+* [x] Update `application.yaml` datasource config.
 * [ ] Create PostgreSQL database.
 * [ ] Test app connection with PostgreSQL.
-* [ ] Remove MySQL-specific configuration.
+* [x] Remove MySQL-specific configuration.
 * [ ] Commit PostgreSQL migration.
 
 ---

@@ -3,13 +3,13 @@
 ## Prerequisites
 
 - Java 21
-- MySQL server
+- PostgreSQL server
 - Git
 - Maven is optional because Maven wrapper scripts are included.
 
 ## Local Development Setup
 
-1. Create a MySQL database:
+1. Create a PostgreSQL database:
 
 ```sql
 CREATE DATABASE hamro_chalachitraghar_db;
@@ -20,9 +20,9 @@ CREATE DATABASE hamro_chalachitraghar_db;
 ```yaml
 spring:
   datasource:
-    url: jdbc:mysql://localhost:3306/hamro_chalachitraghar_db
-    username: root
-    password: "@@Himal@@"
+    url: jdbc:postgresql://localhost:5432/hamro_chalachitraghar_db
+    username: postgres
+    password: postgres
 ```
 
 3. Install dependencies and compile:
@@ -57,9 +57,9 @@ Current hardcoded configuration:
 
 | Setting | Current value |
 | --- | --- |
-| Database URL | `jdbc:mysql://localhost:3306/hamro_chalachitraghar_db` |
-| Database username | `root` |
-| Database password | `@@Himal@@` |
+| Database URL | `jdbc:postgresql://localhost:5432/hamro_chalachitraghar_db` |
+| Database username | `postgres` |
+| Database password | `postgres` |
 | JWT secret | Hardcoded in `JwtUtil` |
 | JWT expiration | 1 hour |
 | Allowed CORS origin | `http://localhost:4200` |
@@ -128,12 +128,12 @@ Current test coverage is limited to a Spring context load test.
 
 ## Common Troubleshooting
 
-### MySQL Connection Fails
+### PostgreSQL Connection Fails
 
-- Confirm MySQL is running.
+- Confirm PostgreSQL is running.
 - Confirm database `hamro_chalachitraghar_db` exists.
 - Confirm username/password in `application.yaml`.
-- Confirm port `3306` is available.
+- Confirm port `5432` is available.
 
 ### Application Starts But Tables Are Missing
 

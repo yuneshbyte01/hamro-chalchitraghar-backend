@@ -2,14 +2,14 @@
 
 ## Database Engine
 
-The application uses MySQL through Spring Data JPA and Hibernate.
+The application uses PostgreSQL through Spring Data JPA and Hibernate.
 
 Configured database:
 
 ```yaml
-url: jdbc:mysql://localhost:3306/hamro_chalachitraghar_db
-username: root
-password: "@@Himal@@"
+url: jdbc:postgresql://localhost:5432/hamro_chalachitraghar_db
+username: postgres
+password: postgres
 ```
 
 Schema management is configured as:
