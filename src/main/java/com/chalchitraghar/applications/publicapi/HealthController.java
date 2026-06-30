@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
  * REST controller for health check. Public. No authentication required.
  */
 @RestController
-@RequestMapping("/api/health")
+@RequestMapping("/api/public/health")
 public class HealthController {
 
     @GetMapping

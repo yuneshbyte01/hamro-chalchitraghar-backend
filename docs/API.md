@@ -28,6 +28,16 @@ or:
 { "error": "Token expired" }
 ```
 
+## V2 Endpoint Groups
+
+V2 groups endpoints by application role:
+
+- Auth endpoints remain under `/api/auth/**`.
+- Public browsing endpoints moved from `/api/health`, `/api/movies`, `/api/halls`, and `/api/shows` to `/api/public/**`.
+- Customer booking endpoints moved from `/api/bookings/**` to `/api/customer/bookings/**`.
+- Staff booking lookup is available under `/api/staff/bookings/{bookingId}`.
+- Admin management endpoints remain under `/api/admin/**`.
+
 ## Auth
 
 ### POST `/api/auth/register`

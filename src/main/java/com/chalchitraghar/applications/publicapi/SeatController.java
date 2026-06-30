@@ -17,7 +17,7 @@ import lombok.RequiredArgsConstructor;
  * REST controller for public seat availability. Read-only. No authentication required.
  */
 @RestController
-@RequestMapping("/api/shows")
+@RequestMapping("/api/public/shows")
 @RequiredArgsConstructor
 public class SeatController {
 

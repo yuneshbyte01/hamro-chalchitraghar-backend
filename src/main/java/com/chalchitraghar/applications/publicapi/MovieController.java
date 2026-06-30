@@ -18,7 +18,7 @@ import lombok.RequiredArgsConstructor;
  * REST controller for public movie information. Read-only. No authentication required.
  */
 @RestController
-@RequestMapping("/api/movies")
+@RequestMapping("/api/public/movies")
 @RequiredArgsConstructor
 public class MovieController {
 

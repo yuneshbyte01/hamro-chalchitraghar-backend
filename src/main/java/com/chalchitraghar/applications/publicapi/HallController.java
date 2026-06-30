@@ -17,7 +17,7 @@ import lombok.RequiredArgsConstructor;
  * REST controller for public hall information. Read-only. No authentication required.
  */
 @RestController
-@RequestMapping("/api/halls")
+@RequestMapping("/api/public/halls")
 @RequiredArgsConstructor
 public class HallController {
 

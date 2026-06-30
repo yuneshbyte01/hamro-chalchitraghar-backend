@@ -101,45 +101,45 @@ git push
 
 ### Public APIs
 
-* [ ] Move public movie browsing to `/api/public/movies`.
-* [ ] Move public hall browsing to `/api/public/halls`.
-* [ ] Move public show browsing to `/api/public/shows`.
-* [ ] Move public seat availability to `/api/public/shows/{showId}/seats`.
+* [x] Move public movie browsing to `/api/public/movies`.
+* [x] Move public hall browsing to `/api/public/halls`.
+* [x] Move public show browsing to `/api/public/shows`.
+* [x] Move public seat availability to `/api/public/shows/{showId}/seats`.
 
 ### Customer APIs
 
-* [ ] Add `/api/customer/profile`.
-* [ ] Add `/api/customer/bookings`.
+* [x] Add `/api/customer/profile`.
+* [x] Add `/api/customer/bookings`.
 * [ ] Add `/api/customer/bookings/hold`.
-* [ ] Add `/api/customer/bookings`.
-* [ ] Add `/api/customer/bookings/{id}`.
-* [ ] Add `/api/customer/bookings/{id}/confirm`.
-* [ ] Add `/api/customer/bookings/{id}/cancel`.
+* [x] Add `/api/customer/bookings`.
+* [x] Add `/api/customer/bookings/{id}`.
+* [x] Add `/api/customer/bookings/{id}/confirm`.
+* [x] Add `/api/customer/bookings/{id}/cancel`.
 
 ### Staff APIs
 
 * [ ] Add `/api/staff/shows/today`.
 * [ ] Add `/api/staff/shows/{id}/seats`.
 * [ ] Add `/api/staff/bookings`.
-* [ ] Add `/api/staff/bookings/{id}`.
+* [x] Add `/api/staff/bookings/{id}`.
 * [ ] Add `/api/staff/bookings/{id}/check-in`.
 
 ### Admin APIs
 
-* [ ] Keep admin movie management under `/api/admin/movies`.
-* [ ] Keep admin hall management under `/api/admin/halls`.
-* [ ] Keep admin show management under `/api/admin/shows`.
-* [ ] Improve admin user management under `/api/admin/users`.
+* [x] Keep admin movie management under `/api/admin/movies`.
+* [x] Keep admin hall management under `/api/admin/halls`.
+* [x] Keep admin show management under `/api/admin/shows`.
+* [x] Improve admin user management under `/api/admin/users`.
 * [ ] Add admin staff creation endpoint.
 * [ ] Add admin booking management endpoints.
 
 ### Security rules
 
-* [ ] Permit `/api/auth/**`.
-* [ ] Permit `/api/public/**`.
-* [ ] Restrict `/api/customer/**` to `CUSTOMER`.
-* [ ] Restrict `/api/staff/**` to `STAFF` and `ADMIN`.
-* [ ] Restrict `/api/admin/**` to `ADMIN`.
+* [x] Permit `/api/auth/**`.
+* [x] Permit `/api/public/**`.
+* [x] Restrict `/api/customer/**` to `CUSTOMER`, `STAFF`, and `ADMIN`.
+* [x] Restrict `/api/staff/**` to `STAFF` and `ADMIN`.
+* [x] Restrict `/api/admin/**` to `ADMIN`.
 
 ---
 

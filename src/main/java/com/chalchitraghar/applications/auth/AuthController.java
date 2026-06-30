@@ -1,4 +1,4 @@
-package com.chalchitraghar.modules.auth.controller;
+package com.chalchitraghar.applications.auth;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

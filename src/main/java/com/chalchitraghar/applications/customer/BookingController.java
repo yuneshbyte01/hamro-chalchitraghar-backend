@@ -28,7 +28,7 @@ import lombok.RequiredArgsConstructor;
  * REST controller for booking endpoints. Authenticated users only. No admin-only logic.
  */
 @RestController
-@RequestMapping("/api/bookings")
+@RequestMapping("/api/customer/bookings")
 @RequiredArgsConstructor
 public class BookingController {
 

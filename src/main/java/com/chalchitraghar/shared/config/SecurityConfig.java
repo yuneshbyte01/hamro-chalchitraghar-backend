@@ -22,9 +22,10 @@ import lombok.RequiredArgsConstructor;
 /**
  * Security configuration for Spring Security.
  * Access control is enforced here via requestMatchers; controllers do not use @PreAuthorize.
- * - Public: auth, health, movies, halls, shows
- * - Admin only: /api/admin/**
- * - Authenticated: /api/bookings/**
+ * - Public: /api/auth/**, /api/public/**
+ * - Customer: /api/customer/**
+ * - Staff: /api/staff/**
+ * - Admin: /api/admin/**
  */
 @Configuration
 @RequiredArgsConstructor
@@ -77,12 +78,10 @@ public class SecurityConfig {
                     .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                     .requestMatchers("/api/auth/**").permitAll()
-                    .requestMatchers("/api/health", "/api/health/**").permitAll()
-                    .requestMatchers("/api/movies/**").permitAll()
-                    .requestMatchers("/api/halls/**").permitAll()
-                    .requestMatchers("/api/shows/**").permitAll()
+                    .requestMatchers("/api/public/**").permitAll()
+                    .requestMatchers("/api/customer/**").hasAnyRole("CUSTOMER", "STAFF", "ADMIN")
+                    .requestMatchers("/api/staff/**").hasAnyRole("STAFF", "ADMIN")
                     .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                    .requestMatchers("/api/bookings/**").authenticated()
                     .anyRequest().authenticated()
             )
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
