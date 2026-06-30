@@ -8,9 +8,9 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.chalchitraghar.modules.users.UserResponse;
-import com.chalchitraghar.modules.users.User;
-import com.chalchitraghar.modules.users.UserService;
+import com.chalchitraghar.modules.users.dto.response.UserResponse;
+import com.chalchitraghar.modules.users.entity.User;
+import com.chalchitraghar.modules.users.service.UserService;
 
 import lombok.RequiredArgsConstructor;
 

@@ -13,9 +13,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.chalchitraghar.modules.movies.MovieRequest;
-import com.chalchitraghar.modules.movies.MovieResponse;
-import com.chalchitraghar.modules.movies.MovieService;
+import com.chalchitraghar.modules.movies.dto.request.MovieRequest;
+import com.chalchitraghar.modules.movies.dto.response.MovieResponse;
+import com.chalchitraghar.modules.movies.service.MovieService;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

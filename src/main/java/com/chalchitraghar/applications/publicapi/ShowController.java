@@ -10,8 +10,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.chalchitraghar.modules.shows.ShowResponse;
-import com.chalchitraghar.modules.shows.ShowService;
+import com.chalchitraghar.modules.shows.dto.response.ShowResponse;
+import com.chalchitraghar.modules.shows.service.ShowService;
 
 import lombok.RequiredArgsConstructor;
 

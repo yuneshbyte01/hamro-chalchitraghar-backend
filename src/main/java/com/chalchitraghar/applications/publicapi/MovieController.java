@@ -8,9 +8,9 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.chalchitraghar.modules.movies.MovieResponse;
-import com.chalchitraghar.modules.movies.MovieStatus;
-import com.chalchitraghar.modules.movies.MovieService;
+import com.chalchitraghar.modules.movies.dto.response.MovieResponse;
+import com.chalchitraghar.modules.movies.enums.MovieStatus;
+import com.chalchitraghar.modules.movies.service.MovieService;
 
 import lombok.RequiredArgsConstructor;
 

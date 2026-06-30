@@ -8,8 +8,8 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.chalchitraghar.modules.seats.SeatResponse;
-import com.chalchitraghar.modules.seats.SeatService;
+import com.chalchitraghar.modules.seats.dto.response.SeatResponse;
+import com.chalchitraghar.modules.seats.service.SeatService;
 
 import lombok.RequiredArgsConstructor;
 

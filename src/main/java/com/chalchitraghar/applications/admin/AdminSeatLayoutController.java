@@ -6,7 +6,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.chalchitraghar.modules.halls.SeatLayoutService;
+import com.chalchitraghar.modules.halls.service.SeatLayoutService;
 
 import lombok.RequiredArgsConstructor;
 

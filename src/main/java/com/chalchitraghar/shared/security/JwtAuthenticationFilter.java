@@ -1,6 +1,6 @@
 package com.chalchitraghar.shared.security;
 
-import com.chalchitraghar.modules.users.UserRepository;
+import com.chalchitraghar.modules.users.repository.UserRepository;
 import io.jsonwebtoken.ExpiredJwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;

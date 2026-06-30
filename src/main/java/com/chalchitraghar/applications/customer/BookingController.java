@@ -13,13 +13,13 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.chalchitraghar.modules.bookings.BookingRequest;
-import com.chalchitraghar.modules.bookings.BookingResponse;
-import com.chalchitraghar.modules.bookings.BookingValidationRequest;
-import com.chalchitraghar.modules.bookings.BookingValidationResponse;
-import com.chalchitraghar.modules.users.User;
-import com.chalchitraghar.modules.bookings.BookingService;
-import com.chalchitraghar.modules.seats.SeatLockService;
+import com.chalchitraghar.modules.bookings.dto.request.BookingRequest;
+import com.chalchitraghar.modules.bookings.dto.response.BookingResponse;
+import com.chalchitraghar.modules.bookings.dto.request.BookingValidationRequest;
+import com.chalchitraghar.modules.bookings.dto.response.BookingValidationResponse;
+import com.chalchitraghar.modules.users.entity.User;
+import com.chalchitraghar.modules.bookings.service.BookingService;
+import com.chalchitraghar.modules.seats.service.SeatLockService;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
