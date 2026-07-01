@@ -12,6 +12,8 @@ import com.chalchitraghar.modules.seats.dto.response.SeatResponse;
 import com.chalchitraghar.modules.seats.service.SeatService;
 import com.chalchitraghar.shared.response.ApiResponse;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 
 /**
@@ -20,11 +22,13 @@ import lombok.RequiredArgsConstructor;
 @RestController
 @RequestMapping("/api/public/shows")
 @RequiredArgsConstructor
+@Tag(name = "Public Shows", description = "Public show seat browsing endpoints")
 public class SeatController {
 
     private final SeatService seatService;
 
     @GetMapping("/{showId}/seats")
+    @Operation(summary = "List seats for a show")
     public ResponseEntity<ApiResponse<List<SeatResponse>>> getAllSeatsForShow(@PathVariable Long showId) {
         return ResponseEntity.ok(ApiResponse.success("Seats fetched successfully", seatService.getAllSeatsForShow(showId)));
     }

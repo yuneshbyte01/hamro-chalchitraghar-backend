@@ -13,6 +13,8 @@ import com.chalchitraghar.modules.movies.enums.MovieStatus;
 import com.chalchitraghar.modules.movies.service.MovieService;
 import com.chalchitraghar.shared.response.ApiResponse;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 
 /**
@@ -21,21 +23,25 @@ import lombok.RequiredArgsConstructor;
 @RestController
 @RequestMapping("/api/public/movies")
 @RequiredArgsConstructor
+@Tag(name = "Public Movies", description = "Public movie browsing endpoints")
 public class MovieController {
 
     private final MovieService movieService;
 
     @GetMapping
+    @Operation(summary = "List public movies")
     public ResponseEntity<ApiResponse<List<MovieResponse>>> getAllMovies() {
         return ResponseEntity.ok(ApiResponse.success("Movies fetched successfully", movieService.getAllMovies()));
     }
 
     @GetMapping("/{id}")
+    @Operation(summary = "Get a public movie by ID")
     public ResponseEntity<ApiResponse<MovieResponse>> getMovieById(@PathVariable Long id) {
         return ResponseEntity.ok(ApiResponse.success("Movie fetched successfully", movieService.getMovieById(id)));
     }
 
     @GetMapping("/now-showing")
+    @Operation(summary = "List now showing movies")
     public ResponseEntity<ApiResponse<List<MovieResponse>>> getNowShowingMovies() {
         return ResponseEntity.ok(ApiResponse.success(
                 "Now showing movies fetched successfully",
@@ -43,6 +49,7 @@ public class MovieController {
     }
 
     @GetMapping("/upcoming")
+    @Operation(summary = "List upcoming movies")
     public ResponseEntity<ApiResponse<List<MovieResponse>>> getUpcomingMovies() {
         return ResponseEntity.ok(ApiResponse.success(
                 "Upcoming movies fetched successfully",

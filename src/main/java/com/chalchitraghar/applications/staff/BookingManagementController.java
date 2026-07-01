@@ -14,6 +14,9 @@ import com.chalchitraghar.modules.users.entity.User;
 import com.chalchitraghar.shared.exception.AuthenticationException;
 import com.chalchitraghar.shared.response.ApiResponse;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 
 /**
@@ -22,11 +25,14 @@ import lombok.RequiredArgsConstructor;
 @RestController
 @RequestMapping("/api/staff/bookings")
 @RequiredArgsConstructor
+@Tag(name = "Staff", description = "Staff booking lookup endpoints")
+@SecurityRequirement(name = "bearerAuth")
 public class BookingManagementController {
 
     private final BookingService bookingService;
 
     @GetMapping("/{bookingId}")
+    @Operation(summary = "Get booking by ID for staff")
     public ResponseEntity<ApiResponse<BookingResponse>> getBookingById(@PathVariable Long bookingId) {
         return ResponseEntity.ok(ApiResponse.success(
                 "Booking fetched successfully",

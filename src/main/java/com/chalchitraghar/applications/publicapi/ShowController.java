@@ -14,6 +14,8 @@ import com.chalchitraghar.modules.shows.dto.response.ShowResponse;
 import com.chalchitraghar.modules.shows.service.ShowService;
 import com.chalchitraghar.shared.response.ApiResponse;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 
 /**
@@ -22,26 +24,31 @@ import lombok.RequiredArgsConstructor;
 @RestController
 @RequestMapping("/api/public/shows")
 @RequiredArgsConstructor
+@Tag(name = "Public Shows", description = "Public show browsing endpoints")
 public class ShowController {
 
     private final ShowService showService;
 
     @GetMapping
+    @Operation(summary = "List public shows")
     public ResponseEntity<ApiResponse<List<ShowResponse>>> getAllShows() {
         return ResponseEntity.ok(ApiResponse.success("Shows fetched successfully", showService.getAllShows()));
     }
 
     @GetMapping("/{id}")
+    @Operation(summary = "Get a public show by ID")
     public ResponseEntity<ApiResponse<ShowResponse>> getShowById(@PathVariable Long id) {
         return ResponseEntity.ok(ApiResponse.success("Show fetched successfully", showService.getShowById(id)));
     }
 
     @GetMapping("/movie/{movieId}")
+    @Operation(summary = "List shows for a movie")
     public ResponseEntity<ApiResponse<List<ShowResponse>>> getShowsByMovie(@PathVariable Long movieId) {
         return ResponseEntity.ok(ApiResponse.success("Movie shows fetched successfully", showService.getShowsByMovie(movieId)));
     }
 
     @GetMapping(params = {"movieId", "date"})
+    @Operation(summary = "List shows for a movie and date")
     public ResponseEntity<ApiResponse<List<ShowResponse>>> getShowsByMovieAndDate(
             @RequestParam Long movieId,
             @RequestParam LocalDate date) {

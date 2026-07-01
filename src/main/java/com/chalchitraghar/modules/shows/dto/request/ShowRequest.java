@@ -6,6 +6,7 @@ import com.chalchitraghar.modules.shows.entity.Show;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Future;
@@ -22,19 +23,24 @@ import java.time.LocalTime;
 public class ShowRequest {
 
     @NotNull(message = "Movie ID is required")
+    @Schema(example = "1")
     private Long movieId;
 
     @NotNull(message = "Hall ID is required")
+    @Schema(example = "1")
     private Long hallId;
 
     @NotNull(message = "Show date is required")
     @Future(message = "Show date must be in the future")
+    @Schema(example = "2026-08-20")
     private LocalDate showDate;
 
     @NotNull(message = "Show time is required")
+    @Schema(example = "18:30:00")
     private LocalTime showTime;
 
     @NotNull(message = "End time is required")
+    @Schema(example = "21:00:00")
     private LocalTime endTime;
 
 }

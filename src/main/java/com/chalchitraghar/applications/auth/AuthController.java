@@ -15,6 +15,8 @@ import com.chalchitraghar.modules.auth.dto.response.RegistrationResponse;
 import com.chalchitraghar.modules.auth.service.AuthService;
 import com.chalchitraghar.shared.response.ApiResponse;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
@@ -25,6 +27,7 @@ import lombok.RequiredArgsConstructor;
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
+@Tag(name = "Auth", description = "Public authentication endpoints")
 public class AuthController {
 
     private final AuthService authService;
@@ -36,6 +39,7 @@ public class AuthController {
      * @return registration response with success message and email
      */
     @PostMapping("/register")
+    @Operation(summary = "Register a customer account", description = "Creates a new user with CUSTOMER role and stores the password as a BCrypt hash.")
     public ResponseEntity<ApiResponse<RegistrationResponse>> register(@Valid @RequestBody RegistrationRequest request) {
         RegistrationResponse response = authService.register(request);
         return ResponseEntity.status(HttpStatus.CREATED)
@@ -49,6 +53,7 @@ public class AuthController {
      * @return login response with JWT token and user details
      */
     @PostMapping("/login")
+    @Operation(summary = "Login and get a JWT", description = "Authenticates credentials and returns a JWT with email and role claims.")
     public ResponseEntity<ApiResponse<LoginResponse>> login(@Valid @RequestBody LoginRequest request) {
         LoginResponse response = authService.login(request);
         return ResponseEntity.ok(ApiResponse.success("Login successful", response));
@@ -61,6 +66,7 @@ public class AuthController {
      * @return login response with new JWT token and user details
      */
     @PostMapping("/refresh")
+    @Operation(summary = "Refresh a JWT", description = "Validates the current token and returns a new JWT.")
     public ResponseEntity<ApiResponse<LoginResponse>> refreshToken(@Valid @RequestBody RefreshTokenRequest request) {
         LoginResponse response = authService.refreshToken(request);
         return ResponseEntity.ok(ApiResponse.success("Token refreshed successfully", response));

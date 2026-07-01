@@ -12,14 +12,21 @@ import com.chalchitraghar.modules.users.entity.User;
 import com.chalchitraghar.shared.exception.AuthenticationException;
 import com.chalchitraghar.shared.response.ApiResponse;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
 /**
  * REST controller for authenticated customer profile details.
  */
 @RestController
 @RequestMapping("/api/customer/profile")
+@Tag(name = "Customer Bookings", description = "Authenticated customer profile endpoint")
+@SecurityRequirement(name = "bearerAuth")
 public class ProfileController {
 
     @GetMapping
+    @Operation(summary = "Get current customer profile")
     public ResponseEntity<ApiResponse<UserResponse>> getProfile() {
         User currentUser = getCurrentUser();
         UserResponse response = new UserResponse(

@@ -18,6 +18,9 @@ import com.chalchitraghar.modules.shows.dto.response.ShowResponse;
 import com.chalchitraghar.modules.shows.service.ShowService;
 import com.chalchitraghar.shared.response.ApiResponse;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
@@ -27,21 +30,26 @@ import lombok.RequiredArgsConstructor;
 @RestController
 @RequestMapping("/api/admin/shows")
 @RequiredArgsConstructor
+@Tag(name = "Admin Shows", description = "Admin show management endpoints")
+@SecurityRequirement(name = "bearerAuth")
 public class AdminShowController {
 
     private final ShowService showService;
 
     @GetMapping
+    @Operation(summary = "List shows for admin")
     public ResponseEntity<ApiResponse<List<ShowResponse>>> getAllShows() {
         return ResponseEntity.ok(ApiResponse.success("Shows fetched successfully", showService.getAllShows()));
     }
 
     @GetMapping("/{id}")
+    @Operation(summary = "Get show by ID for admin")
     public ResponseEntity<ApiResponse<ShowResponse>> getShowById(@PathVariable Long id) {
         return ResponseEntity.ok(ApiResponse.success("Show fetched successfully", showService.getShowById(id)));
     }
 
     @PostMapping
+    @Operation(summary = "Create a show", description = "Creates a show and generates seats from hall seat templates.")
     public ResponseEntity<ApiResponse<ShowResponse>> createShow(@Valid @RequestBody ShowRequest dto) {
         ShowResponse created = showService.addShow(dto);
         return ResponseEntity.status(HttpStatus.CREATED)
@@ -49,11 +57,13 @@ public class AdminShowController {
     }
 
     @PutMapping("/{id}")
+    @Operation(summary = "Update a show")
     public ResponseEntity<ApiResponse<ShowResponse>> updateShow(@PathVariable Long id, @Valid @RequestBody ShowRequest dto) {
         return ResponseEntity.ok(ApiResponse.success("Show updated successfully", showService.updateShow(id, dto)));
     }
 
     @DeleteMapping("/{id}")
+    @Operation(summary = "Soft-delete a show", description = "Marks the show as CANCELLED.")
     public ResponseEntity<Void> deleteShow(@PathVariable Long id) {
         showService.deleteShow(id);
         return ResponseEntity.noContent().build();

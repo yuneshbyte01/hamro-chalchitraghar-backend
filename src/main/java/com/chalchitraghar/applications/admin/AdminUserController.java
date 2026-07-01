@@ -13,6 +13,9 @@ import com.chalchitraghar.modules.users.entity.User;
 import com.chalchitraghar.modules.users.service.UserService;
 import com.chalchitraghar.shared.response.ApiResponse;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 
 /**
@@ -21,11 +24,14 @@ import lombok.RequiredArgsConstructor;
 @RestController
 @RequestMapping("/api/admin/users")
 @RequiredArgsConstructor
+@Tag(name = "Admin Users", description = "Admin user lookup endpoints")
+@SecurityRequirement(name = "bearerAuth")
 public class AdminUserController {
 
     private final UserService userService;
 
     @GetMapping
+    @Operation(summary = "List all users")
     public ResponseEntity<ApiResponse<List<UserResponse>>> getAllUsers() {
         List<UserResponse> users = userService.getAllUsers().stream()
                 .map(this::toResponse)
@@ -34,6 +40,7 @@ public class AdminUserController {
     }
 
     @GetMapping("/{id}")
+    @Operation(summary = "Get user by id")
     public ResponseEntity<ApiResponse<UserResponse>> getUserById(@PathVariable Long id) {
         User user = userService.getUserById(id);
         return ResponseEntity.ok(ApiResponse.success("User fetched successfully", toResponse(user)));
