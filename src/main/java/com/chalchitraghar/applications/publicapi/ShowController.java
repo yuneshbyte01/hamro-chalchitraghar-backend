@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.chalchitraghar.modules.shows.dto.response.ShowResponse;
 import com.chalchitraghar.modules.shows.service.ShowService;
+import com.chalchitraghar.shared.response.ApiResponse;
 
 import lombok.RequiredArgsConstructor;
 
@@ -26,24 +27,26 @@ public class ShowController {
     private final ShowService showService;
 
     @GetMapping
-    public ResponseEntity<List<ShowResponse>> getAllShows() {
-        return ResponseEntity.ok(showService.getAllShows());
+    public ResponseEntity<ApiResponse<List<ShowResponse>>> getAllShows() {
+        return ResponseEntity.ok(ApiResponse.success("Shows fetched successfully", showService.getAllShows()));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ShowResponse> getShowById(@PathVariable Long id) {
-        return ResponseEntity.ok(showService.getShowById(id));
+    public ResponseEntity<ApiResponse<ShowResponse>> getShowById(@PathVariable Long id) {
+        return ResponseEntity.ok(ApiResponse.success("Show fetched successfully", showService.getShowById(id)));
     }
 
     @GetMapping("/movie/{movieId}")
-    public ResponseEntity<List<ShowResponse>> getShowsByMovie(@PathVariable Long movieId) {
-        return ResponseEntity.ok(showService.getShowsByMovie(movieId));
+    public ResponseEntity<ApiResponse<List<ShowResponse>>> getShowsByMovie(@PathVariable Long movieId) {
+        return ResponseEntity.ok(ApiResponse.success("Movie shows fetched successfully", showService.getShowsByMovie(movieId)));
     }
 
     @GetMapping(params = {"movieId", "date"})
-    public ResponseEntity<List<ShowResponse>> getShowsByMovieAndDate(
+    public ResponseEntity<ApiResponse<List<ShowResponse>>> getShowsByMovieAndDate(
             @RequestParam Long movieId,
             @RequestParam LocalDate date) {
-        return ResponseEntity.ok(showService.getShowsByMovieAndShowDate(movieId, date));
+        return ResponseEntity.ok(ApiResponse.success(
+                "Movie shows fetched successfully",
+                showService.getShowsByMovieAndShowDate(movieId, date)));
     }
 }

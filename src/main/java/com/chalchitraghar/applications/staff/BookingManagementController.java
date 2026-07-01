@@ -12,6 +12,7 @@ import com.chalchitraghar.modules.bookings.dto.response.BookingResponse;
 import com.chalchitraghar.modules.bookings.service.BookingService;
 import com.chalchitraghar.modules.users.entity.User;
 import com.chalchitraghar.shared.exception.AuthenticationException;
+import com.chalchitraghar.shared.response.ApiResponse;
 
 import lombok.RequiredArgsConstructor;
 
@@ -26,8 +27,10 @@ public class BookingManagementController {
     private final BookingService bookingService;
 
     @GetMapping("/{bookingId}")
-    public ResponseEntity<BookingResponse> getBookingById(@PathVariable Long bookingId) {
-        return ResponseEntity.ok(bookingService.getBookingById(bookingId, getCurrentUser()));
+    public ResponseEntity<ApiResponse<BookingResponse>> getBookingById(@PathVariable Long bookingId) {
+        return ResponseEntity.ok(ApiResponse.success(
+                "Booking fetched successfully",
+                bookingService.getBookingById(bookingId, getCurrentUser())));
     }
 
     private User getCurrentUser() {

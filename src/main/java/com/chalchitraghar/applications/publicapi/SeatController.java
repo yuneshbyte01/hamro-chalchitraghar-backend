@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.chalchitraghar.modules.seats.dto.response.SeatResponse;
 import com.chalchitraghar.modules.seats.service.SeatService;
+import com.chalchitraghar.shared.response.ApiResponse;
 
 import lombok.RequiredArgsConstructor;
 
@@ -24,7 +25,7 @@ public class SeatController {
     private final SeatService seatService;
 
     @GetMapping("/{showId}/seats")
-    public ResponseEntity<List<SeatResponse>> getAllSeatsForShow(@PathVariable Long showId) {
-        return ResponseEntity.ok(seatService.getAllSeatsForShow(showId));
+    public ResponseEntity<ApiResponse<List<SeatResponse>>> getAllSeatsForShow(@PathVariable Long showId) {
+        return ResponseEntity.ok(ApiResponse.success("Seats fetched successfully", seatService.getAllSeatsForShow(showId)));
     }
 }

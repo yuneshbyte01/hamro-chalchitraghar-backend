@@ -1,7 +1,6 @@
 package com.chalchitraghar.shared.exception;
 
-import java.time.OffsetDateTime;
-import java.util.stream.Collectors;
+import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,11 +15,9 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-import org.springframework.web.context.request.ServletWebRequest;
-import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
-import com.chalchitraghar.shared.response.ErrorResponse;
+import com.chalchitraghar.shared.response.ApiResponse;
 
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.ConstraintViolationException;
@@ -33,376 +30,120 @@ public class GlobalExceptionHandler {
 
     private static final Logger logger = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
-    /**
-     * Handles ResourceNotFoundException and returns a 404 Not Found response.
-     *
-     * @param ex the exception to handle
-     * @param request the web request
-     * @return the response entity with the error response
-     */
     @ExceptionHandler(ResourceNotFoundException.class)
-    public ResponseEntity<ErrorResponse> handleResourceNotFoundException(
-            ResourceNotFoundException ex, WebRequest request) {
+    public ResponseEntity<ApiResponse<Void>> handleResourceNotFoundException(ResourceNotFoundException ex) {
         logger.warn("Resource not found: {}", ex.getMessage());
-        ErrorResponse errorResponse = ErrorResponse.builder()
-                .timestamp(OffsetDateTime.now())
-                .status(HttpStatus.NOT_FOUND.value())
-                .error(HttpStatus.NOT_FOUND.getReasonPhrase())
-                .message(ex.getMessage() != null ? ex.getMessage() : "Resource not found")
-                .path(getRequestPath(request))
-                .build();
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
+        return error(HttpStatus.NOT_FOUND, messageOrDefault(ex, "Resource not found"));
     }
 
-    /**
-     * Handles AuthenticationException and returns a 401 Unauthorized response.
-     *
-     * @param ex the exception to handle
-     * @param request the web request
-     * @return the response entity with the error response
-     */
     @ExceptionHandler(AuthenticationException.class)
-    public ResponseEntity<ErrorResponse> handleAuthenticationException(
-            AuthenticationException ex, WebRequest request) {
+    public ResponseEntity<ApiResponse<Void>> handleAuthenticationException(AuthenticationException ex) {
         logger.warn("Authentication failed: {}", ex.getMessage());
-        ErrorResponse errorResponse = ErrorResponse.builder()
-                .timestamp(OffsetDateTime.now())
-                .status(HttpStatus.UNAUTHORIZED.value())
-                .error(HttpStatus.UNAUTHORIZED.getReasonPhrase())
-                .message(ex.getMessage() != null ? ex.getMessage() : "Authentication failed")
-                .path(getRequestPath(request))
-                .build();
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(errorResponse);
+        return error(HttpStatus.UNAUTHORIZED, messageOrDefault(ex, "Authentication failed"));
     }
 
-    /**
-     * Handles AccessDeniedException and returns a 403 Forbidden response.
-     *
-     * @param ex the exception to handle
-     * @param request the web request
-     * @return the response entity with the error response
-     */
     @ExceptionHandler(AccessDeniedException.class)
-    public ResponseEntity<ErrorResponse> handleAccessDeniedException(
-            AccessDeniedException ex, WebRequest request) {
+    public ResponseEntity<ApiResponse<Void>> handleAccessDeniedException(AccessDeniedException ex) {
         logger.warn("Access denied: {}", ex.getMessage());
-        ErrorResponse errorResponse = ErrorResponse.builder()
-                .timestamp(OffsetDateTime.now())
-                .status(HttpStatus.FORBIDDEN.value())
-                .error(HttpStatus.FORBIDDEN.getReasonPhrase())
-                .message(ex.getMessage() != null ? ex.getMessage() : "Access denied")
-                .path(getRequestPath(request))
-                .build();
-        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(errorResponse);
+        return error(HttpStatus.FORBIDDEN, messageOrDefault(ex, "Access denied"));
     }
 
-    /**
-     * Handles HallConflictException and returns a 409 Conflict response.
-     *
-     * @param ex the exception to handle
-     * @param request the web request
-     * @return the response entity with the error response
-     */
-    @ExceptionHandler(HallConflictException.class)
-    public ResponseEntity<ErrorResponse> handleHallConflictException(
-            HallConflictException ex, WebRequest request) {
-        logger.warn("Hall conflict: {}", ex.getMessage());
-        ErrorResponse errorResponse = ErrorResponse.builder()
-                .timestamp(OffsetDateTime.now())
-                .status(HttpStatus.CONFLICT.value())
-                .error(HttpStatus.CONFLICT.getReasonPhrase())
-                .message(ex.getMessage() != null ? ex.getMessage() : "Hall conflict")
-                .path(getRequestPath(request))
-                .build();
-        return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse);
+    @ExceptionHandler({
+            HallConflictException.class,
+            SeatAlreadyBookedException.class,
+            SeatLockedException.class
+    })
+    public ResponseEntity<ApiResponse<Void>> handleConflictExceptions(RuntimeException ex) {
+        logger.warn("Conflict: {}", ex.getMessage());
+        return error(HttpStatus.CONFLICT, messageOrDefault(ex, "Conflict error"));
     }
 
-    /**
-     * Handles SeatAlreadyBookedException and returns a 409 Conflict response.
-     *
-     * @param ex the exception to handle
-     * @param request the web request
-     * @return the response entity with the error response
-     */
-    @ExceptionHandler(SeatAlreadyBookedException.class)
-    public ResponseEntity<ErrorResponse> handleSeatAlreadyBookedException(
-            SeatAlreadyBookedException ex, WebRequest request) {
-        logger.warn("Seat already booked: {}", ex.getMessage());
-        ErrorResponse errorResponse = ErrorResponse.builder()
-                .timestamp(OffsetDateTime.now())
-                .status(HttpStatus.CONFLICT.value())
-                .error(HttpStatus.CONFLICT.getReasonPhrase())
-                .message(ex.getMessage() != null ? ex.getMessage() : "Seat already booked")
-                .path(getRequestPath(request))
-                .build();
-        return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse);
+    @ExceptionHandler({
+            InvalidSeatSelectionException.class,
+            InvalidBookingStateException.class,
+            IllegalArgumentException.class
+    })
+    public ResponseEntity<ApiResponse<Void>> handleBadRequestExceptions(RuntimeException ex) {
+        logger.warn("Bad request: {}", ex.getMessage());
+        return error(HttpStatus.BAD_REQUEST, messageOrDefault(ex, "Bad request"));
     }
 
-    /**
-     * Handles SeatLockedException and returns a 409 Conflict response.
-     *
-     * @param ex the exception to handle
-     * @param request the web request
-     * @return the response entity with the error response
-     */
-    @ExceptionHandler(SeatLockedException.class)
-    public ResponseEntity<ErrorResponse> handleSeatLockedException(
-            SeatLockedException ex, WebRequest request) {
-        logger.warn("Seat locked: {}", ex.getMessage());
-        ErrorResponse errorResponse = ErrorResponse.builder()
-                .timestamp(OffsetDateTime.now())
-                .status(HttpStatus.CONFLICT.value())
-                .error(HttpStatus.CONFLICT.getReasonPhrase())
-                .message(ex.getMessage() != null ? ex.getMessage() : "Seat locked")
-                .path(getRequestPath(request))
-                .build();
-        return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse);
-    }
-
-    /**
-     * Handles InvalidSeatSelectionException and returns a 400 Bad Request response.
-     *
-     * @param ex the exception to handle
-     * @param request the web request
-     * @return the response entity with the error response
-     */
-    @ExceptionHandler(InvalidSeatSelectionException.class)
-    public ResponseEntity<ErrorResponse> handleInvalidSeatSelectionException(
-            InvalidSeatSelectionException ex, WebRequest request) {
-        logger.warn("Invalid seat selection: {}", ex.getMessage());
-        ErrorResponse errorResponse = ErrorResponse.builder()
-                .timestamp(OffsetDateTime.now())
-                .status(HttpStatus.BAD_REQUEST.value())
-                .error(HttpStatus.BAD_REQUEST.getReasonPhrase())
-                .message(ex.getMessage() != null ? ex.getMessage() : "Invalid seat selection")
-                .path(getRequestPath(request))
-                .build();
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
-    }
-
-    /**
-     * Handles InvalidBookingStateException and returns a 400 Bad Request response.
-     *
-     * @param ex the exception to handle
-     * @param request the web request
-     * @return the response entity with the error response
-     */
-    @ExceptionHandler(InvalidBookingStateException.class)
-    public ResponseEntity<ErrorResponse> handleInvalidBookingStateException(
-            InvalidBookingStateException ex, WebRequest request) {
-        logger.warn("Invalid booking state: {}", ex.getMessage());
-        ErrorResponse errorResponse = ErrorResponse.builder()
-                .timestamp(OffsetDateTime.now())
-                .status(HttpStatus.BAD_REQUEST.value())
-                .error(HttpStatus.BAD_REQUEST.getReasonPhrase())
-                .message(ex.getMessage() != null ? ex.getMessage() : "Invalid booking state")
-                .path(getRequestPath(request))
-                .build();
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
-    }
-
-    /**
-     * Handles IllegalArgumentException and returns a 400 Bad Request response.
-     *
-     * @param ex the exception to handle
-     * @param request the web request
-     * @return the response entity with the error response
-     */
-    @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<ErrorResponse> handleIllegalArgumentException(
-            IllegalArgumentException ex, WebRequest request) {
-        logger.warn("Invalid argument: {}", ex.getMessage());
-        ErrorResponse errorResponse = ErrorResponse.builder()
-                .timestamp(OffsetDateTime.now())
-                .status(HttpStatus.BAD_REQUEST.value())
-                .error(HttpStatus.BAD_REQUEST.getReasonPhrase())
-                .message(ex.getMessage() != null ? ex.getMessage() : "Invalid argument")
-                .path(getRequestPath(request))
-                .build();
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
-    }
-
-    /**
-     * Handles MethodArgumentNotValidException and returns a 400 Bad Request response.
-     *
-     * @param ex the exception to handle
-     * @param request the web request
-     * @return the response entity with the error response
-     */
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ErrorResponse> handleValidationExceptions(
-            MethodArgumentNotValidException ex, WebRequest request) {
+    public ResponseEntity<ApiResponse<Void>> handleValidationExceptions(MethodArgumentNotValidException ex) {
         logger.warn("Validation error: {}", ex.getMessage());
-        String errorMessage = ex.getBindingResult().getFieldErrors().stream()
+        List<String> errors = ex.getBindingResult().getFieldErrors().stream()
                 .map(error -> error.getField() + ": " + error.getDefaultMessage())
-                .collect(Collectors.joining(", "));
-        ErrorResponse errorResponse = ErrorResponse.builder()
-                .timestamp(OffsetDateTime.now())
-                .status(HttpStatus.BAD_REQUEST.value())
-                .error(HttpStatus.BAD_REQUEST.getReasonPhrase())
-                .message(errorMessage.isEmpty() ? "Validation failed" : errorMessage)
-                .path(getRequestPath(request))
-                .build();
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+                .toList();
+        return ResponseEntity.badRequest().body(ApiResponse.error("Validation failed", errors));
     }
 
-    /**
-     * Handles ConstraintViolationException and returns a 400 Bad Request response.
-     *
-     * @param ex the exception to handle
-     * @param request the web request
-     * @return the response entity with the error response
-     */
     @ExceptionHandler(ConstraintViolationException.class)
-    public ResponseEntity<ErrorResponse> handleConstraintViolationException(
-            ConstraintViolationException ex, WebRequest request) {
+    public ResponseEntity<ApiResponse<Void>> handleConstraintViolationException(ConstraintViolationException ex) {
         logger.warn("Constraint violation: {}", ex.getMessage());
-        String errorMessage = ex.getConstraintViolations().stream()
+        List<String> errors = ex.getConstraintViolations().stream()
                 .map(violation -> violation.getPropertyPath() + ": " + violation.getMessage())
-                .collect(Collectors.joining(", "));
-        ErrorResponse errorResponse = ErrorResponse.builder()
-                .timestamp(OffsetDateTime.now())
-                .status(HttpStatus.BAD_REQUEST.value())
-                .error(HttpStatus.BAD_REQUEST.getReasonPhrase())
-                .message(errorMessage.isEmpty() ? "Constraint violation" : errorMessage)
-                .path(getRequestPath(request))
-                .build();
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+                .toList();
+        return ResponseEntity.badRequest().body(ApiResponse.error("Validation failed", errors));
     }
 
-    /**
-     * Handles MethodArgumentTypeMismatchException and returns a 400 Bad Request response.
-     *
-     * @param ex the exception to handle
-     * @param request the web request
-     * @return the response entity with the error response
-     */
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
-    public ResponseEntity<ErrorResponse> handleMethodArgumentTypeMismatchException(
-            MethodArgumentTypeMismatchException ex, WebRequest request) {
+    public ResponseEntity<ApiResponse<Void>> handleMethodArgumentTypeMismatchException(
+            MethodArgumentTypeMismatchException ex) {
         logger.warn("Type mismatch for parameter '{}': {}", ex.getName(), ex.getMessage());
-        ErrorResponse errorResponse = ErrorResponse.builder()
-                .timestamp(OffsetDateTime.now())
-                .status(HttpStatus.BAD_REQUEST.value())
-                .error(HttpStatus.BAD_REQUEST.getReasonPhrase())
-                .message(String.format("Parameter '%s' has invalid type", ex.getName()))
-                .path(getRequestPath(request))
-                .build();
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+        return error(HttpStatus.BAD_REQUEST, String.format("Parameter '%s' has invalid type", ex.getName()));
     }
 
-    /**
-     * Handles MissingServletRequestParameterException and returns a 400 Bad Request response.
-     *
-     * @param ex the exception to handle
-     * @param request the web request
-     * @return the response entity with the error response
-     */
     @ExceptionHandler(MissingServletRequestParameterException.class)
-    public ResponseEntity<ErrorResponse> handleMissingServletRequestParameterException(
-            MissingServletRequestParameterException ex, WebRequest request) {
+    public ResponseEntity<ApiResponse<Void>> handleMissingServletRequestParameterException(
+            MissingServletRequestParameterException ex) {
         logger.warn("Missing required parameter: {}", ex.getParameterName());
-        ErrorResponse errorResponse = ErrorResponse.builder()
-                .timestamp(OffsetDateTime.now())
-                .status(HttpStatus.BAD_REQUEST.value())
-                .error(HttpStatus.BAD_REQUEST.getReasonPhrase())
-                .message(String.format("Required parameter '%s' is missing", ex.getParameterName()))
-                .path(getRequestPath(request))
-                .build();
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+        return error(HttpStatus.BAD_REQUEST, String.format("Required parameter '%s' is missing", ex.getParameterName()));
     }
 
-    /**
-     * Handles HttpMessageNotReadableException and returns a 400 Bad Request response.
-     *
-     * @param ex the exception to handle
-     * @param request the web request
-     * @return the response entity with the error response
-     */
     @ExceptionHandler(HttpMessageNotReadableException.class)
-    public ResponseEntity<ErrorResponse> handleHttpMessageNotReadableException(
-            HttpMessageNotReadableException ex, WebRequest request) {
+    public ResponseEntity<ApiResponse<Void>> handleHttpMessageNotReadableException(HttpMessageNotReadableException ex) {
         logger.warn("Malformed request body: {}", ex.getMessage());
-        ErrorResponse errorResponse = ErrorResponse.builder()
-                .timestamp(OffsetDateTime.now())
-                .status(HttpStatus.BAD_REQUEST.value())
-                .error(HttpStatus.BAD_REQUEST.getReasonPhrase())
-                .message("The request body is invalid or cannot be parsed")
-                .path(getRequestPath(request))
-                .build();
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+        return error(HttpStatus.BAD_REQUEST, "The request body is invalid or cannot be parsed");
     }
 
-    /**
-     * Handles EntityNotFoundException and returns a 404 Not Found response.
-     *
-     * @param ex the exception to handle
-     * @param request the web request
-     * @return the response entity with the error response
-     */
     @ExceptionHandler(EntityNotFoundException.class)
-    public ResponseEntity<ErrorResponse> handleEntityNotFoundException(
-            EntityNotFoundException ex, WebRequest request) {
+    public ResponseEntity<ApiResponse<Void>> handleEntityNotFoundException(EntityNotFoundException ex) {
         logger.warn("Entity not found: {}", ex.getMessage());
-        ErrorResponse errorResponse = ErrorResponse.builder()
-                .timestamp(OffsetDateTime.now())
-                .status(HttpStatus.NOT_FOUND.value())
-                .error(HttpStatus.NOT_FOUND.getReasonPhrase())
-                .message(ex.getMessage() != null ? ex.getMessage() : "Entity not found")
-                .path(getRequestPath(request))
-                .build();
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
+        return error(HttpStatus.NOT_FOUND, messageOrDefault(ex, "Entity not found"));
     }
 
-    /**
-     * Handles EmptyResultDataAccessException and returns a 404 Not Found response.
-     *
-     * @param ex the exception to handle
-     * @param request the web request
-     * @return the response entity with the error response
-     */
     @ExceptionHandler(EmptyResultDataAccessException.class)
-    public ResponseEntity<ErrorResponse> handleEmptyResultDataAccessException(
-            EmptyResultDataAccessException ex, WebRequest request) {
+    public ResponseEntity<ApiResponse<Void>> handleEmptyResultDataAccessException(EmptyResultDataAccessException ex) {
         logger.warn("No result found: {}", ex.getMessage());
-        ErrorResponse errorResponse = ErrorResponse.builder()
-                .timestamp(OffsetDateTime.now())
-                .status(HttpStatus.NOT_FOUND.value())
-                .error(HttpStatus.NOT_FOUND.getReasonPhrase())
-                .message("The requested resource does not exist")
-                .path(getRequestPath(request))
-                .build();
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
+        return error(HttpStatus.NOT_FOUND, "The requested resource does not exist");
     }
 
-    /**
-     * Handles DataIntegrityViolationException and returns a 409 Conflict response.
-     *
-     * @param ex the exception to handle
-     * @param request the web request
-     * @return the response entity with the error response
-     */
     @ExceptionHandler(DataIntegrityViolationException.class)
-    public ResponseEntity<ErrorResponse> handleDataIntegrityViolationException(
-            DataIntegrityViolationException ex, WebRequest request) {
+    public ResponseEntity<ApiResponse<Void>> handleDataIntegrityViolationException(DataIntegrityViolationException ex) {
         logger.error("Data integrity violation: ", ex);
-        final var details = getDetails(ex);
-        ErrorResponse errorResponse = ErrorResponse.builder()
-                .timestamp(OffsetDateTime.now())
-                .status(HttpStatus.CONFLICT.value())
-                .error(HttpStatus.CONFLICT.getReasonPhrase())
-                .message(details)
-                .path(getRequestPath(request))
-                .build();
-        return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse);
+        return error(HttpStatus.CONFLICT, getDetails(ex));
     }
 
-    /**
-     * Extracts the details from DataIntegrityViolationException.
-     *
-     * @param ex the exception to handle
-     * @return the details
-     */
+    @ExceptionHandler(DataAccessException.class)
+    public ResponseEntity<ApiResponse<Void>> handleDataAccessException(DataAccessException ex) {
+        logger.error("Data access error: ", ex);
+        return error(HttpStatus.INTERNAL_SERVER_ERROR, "An error occurred while accessing the database");
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ApiResponse<Void>> handleGenericException(Exception ex) {
+        logger.error("Unexpected error: ", ex);
+        return error(HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected error occurred while processing your request");
+    }
+
+    private ResponseEntity<ApiResponse<Void>> error(HttpStatus status, String message) {
+        return ResponseEntity.status(status).body(ApiResponse.error(message));
+    }
+
+    private String messageOrDefault(Exception ex, String defaultMessage) {
+        return ex.getMessage() == null || ex.getMessage().isBlank() ? defaultMessage : ex.getMessage();
+    }
+
     private static String getDetails(DataIntegrityViolationException ex) {
         String details = "A data integrity constraint was violated";
         if (ex.getCause() != null && ex.getCause().getMessage() != null) {
@@ -414,62 +155,5 @@ public class GlobalExceptionHandler {
             }
         }
         return details;
-    }
-
-    /**
-     * Handles DataAccessException and returns a 500 Internal Server Error response.
-     *
-     * @param ex the exception to handle
-     * @param request the web request
-     * @return the response entity with the error response
-     */
-    @ExceptionHandler(DataAccessException.class)
-    public ResponseEntity<ErrorResponse> handleDataAccessException(
-            DataAccessException ex, WebRequest request) {
-        logger.error("Data access error: ", ex);
-        ErrorResponse errorResponse = ErrorResponse.builder()
-                .timestamp(OffsetDateTime.now())
-                .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
-                .error(HttpStatus.INTERNAL_SERVER_ERROR.getReasonPhrase())
-                .message("An error occurred while accessing the database")
-                .path(getRequestPath(request))
-                .build();
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
-    }
-
-    /**
-     * Handles GenericException and returns a 500 Internal Server Error response.
-     *
-     * @param ex the exception to handle
-     * @param request the web request
-     * @return the response entity with the error response
-     */
-    @ExceptionHandler(Exception.class)
-    public ResponseEntity<ErrorResponse> handleGenericException(
-            Exception ex, WebRequest request) {
-        logger.error("Unexpected error: ", ex);
-        ErrorResponse errorResponse = ErrorResponse.builder()
-                .timestamp(OffsetDateTime.now())
-                .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
-                .error(HttpStatus.INTERNAL_SERVER_ERROR.getReasonPhrase())
-                .message(ex.getMessage() != null && !ex.getMessage().isEmpty() 
-                    ? ex.getMessage() 
-                    : "An unexpected error occurred while processing your request")
-                .path(getRequestPath(request))
-                .build();
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
-    }
-
-    /**
-     * Extracts the request path from WebRequest.
-     *
-     * @param request the web request
-     * @return the request path, or "unknown" if not available
-     */
-    private String getRequestPath(WebRequest request) {
-        if (request instanceof ServletWebRequest) {
-            return ((ServletWebRequest) request).getRequest().getRequestURI();
-        }
-        return "unknown";
     }
 }

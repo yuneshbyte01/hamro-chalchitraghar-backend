@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.chalchitraghar.modules.movies.dto.request.MovieRequest;
 import com.chalchitraghar.modules.movies.dto.response.MovieResponse;
 import com.chalchitraghar.modules.movies.service.MovieService;
+import com.chalchitraghar.shared.response.ApiResponse;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -31,24 +32,25 @@ public class AdminMovieController {
     private final MovieService movieService;
 
     @GetMapping
-    public ResponseEntity<List<MovieResponse>> getAllMovies() {
-        return ResponseEntity.ok(movieService.getAllMovies());
+    public ResponseEntity<ApiResponse<List<MovieResponse>>> getAllMovies() {
+        return ResponseEntity.ok(ApiResponse.success("Movies fetched successfully", movieService.getAllMovies()));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<MovieResponse> getMovieById(@PathVariable Long id) {
-        return ResponseEntity.ok(movieService.getMovieById(id));
+    public ResponseEntity<ApiResponse<MovieResponse>> getMovieById(@PathVariable Long id) {
+        return ResponseEntity.ok(ApiResponse.success("Movie fetched successfully", movieService.getMovieById(id)));
     }
 
     @PostMapping
-    public ResponseEntity<MovieResponse> createMovie(@Valid @RequestBody MovieRequest dto) {
+    public ResponseEntity<ApiResponse<MovieResponse>> createMovie(@Valid @RequestBody MovieRequest dto) {
         MovieResponse created = movieService.addMovie(dto);
-        return ResponseEntity.status(HttpStatus.CREATED).body(created);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success("Movie created successfully", created));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<MovieResponse> updateMovie(@PathVariable Long id, @Valid @RequestBody MovieRequest dto) {
-        return ResponseEntity.ok(movieService.updateMovie(id, dto));
+    public ResponseEntity<ApiResponse<MovieResponse>> updateMovie(@PathVariable Long id, @Valid @RequestBody MovieRequest dto) {
+        return ResponseEntity.ok(ApiResponse.success("Movie updated successfully", movieService.updateMovie(id, dto)));
     }
 
     @DeleteMapping("/{id}")

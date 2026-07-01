@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.chalchitraghar.modules.users.dto.response.UserResponse;
 import com.chalchitraghar.modules.users.entity.User;
 import com.chalchitraghar.shared.exception.AuthenticationException;
+import com.chalchitraghar.shared.response.ApiResponse;
 
 /**
  * REST controller for authenticated customer profile details.
@@ -19,14 +20,15 @@ import com.chalchitraghar.shared.exception.AuthenticationException;
 public class ProfileController {
 
     @GetMapping
-    public ResponseEntity<UserResponse> getProfile() {
+    public ResponseEntity<ApiResponse<UserResponse>> getProfile() {
         User currentUser = getCurrentUser();
-        return ResponseEntity.ok(new UserResponse(
+        UserResponse response = new UserResponse(
                 currentUser.getId(),
                 currentUser.getName(),
                 currentUser.getEmail(),
                 currentUser.getRole().name()
-        ));
+        );
+        return ResponseEntity.ok(ApiResponse.success("Profile fetched successfully", response));
     }
 
     private User getCurrentUser() {

@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.chalchitraghar.modules.halls.service.SeatLayoutService;
+import com.chalchitraghar.shared.response.ApiResponse;
 
 import lombok.RequiredArgsConstructor;
 
@@ -27,8 +28,8 @@ public class AdminSeatLayoutController {
      * @return success response
      */
     @PostMapping("/{hallId}/seat-layout")
-    public ResponseEntity<Void> generateSeatLayout(@PathVariable Long hallId) {
+    public ResponseEntity<ApiResponse<Void>> generateSeatLayout(@PathVariable Long hallId) {
         seatLayoutService.generateSeatTemplates(hallId);
-        return ResponseEntity.ok().build();
+        return ResponseEntity.ok(ApiResponse.success("Seat layout generated successfully"));
     }
 }

@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.chalchitraghar.modules.halls.dto.request.HallRequest;
 import com.chalchitraghar.modules.halls.dto.response.HallResponse;
 import com.chalchitraghar.modules.halls.service.HallService;
+import com.chalchitraghar.shared.response.ApiResponse;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -31,29 +32,30 @@ public class AdminHallController {
     private final HallService hallService;
 
     @GetMapping
-    public ResponseEntity<List<HallResponse>> getAllHalls() {
-        return ResponseEntity.ok(hallService.getAllHalls());
+    public ResponseEntity<ApiResponse<List<HallResponse>>> getAllHalls() {
+        return ResponseEntity.ok(ApiResponse.success("Halls fetched successfully", hallService.getAllHalls()));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<HallResponse> getHallById(@PathVariable Long id) {
-        return ResponseEntity.ok(hallService.getHallById(id));
+    public ResponseEntity<ApiResponse<HallResponse>> getHallById(@PathVariable Long id) {
+        return ResponseEntity.ok(ApiResponse.success("Hall fetched successfully", hallService.getHallById(id)));
     }
 
     @GetMapping("/active")
-    public ResponseEntity<List<HallResponse>> getActiveHalls() {
-        return ResponseEntity.ok(hallService.getActiveHalls());
+    public ResponseEntity<ApiResponse<List<HallResponse>>> getActiveHalls() {
+        return ResponseEntity.ok(ApiResponse.success("Active halls fetched successfully", hallService.getActiveHalls()));
     }
 
     @PostMapping
-    public ResponseEntity<HallResponse> createHall(@Valid @RequestBody HallRequest dto) {
+    public ResponseEntity<ApiResponse<HallResponse>> createHall(@Valid @RequestBody HallRequest dto) {
         HallResponse hall = hallService.addHall(dto);
-        return ResponseEntity.status(HttpStatus.CREATED).body(hall);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success("Hall created successfully", hall));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<HallResponse> updateHall(@PathVariable Long id, @Valid @RequestBody HallRequest dto) {
-        return ResponseEntity.ok(hallService.updateHall(id, dto));
+    public ResponseEntity<ApiResponse<HallResponse>> updateHall(@PathVariable Long id, @Valid @RequestBody HallRequest dto) {
+        return ResponseEntity.ok(ApiResponse.success("Hall updated successfully", hallService.updateHall(id, dto)));
     }
 
     @DeleteMapping("/{id}")

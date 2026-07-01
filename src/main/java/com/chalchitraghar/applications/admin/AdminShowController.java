@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.chalchitraghar.modules.shows.dto.request.ShowRequest;
 import com.chalchitraghar.modules.shows.dto.response.ShowResponse;
 import com.chalchitraghar.modules.shows.service.ShowService;
+import com.chalchitraghar.shared.response.ApiResponse;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -31,24 +32,25 @@ public class AdminShowController {
     private final ShowService showService;
 
     @GetMapping
-    public ResponseEntity<List<ShowResponse>> getAllShows() {
-        return ResponseEntity.ok(showService.getAllShows());
+    public ResponseEntity<ApiResponse<List<ShowResponse>>> getAllShows() {
+        return ResponseEntity.ok(ApiResponse.success("Shows fetched successfully", showService.getAllShows()));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ShowResponse> getShowById(@PathVariable Long id) {
-        return ResponseEntity.ok(showService.getShowById(id));
+    public ResponseEntity<ApiResponse<ShowResponse>> getShowById(@PathVariable Long id) {
+        return ResponseEntity.ok(ApiResponse.success("Show fetched successfully", showService.getShowById(id)));
     }
 
     @PostMapping
-    public ResponseEntity<ShowResponse> createShow(@Valid @RequestBody ShowRequest dto) {
+    public ResponseEntity<ApiResponse<ShowResponse>> createShow(@Valid @RequestBody ShowRequest dto) {
         ShowResponse created = showService.addShow(dto);
-        return ResponseEntity.status(HttpStatus.CREATED).body(created);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success("Show created successfully", created));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<ShowResponse> updateShow(@PathVariable Long id, @Valid @RequestBody ShowRequest dto) {
-        return ResponseEntity.ok(showService.updateShow(id, dto));
+    public ResponseEntity<ApiResponse<ShowResponse>> updateShow(@PathVariable Long id, @Valid @RequestBody ShowRequest dto) {
+        return ResponseEntity.ok(ApiResponse.success("Show updated successfully", showService.updateShow(id, dto)));
     }
 
     @DeleteMapping("/{id}")

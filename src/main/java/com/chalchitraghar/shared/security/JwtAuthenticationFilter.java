@@ -1,6 +1,8 @@
 package com.chalchitraghar.shared.security;
 
 import com.chalchitraghar.modules.users.repository.UserRepository;
+import com.chalchitraghar.shared.response.ApiResponse;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.jsonwebtoken.ExpiredJwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -28,6 +30,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;
     private final UserRepository userRepository;
+    private final ObjectMapper objectMapper;
 
     /**
      * Processes each request to extract JWT token from Authorization header,
@@ -58,15 +61,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 }
             } catch (ExpiredJwtException e) {
                 logger.error("JWT expired: " + e.getMessage());
-                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                response.setContentType("application/json");
-                response.getWriter().write("{\"error\":\"Token expired\"}");
+                writeUnauthorizedResponse(response, "Token expired");
                 return;
             } catch (Exception e) {
                 logger.error("JWT error: " + e.getMessage());
-                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                response.setContentType("application/json");
-                response.getWriter().write("{\"error\":\"Invalid token\"}");
+                writeUnauthorizedResponse(response, "Invalid token");
                 return;
             }
         }
@@ -90,5 +89,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         filterChain.doFilter(request, response);
+    }
+
+    private void writeUnauthorizedResponse(HttpServletResponse response, String message) throws IOException {
+        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        response.setContentType("application/json");
+        response.getWriter().write(objectMapper.writeValueAsString(ApiResponse.error(message)));
     }
 }

@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.chalchitraghar.modules.movies.dto.response.MovieResponse;
 import com.chalchitraghar.modules.movies.enums.MovieStatus;
 import com.chalchitraghar.modules.movies.service.MovieService;
+import com.chalchitraghar.shared.response.ApiResponse;
 
 import lombok.RequiredArgsConstructor;
 
@@ -25,22 +26,26 @@ public class MovieController {
     private final MovieService movieService;
 
     @GetMapping
-    public ResponseEntity<List<MovieResponse>> getAllMovies() {
-        return ResponseEntity.ok(movieService.getAllMovies());
+    public ResponseEntity<ApiResponse<List<MovieResponse>>> getAllMovies() {
+        return ResponseEntity.ok(ApiResponse.success("Movies fetched successfully", movieService.getAllMovies()));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<MovieResponse> getMovieById(@PathVariable Long id) {
-        return ResponseEntity.ok(movieService.getMovieById(id));
+    public ResponseEntity<ApiResponse<MovieResponse>> getMovieById(@PathVariable Long id) {
+        return ResponseEntity.ok(ApiResponse.success("Movie fetched successfully", movieService.getMovieById(id)));
     }
 
     @GetMapping("/now-showing")
-    public ResponseEntity<List<MovieResponse>> getNowShowingMovies() {
-        return ResponseEntity.ok(movieService.getMoviesByStatus(MovieStatus.NOW_SHOWING));
+    public ResponseEntity<ApiResponse<List<MovieResponse>>> getNowShowingMovies() {
+        return ResponseEntity.ok(ApiResponse.success(
+                "Now showing movies fetched successfully",
+                movieService.getMoviesByStatus(MovieStatus.NOW_SHOWING)));
     }
 
     @GetMapping("/upcoming")
-    public ResponseEntity<List<MovieResponse>> getUpcomingMovies() {
-        return ResponseEntity.ok(movieService.getMoviesByStatus(MovieStatus.UPCOMING));
+    public ResponseEntity<ApiResponse<List<MovieResponse>>> getUpcomingMovies() {
+        return ResponseEntity.ok(ApiResponse.success(
+                "Upcoming movies fetched successfully",
+                movieService.getMoviesByStatus(MovieStatus.UPCOMING)));
     }
 }

@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.chalchitraghar.modules.users.dto.response.UserResponse;
 import com.chalchitraghar.modules.users.entity.User;
 import com.chalchitraghar.modules.users.service.UserService;
+import com.chalchitraghar.shared.response.ApiResponse;
 
 import lombok.RequiredArgsConstructor;
 
@@ -25,17 +26,17 @@ public class AdminUserController {
     private final UserService userService;
 
     @GetMapping
-    public ResponseEntity<List<UserResponse>> getAllUsers() {
+    public ResponseEntity<ApiResponse<List<UserResponse>>> getAllUsers() {
         List<UserResponse> users = userService.getAllUsers().stream()
                 .map(this::toResponse)
                 .toList();
-        return ResponseEntity.ok(users);
+        return ResponseEntity.ok(ApiResponse.success("Users fetched successfully", users));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<UserResponse> getUserById(@PathVariable Long id) {
+    public ResponseEntity<ApiResponse<UserResponse>> getUserById(@PathVariable Long id) {
         User user = userService.getUserById(id);
-        return ResponseEntity.ok(toResponse(user));
+        return ResponseEntity.ok(ApiResponse.success("User fetched successfully", toResponse(user)));
     }
 
     private UserResponse toResponse(User u) {
