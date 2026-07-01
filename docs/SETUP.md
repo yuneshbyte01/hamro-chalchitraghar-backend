@@ -7,156 +7,240 @@
 - Git
 - Maven is optional because Maven wrapper scripts are included.
 
-## Local Development Setup
+## Profiles
 
-1. Create a PostgreSQL database:
+The active profile is controlled by:
+
+```text
+SPRING_PROFILES_ACTIVE
+```
+
+Default:
+
+```text
+dev
+```
+
+Profiles:
+
+- `dev`: local development defaults with environment variable overrides.
+- `prod`: production profile requiring environment variables.
+- `test`: integration test profile using H2 in PostgreSQL compatibility mode.
+
+## Environment Variables
+
+Use `.env.example` as the template:
+
+```text
+DB_URL=jdbc:postgresql://localhost:5432/hamro_chalachitraghar_db
+DB_USERNAME=postgres
+DB_PASSWORD=your_password_here
+JWT_SECRET=replace_with_at_least_32_characters_secret
+JWT_EXPIRATION_MS=3600000
+CORS_ALLOWED_ORIGINS=http://localhost:4200
+SPRING_PROFILES_ACTIVE=dev
+```
+
+Do not commit real secrets. `.env` is ignored by Git.
+
+## PostgreSQL Setup
+
+Create the local database:
 
 ```sql
 CREATE DATABASE hamro_chalachitraghar_db;
 ```
 
-2. Review database settings in `src/main/resources/application.yaml`:
+Create or choose a PostgreSQL user with permission to connect and create/update objects in that database.
 
-```yaml
-spring:
-  datasource:
-    url: jdbc:postgresql://localhost:5432/hamro_chalachitraghar_db
-    username: postgres
-    password: postgres
+Example local environment values:
+
+```powershell
+$env:DB_URL="jdbc:postgresql://localhost:5432/hamro_chalachitraghar_db"
+$env:DB_USERNAME="postgres"
+$env:DB_PASSWORD="your_password_here"
+$env:JWT_SECRET="replace_with_at_least_32_characters_secret"
+$env:JWT_EXPIRATION_MS="3600000"
+$env:CORS_ALLOWED_ORIGINS="http://localhost:4200"
+$env:SPRING_PROFILES_ACTIVE="dev"
 ```
 
-3. Install dependencies and compile:
+## Local Development
+
+Compile:
 
 ```powershell
 .\mvnw.cmd clean compile
 ```
 
-4. Run the application:
+Run:
 
 ```powershell
 .\mvnw.cmd spring-boot:run
 ```
 
-5. Check health:
+Health check:
 
 ```powershell
-Invoke-RestMethod http://localhost:8080/api/health
+Invoke-RestMethod http://localhost:8080/api/public/health
 ```
 
 Expected response:
 
 ```json
-{ "status": "UP" }
+{
+  "success": true,
+  "message": "Health check successful",
+  "data": {
+    "status": "UP"
+  },
+  "errors": []
+}
 ```
 
-## Environment Variables
+## Production Profile
 
-No environment variables are currently wired in code or configuration.
+Set:
 
-Current hardcoded configuration:
-
-| Setting | Current value |
-| --- | --- |
-| Database URL | `jdbc:postgresql://localhost:5432/hamro_chalachitraghar_db` |
-| Database username | `postgres` |
-| Database password | `postgres` |
-| JWT secret | Hardcoded in `JwtUtil` |
-| JWT expiration | 1 hour |
-| Allowed CORS origin | `http://localhost:4200` |
-
-Unknown / needs confirmation: intended production secret management and environment-specific configuration.
-
-## Install Commands
-
-Windows:
-
-```powershell
-.\mvnw.cmd clean compile
+```text
+SPRING_PROFILES_ACTIVE=prod
 ```
 
-Unix-like shells:
+Required environment variables:
 
-```bash
-./mvnw clean compile
-```
+- `DB_URL`
+- `DB_USERNAME`
+- `DB_PASSWORD`
+- `JWT_SECRET`
+- `CORS_ALLOWED_ORIGINS`
 
-## Run Commands
+Optional:
 
-Windows:
+- `JWT_EXPIRATION_MS`, default `3600000`.
 
-```powershell
-.\mvnw.cmd spring-boot:run
-```
-
-Unix-like shells:
-
-```bash
-./mvnw spring-boot:run
-```
-
-## Build Commands
-
-Windows:
-
-```powershell
-.\mvnw.cmd clean package
-```
-
-Unix-like shells:
-
-```bash
-./mvnw clean package
-```
-
-The packaged application is produced under `target/`.
+The production profile does not provide database or secret defaults.
 
 ## Test Commands
 
-Windows:
+Run all tests:
 
 ```powershell
 .\mvnw.cmd test
 ```
 
-Unix-like shells:
+Run one test class:
 
-```bash
-./mvnw test
+```powershell
+.\mvnw.cmd -Dtest=AuthorizationAndErrorApiIntegrationTest test
 ```
 
-Current test coverage is limited to a Spring context load test.
+Test configuration:
+
+- File: `src/test/resources/application-test.yaml`
+- Database: H2 in PostgreSQL compatibility mode
+- Flyway: disabled
+- Hibernate: `create-drop`
+- Profile: `test`
+
+Tests do not require a local PostgreSQL database.
+
+## Build Commands
+
+Create a package:
+
+```powershell
+.\mvnw.cmd clean package
+```
+
+The packaged artifact is written under `target/`.
+
+## Flyway Migrations
+
+Flyway runs at application startup for `dev` and `prod`.
+
+Migration files live under:
+
+```text
+src/main/resources/db/migration
+```
+
+To add a migration:
+
+1. Find the latest migration version.
+2. Add a new file using the next version number:
+
+```text
+V10__description.sql
+```
+
+3. Use PostgreSQL SQL.
+4. Run:
+
+```powershell
+.\mvnw.cmd clean compile
+.\mvnw.cmd test
+```
+
+Do not edit already-applied migrations in shared environments.
 
 ## Common Troubleshooting
 
 ### PostgreSQL Connection Fails
 
 - Confirm PostgreSQL is running.
-- Confirm database `hamro_chalachitraghar_db` exists.
-- Confirm username/password in `application.yaml`.
+- Confirm `hamro_chalachitraghar_db` exists.
+- Confirm `DB_URL`, `DB_USERNAME`, and `DB_PASSWORD`.
 - Confirm port `5432` is available.
 
-### Application Starts But Tables Are Missing
+### Flyway Fails
 
-Hibernate is configured with `ddl-auto: update`, so tables should be created/updated at startup. If not, check database permissions for the configured user.
+- Check the migration error in logs.
+- Confirm the connected database is the expected database.
+- Confirm migrations are ordered correctly.
+- Do not modify old migrations after they have been applied.
+
+### Hibernate Validation Fails
+
+Hibernate uses `ddl-auto: validate`.
+
+If validation fails:
+
+- Check that all Flyway migrations ran.
+- Check that the schema matches the entity mappings.
+- Add a new migration for schema changes.
 
 ### Login Works But Admin Endpoints Return 403
 
-Registration always creates users with role `CUSTOMER`. No API for creating an admin user exists. An admin user must be inserted or updated directly in the database unless another process exists outside this repository.
+Registration creates `CUSTOMER` users only.
+
+There is no admin or staff creation endpoint yet. Admin or staff users must be created through trusted database setup or another operational process.
 
 ### Show Creation Fails
 
-Check all implemented preconditions:
+Check these conditions:
 
 - Movie exists and has status `NOW_SHOWING`.
 - Hall exists and is not `INACTIVE`.
-- Hall has seat templates generated.
+- Hall has seat templates generated through `POST /api/admin/halls/{hallId}/seat-layout`.
 - Show date is in the future.
 - Show time does not overlap another non-cancelled show in the same hall and date.
 
-### Booking Fails After Validation
+### Booking Fails
 
-The current implementation locks seats during validation, but `createBooking` rejects currently locked seats. This behavior may prevent the intended validate-then-create flow from succeeding. Needs confirmation and likely a code fix.
+Check these conditions:
+
+- Seat IDs are not duplicated.
+- Seats belong to the requested show.
+- Seats are `AVAILABLE` or held by the same user.
+- Seats are not `RESERVED` or `BOOKED`.
+- Another user does not currently own the active seat hold.
 
 ### CORS Errors
 
-Only `http://localhost:4200` is allowed. Other frontend origins will be blocked unless CORS configuration is changed.
+Set:
+
+```text
+CORS_ALLOWED_ORIGINS=http://localhost:4200
+```
+
+Multiple origins can be comma-separated.

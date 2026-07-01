@@ -1,174 +1,113 @@
-hamro-chalchitraghar-backend/
-│
-├── pom.xml                              # Maven dependencies configuration
-├── mvnw                                  # Maven wrapper (Unix)
-├── mvnw.cmd                              # Maven wrapper (Windows)
-├── .gitignore                            # Git ignore rules
-├── .gitattributes                        # Git attributes
-├── PROJECT_STRUCTURE.txt                 # Project structure documentation
-├── PROJECT_REPORT.md                     # Project report documentation
-├── POSTMAN_COLLECTION.md                 # Postman API collection documentation
-│
-├── .mvn/
-│   └── wrapper/
-│       └── maven-wrapper.properties      # Maven wrapper properties
-│
-└── src/
-    ├── main/
-    │   ├── java/com/chalchitraghar/
-    │   │   ├── HamroChalchitragharBackendApplication.java  # Main Spring Boot application class
-    │   │   │
-    │   │   ├── config/                  # Configuration classes
-    │   │   │   ├── CORSConfig.java      # CORS configuration
-    │   │   │   └── SecurityConfig.java  # Spring Security configuration
-    │   │   │
-    │   │   ├── controller/              # REST Controllers (API endpoints)
-    │   │   │   ├── auth/                # Authentication
-    │   │   │   │   └── AuthController.java
-    │   │   │   ├── admin/               # Admin-only
-    │   │   │   │   ├── AdminMovieController.java
-    │   │   │   │   ├── AdminHallController.java
-    │   │   │   │   ├── AdminShowController.java
-    │   │   │   │   ├── AdminSeatLayoutController.java
-    │   │   │   │   └── AdminUserController.java
-    │   │   │   ├── publicapi/           # Public read-only
-    │   │   │   │   ├── MovieController.java
-    │   │   │   │   ├── HallController.java
-    │   │   │   │   ├── ShowController.java
-    │   │   │   │   └── SeatController.java
-    │   │   │   ├── booking/             # Authenticated users
-    │   │   │   │   └── BookingController.java
-    │   │   │   └── health/              # Public health check
-    │   │   │       └── HealthController.java
-    │   │   │
-    │   │   ├── dto/                     # Data Transfer Objects (Request/Response)
-    │   │   │   ├── auth/                # Authentication DTOs
-    │   │   │   │   ├── LoginRequest.java
-    │   │   │   │   ├── LoginResponse.java
-    │   │   │   │   ├── RefreshTokenRequest.java
-    │   │   │   │   ├── RegistrationRequest.java
-    │   │   │   │   └── RegistrationResponse.java
-    │   │   │   ├── booking/             # Booking DTOs
-    │   │   │   │   ├── BookingRequest.java
-    │   │   │   │   ├── BookingResponse.java
-    │   │   │   │   ├── BookingValidationRequest.java
-    │   │   │   │   └── BookingValidationResponse.java
-    │   │   │   ├── error/               # Error DTOs
-    │   │   │   │   └── ErrorResponse.java
-    │   │   │   ├── hall/                # Hall DTOs
-    │   │   │   │   ├── HallRequest.java
-    │   │   │   │   └── HallResponse.java
-    │   │   │   ├── movie/               # Movie DTOs
-    │   │   │   │   ├── MovieRequest.java
-    │   │   │   │   └── MovieResponse.java
-    │   │   │   ├── seat/                # Seat DTOs
-    │   │   │   │   └── SeatResponse.java
-    │   │   │   ├── user/                # User DTOs (admin)
-    │   │   │   │   └── UserResponse.java
-    │   │   │   └── show/                # Show DTOs
-    │   │   │       ├── ShowRequest.java
-    │   │   │       └── ShowResponse.java
-    │   │   │
-    │   │   ├── exception/               # Exception handling
-    │   │   │   ├── AuthenticationException.java
-    │   │   │   ├── GlobalExceptionHandler.java
-    │   │   │   ├── HallConflictException.java
-    │   │   │   ├── InvalidBookingStateException.java
-    │   │   │   ├── InvalidSeatSelectionException.java
-    │   │   │   ├── ResourceNotFoundException.java
-    │   │   │   ├── SeatAlreadyBookedException.java
-    │   │   │   └── SeatLockedException.java
-    │   │   │
-    │   │   ├── mapper/                  # Entity-DTO mappers
-    │   │   │   ├── BookingMapper.java
-    │   │   │   ├── HallMapper.java
-    │   │   │   ├── MovieMapper.java
-    │   │   │   ├── SeatMapper.java
-    │   │   │   └── ShowMapper.java
-    │   │   │
-    │   │   ├── model/                   # Entity models (JPA entities)
-    │   │   │   ├── enums/               # Enumeration types
-    │   │   │   │   ├── BookingStatus.java
-    │   │   │   │   ├── MovieStatus.java
-    │   │   │   │   ├── Role.java
-    │   │   │   │   ├── SeatStatus.java
-    │   │   │   │   ├── SeatType.java
-    │   │   │   │   ├── ShowStatus.java
-    │   │   │   │   └── Status.java
-    │   │   │   ├── GenericEntity.java   # Base entity with common fields
-    │   │   │   ├── Booking.java         # Booking entity
-    │   │   │   ├── BookingSeat.java     # Booking-Seat junction entity
-    │   │   │   ├── Hall.java            # Hall entity
-    │   │   │   ├── Movie.java           # Movie entity
-    │   │   │   ├── Seat.java            # Seat entity
-    │   │   │   ├── SeatTemplate.java    # Seat template entity
-    │   │   │   ├── Show.java            # Show entity
-    │   │   │   └── User.java            # User entity
-    │   │   │
-    │   │   ├── repository/              # JPA Repositories (Data access layer)
-    │   │   │   ├── BookingRepository.java
-    │   │   │   ├── BookingSeatRepository.java
-    │   │   │   ├── HallRepository.java
-    │   │   │   ├── MovieRepository.java
-    │   │   │   ├── SeatRepository.java
-    │   │   │   ├── SeatTemplateRepository.java
-    │   │   │   ├── ShowRepository.java
-    │   │   │   └── UserRepository.java
-    │   │   │
-    │   │   ├── security/                # Security & JWT implementation
-    │   │   │   ├── JwtAuthenticationFilter.java
-    │   │   │   └── JwtUtil.java
-    │   │   │
-    │   │   └── service/                 # Business logic (interface + Impl)
-    │   │       ├── auth/
-    │   │       │   ├── AuthService.java         # interface
-    │   │       │   └── AuthServiceImpl.java
-    │   │       ├── admin/
-    │   │       │   ├── UserService.java         # interface
-    │   │       │   └── UserServiceImpl.java
-    │   │       ├── booking/
-    │   │       │   ├── BookingService.java     # interface
-    │   │       │   ├── BookingServiceImpl.java
-    │   │       │   ├── SeatLockService.java     # interface
-    │   │       │   └── SeatLockServiceImpl.java
-    │   │       ├── hall/
-    │   │       │   ├── HallService.java         # interface
-    │   │       │   ├── HallServiceImpl.java
-    │   │       │   ├── SeatLayoutService.java   # interface
-    │   │       │   └── SeatLayoutServiceImpl.java
-    │   │       ├── movie/
-    │   │       │   ├── MovieService.java        # interface
-    │   │       │   └── MovieServiceImpl.java
-    │   │       ├── show/
-    │   │       │   ├── SeatGenerationService.java   # interface
-    │   │       │   ├── SeatGenerationServiceImpl.java
-    │   │       │   ├── ShowService.java         # interface
-    │   │       │   └── ShowServiceImpl.java
-    │   │       └── seat/
-    │   │           ├── SeatService.java         # interface
-    │   │           └── SeatServiceImpl.java
-    │   │
-    │   └── resources/
-    │       └── application.yaml         # Application configuration (database, etc.)
-    │
-    └── test/
-        └── java/com/chalchitraghar/
-            └── HamroChalchitragharBackendApplicationTests.java  # Unit tests
+Hamro Chalchitraghar Backend V2 Structure
 
-Technology Stack:
-- Spring Boot 3.5.9
+Root
+----
+README.md
+pom.xml
+mvnw
+mvnw.cmd
+.env.example
+POSTMAN_COLLECTION.md
+PROJECT_REPORT.md
+PROJECT_STRUCTURE.txt
+
+Documentation
+-------------
+docs/
+  API.md
+  ARCHITECTURE.md
+  DATABASE.md
+  MAINTENANCE.md
+  PRD.md
+  SETUP.md
+  TODO_V2.md
+  TRD.md
+  V2_MIGRATION.md
+
+Application Source
+------------------
+src/main/java/com/chalchitraghar/
+  HamroChalchitragharBackendApplication.java
+
+  applications/
+    auth/
+      AuthController.java
+    publicapi/
+      HealthController.java
+      MovieController.java
+      HallController.java
+      ShowController.java
+      SeatController.java
+    customer/
+      ProfileController.java
+      BookingController.java
+    staff/
+      BookingManagementController.java
+    admin/
+      AdminMovieController.java
+      AdminHallController.java
+      AdminSeatLayoutController.java
+      AdminShowController.java
+      AdminUserController.java
+
+  modules/
+    auth/
+    users/
+    movies/
+    halls/
+    shows/
+    seats/
+    bookings/
+
+  shared/
+    config/
+      SecurityConfig.java
+    exception/
+      GlobalExceptionHandler.java
+      custom exception classes
+    response/
+      ApiResponse.java
+    security/
+      JwtAuthenticationFilter.java
+      JwtUtil.java
+
+Resources
+---------
+src/main/resources/
+  application.yaml
+  application-dev.yaml
+  application-prod.yaml
+  db/migration/
+    V1__create_users_table.sql
+    V2__create_movies_table.sql
+    V3__create_halls_table.sql
+    V4__create_seat_templates_table.sql
+    V5__create_shows_table.sql
+    V6__create_seats_table.sql
+    V7__create_bookings_table.sql
+    V8__create_booking_seats_table.sql
+    V9__add_seat_lock_owner.sql
+
+Tests
+-----
+src/test/java/com/chalchitraghar/
+  AbstractIntegrationTest.java
+  AuthApiIntegrationTest.java
+  AuthorizationAndErrorApiIntegrationTest.java
+  BookingApiIntegrationTest.java
+  CatalogApiIntegrationTest.java
+  HamroChalchitragharBackendApplicationTests.java
+
+src/test/resources/
+  application-test.yaml
+
+Runtime Notes
+-------------
 - Java 21
-- Spring Security (JWT Authentication)
-- Spring Data JPA
-- MySQL Database
-- Maven Build Tool
-- Lombok (for reducing boilerplate code)
-
-Architecture:
-- Layered Architecture: Controller → Service → Repository
-- Role-based Access Control (Admin, Staff, Customer)
-- RESTful API Design
-- JWT Token-based Authentication
-- Seat Management System with Templates
-- Booking Validation System
-- Seat Locking for concurrent booking
+- Spring Boot 3.x
+- PostgreSQL for dev/prod
+- Flyway for migrations
+- Hibernate validate mode
+- H2 in PostgreSQL compatibility mode for tests
+- JWT authentication
+- Standard ApiResponse wrapper

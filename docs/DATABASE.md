@@ -2,23 +2,54 @@
 
 ## Database Engine
 
-The application uses PostgreSQL through Spring Data JPA and Hibernate.
+The V2 backend uses PostgreSQL through Spring Data JPA and Hibernate.
 
-Configured database:
+Schema management:
 
-```yaml
-url: jdbc:postgresql://localhost:5432/hamro_chalachitraghar_db
-username: postgres
-password: postgres
+- Flyway owns schema creation and migration.
+- Hibernate is configured with `ddl-auto: validate`, not `update`.
+- Application startup fails if entities and the database schema do not match.
+
+Migration files live under:
+
+```text
+src/main/resources/db/migration
 ```
 
-Schema management is configured as:
+Current migrations:
 
-```yaml
-spring.jpa.hibernate.ddl-auto: update
+```text
+V1__create_users_table.sql
+V2__create_movies_table.sql
+V3__create_halls_table.sql
+V4__create_seat_templates_table.sql
+V5__create_shows_table.sql
+V6__create_seats_table.sql
+V7__create_bookings_table.sql
+V8__create_booking_seats_table.sql
+V9__add_seat_lock_owner.sql
 ```
 
-No explicit migration tool or migration files were found.
+## Configuration
+
+Base configuration in `application.yaml`:
+
+```yaml
+spring:
+  datasource:
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+```
+
+Development database values come from environment variables with defaults in `application-dev.yaml`.
+
+Production database values are required from environment variables in `application-prod.yaml`.
 
 ## Entity Relationship Overview
 
@@ -26,57 +57,57 @@ No explicit migration tool or migration files were found.
 erDiagram
     USERS {
         bigint id PK
-        datetime created_at
-        datetime updated_at
-        string name
-        string email UK
-        string password
-        string role
+        timestamp created_at
+        timestamp updated_at
+        varchar name
+        varchar email UK
+        varchar password
+        varchar role
     }
 
     MOVIES {
         bigint id PK
-        datetime created_at
-        datetime updated_at
-        string title
-        string genre
+        timestamp created_at
+        timestamp updated_at
+        varchar title
+        varchar genre
         int duration_minutes
-        string language
-        string description
-        string poster_url
+        varchar language
+        varchar description
+        varchar poster_url
         date release_date
-        string status
+        varchar status
     }
 
     HALLS {
         bigint id PK
-        datetime created_at
-        datetime updated_at
-        string name UK
+        timestamp created_at
+        timestamp updated_at
+        varchar name UK
         int capacity
-        string layout_ref
-        string status
+        varchar layout_ref
+        varchar status
     }
 
     SEAT_TEMPLATES {
         bigint id PK
-        datetime created_at
-        datetime updated_at
+        timestamp created_at
+        timestamp updated_at
         bigint hall_id FK
-        string row_label
+        varchar row_label
         int seat_number
-        string seat_code
-        string seat_type
+        varchar seat_code
+        varchar seat_type
         int position_index
     }
 
     SHOWS {
         bigint id PK
-        datetime created_at
-        datetime updated_at
+        timestamp created_at
+        timestamp updated_at
         bigint movie_id FK
         bigint hall_id FK
-        string status
+        varchar status
         date show_date
         time show_time
         time end_time
@@ -84,34 +115,35 @@ erDiagram
 
     SEATS {
         bigint id PK
-        datetime created_at
-        datetime updated_at
+        timestamp created_at
+        timestamp updated_at
         bigint show_id FK
         int seat_number
-        string row_label
-        string seat_code
-        string seat_type
+        varchar row_label
+        varchar seat_code
+        varchar seat_type
         double price
-        string seat_status
+        varchar seat_status
         int position_index
-        datetime locked_at
-        datetime lock_expires_at
+        timestamp locked_at
+        timestamp lock_expires_at
+        bigint locked_by_user_id
     }
 
     BOOKINGS {
         bigint id PK
-        datetime created_at
-        datetime updated_at
+        timestamp created_at
+        timestamp updated_at
         bigint user_id FK
         bigint show_id FK
-        datetime booking_time
-        string status
+        timestamp booking_time
+        varchar status
     }
 
     BOOKING_SEATS {
         bigint id PK
-        datetime created_at
-        datetime updated_at
+        timestamp created_at
+        timestamp updated_at
         bigint booking_id FK
         bigint seat_id FK
     }
@@ -126,57 +158,70 @@ erDiagram
     SEATS ||--o{ BOOKING_SEATS : selected
 ```
 
-## Tables, Models, And Constraints
+## Tables
 
 ### `users`
 
-Model: `User`
+Purpose: application users and authentication data.
 
-Important fields:
+Important columns:
 
-- `name`: not blank.
-- `email`: not blank, email format, unique column.
-- `password`: not blank, min 8 characters, stored hashed by registration service.
-- `role`: enum `CUSTOMER`, `STAFF`, `ADMIN`.
+- `email`: unique.
+- `password`: BCrypt hash.
+- `role`: `CUSTOMER`, `STAFF`, or `ADMIN`.
+
+Constraints:
+
+- Primary key: `id`
+- Unique: `uk_users_email`
 
 ### `movies`
 
-Model: `Movie`
+Purpose: movie catalog.
 
-Important fields:
+Important columns:
 
-- `title`, `genre`, `language`, `description`, `posterUrl`: not blank.
-- `durationMinutes`: not null, positive or zero.
-- `releaseDate`: not null.
-- `status`: enum `UPCOMING`, `NOW_SHOWING`, `ENDED`.
+- `status`: `UPCOMING`, `NOW_SHOWING`, or `ENDED`.
+- `release_date`: required.
 
-No unique constraint is implemented for title/release date despite a repository lookup method existing.
+Notes:
+
+- Delete operations soft-delete by setting movie status to `ENDED`.
+- The database does not currently enforce unique title/release date.
 
 ### `halls`
 
-Model: `Hall`
+Purpose: cinema hall metadata.
 
-Important fields:
+Important columns:
 
-- `name`: not blank, unique column.
-- `capacity`: positive or zero.
-- `layoutRef`: not blank.
-- `status`: enum `ACTIVE`, `INACTIVE`; defaults to `ACTIVE` on persist.
+- `name`: unique.
+- `capacity`: required.
+- `layout_ref`: required.
+- `status`: `ACTIVE` or `INACTIVE`.
 
-Indexes:
+Constraints and indexes:
 
-- `idx_hall_name`
-- `idx_hall_status`
+- Unique: `uk_halls_name`
+- Index: `idx_hall_name`
+- Index: `idx_hall_status`
+
+Notes:
+
+- Delete operations soft-delete by setting hall status to `INACTIVE`.
 
 ### `seat_templates`
 
-Model: `SeatTemplate`
+Purpose: reusable hall-level seat layout.
 
-Important fields:
+Important columns:
 
-- `hall_id`: required many-to-one.
-- `rowLabel`, `seatNumber`, `seatCode`, `seatType`, `positionIndex`.
-- `seatCode` is regenerated from `rowLabel + seatNumber` on persist/update.
+- `hall_id`: foreign key to `halls.id`.
+- `row_label`, `seat_number`, `seat_code`, `seat_type`, `position_index`.
+
+Foreign keys:
+
+- `fk_seat_templates_hall`
 
 Generated layout:
 
@@ -186,83 +231,116 @@ Generated layout:
 
 ### `shows`
 
-Model: `Show`
+Purpose: scheduled movie screenings.
 
-Important fields:
+Important columns:
 
-- `movie_id`: required many-to-one.
-- `hall_id`: required many-to-one.
-- `status`: enum `SCHEDULED`, `RUNNING`, `COMPLETED`, `CANCELLED`; defaults to `SCHEDULED`.
-- `showDate`, `showTime`, `endTime`: required.
+- `movie_id`: foreign key to `movies.id`.
+- `hall_id`: foreign key to `halls.id`.
+- `status`: `SCHEDULED`, `RUNNING`, `COMPLETED`, or `CANCELLED`.
+- `show_date`, `show_time`, `end_time`: required.
 
-Show creation rules:
+Foreign keys:
+
+- `fk_shows_movie`
+- `fk_shows_hall`
+
+Service rules:
 
 - Movie must be `NOW_SHOWING`.
 - Hall must not be `INACTIVE`.
-- Hall/date/time must not overlap a non-cancelled show.
-- Seats are generated after show creation.
+- Show time must not overlap another non-cancelled show in the same hall on the same date.
+- Seats are generated after show creation from `seat_templates`.
 
 ### `seats`
 
-Model: `Seat`
+Purpose: show-specific seats and booking state.
 
-Important fields:
+Important columns:
 
-- `show_id`: required many-to-one.
-- `seatNumber`, `rowLabel`, `seatCode`, `seatType`, `price`, `seatStatus`, `positionIndex`.
-- `lockedAt`, `lockExpiresAt`: nullable lock timestamps.
-- `seatStatus`: enum `AVAILABLE`, `LOCKED`, `BOOKED`, `RESERVED`, `CANCELLED`; defaults to `AVAILABLE`.
+- `show_id`: foreign key to `shows.id`.
+- `seat_status`: `AVAILABLE`, `LOCKED`, `RESERVED`, `BOOKED`, or `CANCELLED`.
+- `locked_at`: timestamp when a hold started.
+- `lock_expires_at`: timestamp when a hold expires.
+- `locked_by_user_id`: ID of the user that owns the active hold.
 
-Price rules:
+Foreign keys:
+
+- `fk_seats_show`
+
+Seat prices:
 
 - `PREMIUM`: 750.0
 - `PLATINUM`: 500.0
 
 ### `bookings`
 
-Model: `Booking`
+Purpose: booking records.
 
-Important fields:
+Important columns:
 
-- `user_id`: required many-to-one.
-- `show_id`: required many-to-one.
-- `bookingTime`: defaults to current time.
-- `status`: enum `INITIATED`, `PENDING`, `CONFIRMED`, `BOOKED`, `CANCELLED`, `EXPIRED`; defaults to `INITIATED`.
+- `user_id`: foreign key to `users.id`.
+- `show_id`: foreign key to `shows.id`.
+- `booking_time`: created booking time.
+- `status`: `INITIATED`, `PENDING`, `CONFIRMED`, `BOOKED`, `CANCELLED`, or `EXPIRED`.
+
+Foreign keys:
+
+- `fk_bookings_user`
+- `fk_bookings_show`
+
+Current flow:
+
+- Create booking sets status to `INITIATED`.
+- Confirm booking sets status to `CONFIRMED` and seats to `BOOKED`.
+- Cancel an initiated booking sets status to `CANCELLED` and seats to `AVAILABLE`.
 
 ### `booking_seats`
 
-Model: `BookingSeat`
+Purpose: join entity between bookings and seats.
 
-Join table entity between bookings and seats.
+Important columns:
 
-Important fields:
+- `booking_id`: foreign key to `bookings.id`.
+- `seat_id`: foreign key to `seats.id`.
 
-- `booking_id`: required.
-- `seat_id`: required.
+Foreign keys:
 
-No explicit unique constraint was found to prevent the same seat appearing in multiple booking records. The service checks this in code.
+- `fk_booking_seats_booking`
+- `fk_booking_seats_seat`
 
-## Migrations
+Notes:
 
-No Flyway, Liquibase, SQL migration directory, or schema migration files were found.
+- The database does not currently enforce a unique seat booking constraint.
+- Active duplicate bookings are prevented in service logic.
 
-Current behavior: Hibernate updates the schema automatically at application startup.
+## Adding A Migration
 
-## Seed Data
+1. Create a new SQL file under `src/main/resources/db/migration`.
+2. Use the next version number:
 
-No seed data scripts or application startup seeders were found.
+```text
+V10__short_description.sql
+```
 
-Unknown / needs confirmation:
+3. Make the SQL PostgreSQL-compatible.
+4. Run:
 
-- How admin users are created.
-- Whether development data is manually inserted.
-- Whether production seed data exists outside this repository.
+```powershell
+.\mvnw.cmd clean compile
+.\mvnw.cmd test
+```
 
-## Important Constraints And Risks
+5. Start the app and confirm Flyway applies the migration.
 
-- `users.email` is unique.
-- `halls.name` is unique.
-- Many fields are non-null through JPA column settings and validation annotations.
-- Database schema changes are not versioned.
-- Some uniqueness and lifecycle rules are enforced only in services, not by database constraints.
-- Expired lock cleanup is not scheduled.
+Do not edit an already-applied migration in a shared environment. Add a new migration instead.
+
+## Test Database
+
+Integration tests use the `test` profile:
+
+- H2 in PostgreSQL compatibility mode.
+- Flyway disabled.
+- Hibernate `ddl-auto: create-drop`.
+
+This keeps tests independent from a local PostgreSQL instance while still using JPA mappings and repository behavior.

@@ -56,18 +56,18 @@ src/main/java/com/chalchitraghar
 
 ### Tasks
 
-* [ ] Move `config` package to `shared/config`.
-* [ ] Move `security` package to `shared/security`.
-* [ ] Move `exception` package to `shared/exception`.
-* [ ] Move auth-related controller, service, DTOs to `modules/auth`.
-* [ ] Move user-related model, repository, service, DTOs, mapper to `modules/users`.
-* [ ] Move movie-related model, repository, service, DTOs, mapper to `modules/movies`.
-* [ ] Move hall-related model, repository, service, DTOs, mapper to `modules/halls`.
-* [ ] Move show-related model, repository, service, DTOs, mapper to `modules/shows`.
-* [ ] Move seat-related model, repository, service, DTOs, mapper to `modules/seats`.
-* [ ] Move booking-related model, repository, service, DTOs, mapper to `modules/bookings`.
-* [ ] Fix package imports after moving files.
-* [ ] Run compile check.
+* [x] Move `config` package to `shared/config`.
+* [x] Move `security` package to `shared/security`.
+* [x] Move `exception` package to `shared/exception`.
+* [x] Move auth-related controller, service, DTOs to `modules/auth`.
+* [x] Move user-related model, repository, service, DTOs, mapper to `modules/users`.
+* [x] Move movie-related model, repository, service, DTOs, mapper to `modules/movies`.
+* [x] Move hall-related model, repository, service, DTOs, mapper to `modules/halls`.
+* [x] Move show-related model, repository, service, DTOs, mapper to `modules/shows`.
+* [x] Move seat-related model, repository, service, DTOs, mapper to `modules/seats`.
+* [x] Move booking-related model, repository, service, DTOs, mapper to `modules/bookings`.
+* [x] Fix package imports after moving files.
+* [x] Run compile check.
 
 Command:
 
@@ -75,7 +75,7 @@ Command:
 .\mvnw.cmd clean compile
 ```
 
-* [ ] Commit modular structure.
+* [x] Commit modular structure.
 
 Command:
 
@@ -110,7 +110,7 @@ git push
 
 * [x] Add `/api/customer/profile`.
 * [x] Add `/api/customer/bookings`.
-* [ ] Add `/api/customer/bookings/hold`.
+* [x] Add `/api/customer/bookings/hold`.
 * [x] Add `/api/customer/bookings`.
 * [x] Add `/api/customer/bookings/{id}`.
 * [x] Add `/api/customer/bookings/{id}/confirm`.
@@ -147,47 +147,47 @@ git push
 
 * [x] Replace MySQL dependency with PostgreSQL driver.
 * [x] Update `application.yaml` datasource config.
-* [ ] Create PostgreSQL database.
-* [ ] Test app connection with PostgreSQL.
+* [x] Create PostgreSQL database.
+* [x] Test app connection with PostgreSQL.
 * [x] Remove MySQL-specific configuration.
-* [ ] Commit PostgreSQL migration.
+* [x] Commit PostgreSQL migration.
 
 ---
 
 ## Phase 4: Flyway Migrations
 
-* [ ] Add Flyway dependency.
-* [ ] Change Hibernate from `ddl-auto: update` to `ddl-auto: validate`.
+* [x] Add Flyway dependency.
+* [x] Change Hibernate from `ddl-auto: update` to `ddl-auto: validate`.
 * [ ] Create migration folder:
 
 ```text
 src/main/resources/db/migration
 ```
 
-* [ ] Add `V1__create_users_table.sql`.
-* [ ] Add `V2__create_movies_table.sql`.
-* [ ] Add `V3__create_halls_table.sql`.
-* [ ] Add `V4__create_seat_templates_table.sql`.
-* [ ] Add `V5__create_shows_table.sql`.
-* [ ] Add `V6__create_seats_table.sql`.
-* [ ] Add `V7__create_bookings_table.sql`.
-* [ ] Add `V8__create_booking_seats_table.sql`.
-* [ ] Run migration.
-* [ ] Commit Flyway setup.
+* [x] Add `V1__create_users_table.sql`.
+* [x] Add `V2__create_movies_table.sql`.
+* [x] Add `V3__create_halls_table.sql`.
+* [x] Add `V4__create_seat_templates_table.sql`.
+* [x] Add `V5__create_shows_table.sql`.
+* [x] Add `V6__create_seats_table.sql`.
+* [x] Add `V7__create_bookings_table.sql`.
+* [x] Add `V8__create_booking_seats_table.sql`.
+* [x] Run migration.
+* [x] Commit Flyway setup.
 
 ---
 
 ## Phase 5: Environment-Based Configuration
 
-* [ ] Remove hardcoded database username.
-* [ ] Remove hardcoded database password.
-* [ ] Remove hardcoded JWT secret.
-* [ ] Remove hardcoded CORS origin.
-* [ ] Add environment variables.
-* [ ] Add `.env.example`.
-* [ ] Add `application-dev.yaml`.
-* [ ] Add `application-prod.yaml`.
-* [ ] Commit configuration cleanup.
+* [x] Remove hardcoded database username.
+* [x] Remove hardcoded database password.
+* [x] Remove hardcoded JWT secret.
+* [x] Remove hardcoded CORS origin.
+* [x] Add environment variables.
+* [x] Add `.env.example`.
+* [x] Add `application-dev.yaml`.
+* [x] Add `application-prod.yaml`.
+* [x] Commit configuration cleanup.
 
 ---
 
@@ -208,20 +208,20 @@ POST /api/customer/bookings/{id}/cancel
 
 ### Tasks
 
-* [ ] Rename validation concept to seat hold.
-* [ ] Store lock owner/user ID.
-* [ ] Allow the same customer to create booking from held seats.
-* [ ] Reject locked seats held by another customer.
-* [ ] Add lock expiry handling.
-* [ ] Add scheduled job to release expired locks.
-* [ ] Fix cancel flow to release reserved seats.
-* [ ] Commit booking flow redesign.
+* [x] Rename validation concept to seat hold.
+* [x] Store lock owner/user ID.
+* [x] Allow the same customer to create booking from held seats.
+* [x] Reject locked seats held by another customer.
+* [x] Add lock expiry handling.
+* [x] Add scheduled job to release expired locks.
+* [x] Fix cancel flow to release reserved seats.
+* [x] Commit booking flow redesign.
 
 ---
 
 ## Phase 7: Standard API Response
 
-* [ ] Create `ApiResponse<T>`.
+* [x] Create `ApiResponse<T>`.
 * [ ] Use consistent success response:
 
 ```json
@@ -242,37 +242,37 @@ POST /api/customer/bookings/{id}/cancel
 }
 ```
 
-* [ ] Update global exception handler.
-* [ ] Update JWT filter error response.
-* [ ] Update controllers.
-* [ ] Commit standard API response.
+* [x] Update global exception handler.
+* [x] Update JWT filter error response.
+* [x] Update controllers.
+* [x] Commit standard API response.
 
 ---
 
 ## Phase 8: Testing
 
-* [ ] Add auth tests.
-* [ ] Add movie tests.
-* [ ] Add hall tests.
-* [ ] Add show overlap tests.
-* [ ] Add seat layout generation tests.
-* [ ] Add booking hold/create/confirm/cancel tests.
-* [ ] Add authorization tests.
-* [ ] Add error response tests.
-* [ ] Add test database config.
-* [ ] Commit test coverage improvements.
+* [x] Add auth tests.
+* [x] Add movie tests.
+* [x] Add hall tests.
+* [x] Add show overlap tests.
+* [x] Add seat layout generation tests.
+* [x] Add booking hold/create/confirm/cancel tests.
+* [x] Add authorization tests.
+* [x] Add error response tests.
+* [x] Add test database config.
+* [x] Commit test coverage improvements.
 
 ---
 
 ## Phase 9: Documentation Update
 
-* [ ] Update `README.md`.
-* [ ] Update `docs/API.md`.
-* [ ] Update `docs/DATABASE.md`.
-* [ ] Update `docs/ARCHITECTURE.md`.
-* [ ] Update `docs/SETUP.md`.
-* [ ] Add V2 migration notes.
-* [ ] Commit documentation update.
+* [x] Update `README.md`.
+* [x] Update `docs/API.md`.
+* [x] Update `docs/DATABASE.md`.
+* [x] Update `docs/ARCHITECTURE.md`.
+* [x] Update `docs/SETUP.md`.
+* [x] Add V2 migration notes.
+* [x] Commit documentation update.
 
 ---
 
@@ -289,13 +289,13 @@ POST /api/customer/bookings/{id}/cancel
 
 ## Final V2 Goals
 
-* [ ] Modular monolith architecture complete.
-* [ ] PostgreSQL used instead of MySQL.
-* [ ] Flyway migrations enabled.
-* [ ] Role-based endpoints cleanly separated.
-* [ ] Booking lifecycle fixed.
-* [ ] Environment variables used for secrets.
-* [ ] API responses standardized.
-* [ ] Tests added.
+* [x] Modular monolith architecture complete.
+* [x] PostgreSQL used instead of MySQL.
+* [x] Flyway migrations enabled.
+* [x] Role-based endpoints cleanly separated.
+* [x] Booking lifecycle fixed.
+* [x] Environment variables used for secrets.
+* [x] API responses standardized.
+* [x] Tests added.
 * [ ] Docker support added.
-* [ ] Documentation updated.
+* [x] Documentation updated.

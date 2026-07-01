@@ -2,18 +2,19 @@
 
 ## Technical Overview
 
-This is a Java 21 Spring Boot 3.5.9 REST API for cinema catalog, schedule, seat, and booking operations. Persistence uses Spring Data JPA with MySQL. Security is stateless and based on JWT bearer tokens.
+Hamro Chalchitraghar backend V2 is a Java 21 Spring Boot 3.5.9 REST API for cinema catalog, schedule, seat, and booking operations.
 
-The implemented architecture is layered:
+Persistence uses Spring Data JPA, Hibernate, PostgreSQL, and Flyway migrations. Security is stateless and based on JWT bearer tokens. Controllers are grouped by role-specific application packages.
 
 ```mermaid
 flowchart LR
-    Client[Client or Frontend] --> Controllers[REST Controllers]
+    Client[Client or Frontend] --> Security[JWT Filter + SecurityConfig]
+    Security --> Controllers[Application Controllers]
     Controllers --> Services[Service Layer]
     Services --> Repositories[JPA Repositories]
-    Repositories --> DB[(MySQL)]
-    Controllers --> Errors[GlobalExceptionHandler]
-    Security[JWT Filter + SecurityConfig] --> Controllers
+    Repositories --> DB[(PostgreSQL)]
+    Controllers --> Response[ApiResponse]
+    Services --> Exceptions[GlobalExceptionHandler]
 ```
 
 ## Tech Stack
@@ -24,97 +25,126 @@ flowchart LR
 - Spring Security
 - Spring Data JPA
 - Spring Validation
-- MySQL Connector/J
+- PostgreSQL JDBC driver
+- Flyway
 - JJWT 0.11.5
 - Lombok
-- Maven wrapper with Maven 3.9.12 distribution
-- JUnit/Spring Boot Test
+- Maven wrapper
+- JUnit, Spring Boot Test, MockMvc, Spring Security Test
+- H2 for the `test` profile
 
 ## System Architecture
 
-- `controller`: HTTP endpoint definitions.
-- `service`: business rules and transaction boundaries.
-- `repository`: Spring Data JPA database access.
-- `model`: JPA entities and enums.
-- `dto`: request and response payloads.
-- `mapper`: manual entity-to-DTO conversion.
-- `security`: JWT generation and request authentication filter.
-- `config`: CORS, stateless security, password encoder.
-- `exception`: custom exceptions and global error handler.
+Application packages:
+
+- `applications/auth`: auth controller.
+- `applications/publicapi`: public browsing and health controllers.
+- `applications/customer`: customer profile and booking controllers.
+- `applications/staff`: staff booking lookup controller.
+- `applications/admin`: admin management controllers.
+
+Domain packages:
+
+- `modules/auth`
+- `modules/users`
+- `modules/movies`
+- `modules/halls`
+- `modules/shows`
+- `modules/seats`
+- `modules/bookings`
+
+Shared packages:
+
+- `shared/config`
+- `shared/security`
+- `shared/exception`
+- `shared/response`
 
 ## Main Modules And Responsibilities
 
 | Module | Responsibility |
 | --- | --- |
 | Auth | Register users, authenticate credentials, refresh JWT tokens. |
-| User Admin | Read users for admins; create customer users during registration. |
-| Movie | Manage and read movie metadata and release status. |
-| Hall | Manage halls and active/inactive state. |
+| Users | Store users and expose admin user reads. |
+| Movies | Manage and read movie metadata and release status. |
+| Halls | Manage halls and active/inactive state. |
 | Seat Layout | Generate reusable hall seat templates. |
-| Show | Schedule shows and generate show-specific seats. |
-| Seat | Read show seat availability. |
-| Booking | Validate seats, lock seats, create bookings, confirm bookings, cancel bookings, read bookings. |
-| Security | Enforce public/admin/authenticated route access and populate current user. |
-| Error Handling | Convert exceptions and validation failures to structured JSON errors. |
+| Shows | Schedule shows and generate show-specific seats. |
+| Seats | Read show seat availability and manage hold state. |
+| Bookings | Hold seats, create bookings, confirm bookings, cancel bookings, read bookings. |
+| Security | Enforce public/customer/staff/admin route access and populate current user. |
+| Response | Standardize success and error response shape. |
 
-## Data Flow
-
-### Booking Flow
+## Booking Flow
 
 ```mermaid
 sequenceDiagram
     participant C as Customer
-    participant API as BookingController
+    participant API as Customer BookingController
     participant Lock as SeatLockService
     participant Booking as BookingService
-    participant DB as MySQL
+    participant DB as PostgreSQL
 
-    C->>API: POST /api/bookings/validate
-    API->>Lock: validateAndLockSeats(showId, seatIds, userId)
+    C->>API: POST /api/customer/bookings/hold
+    API->>Lock: holdSeats(showId, seatIds, userId)
     Lock->>DB: SELECT seats FOR UPDATE
-    Lock->>DB: set LOCKED, lockExpiresAt = now + 10 min
-    API-->>C: validation response
+    Lock->>DB: set LOCKED, lockExpiresAt, lockedByUserId
+    API-->>C: SeatHoldResponse
 
-    C->>API: POST /api/bookings
+    C->>API: POST /api/customer/bookings
     API->>Booking: createBooking(request, user)
     Booking->>DB: SELECT seats FOR UPDATE
     Booking->>DB: create booking + booking_seats
     Booking->>DB: set seats RESERVED
     API-->>C: INITIATED booking response
 
-    C->>API: POST /api/bookings/{id}/confirm
+    C->>API: POST /api/customer/bookings/{id}/confirm
     API->>Booking: confirmBooking(id, user)
     Booking->>DB: verify ownership and seat state
     Booking->>DB: set booking CONFIRMED, seats BOOKED
     API-->>C: CONFIRMED booking response
 ```
 
-### Show Creation Flow
+## Show Creation Flow
 
 ```mermaid
 flowchart TD
     Admin[Admin] --> CreateShow[POST /api/admin/shows]
     CreateShow --> ValidateMovie[Movie must be NOW_SHOWING]
     ValidateMovie --> ValidateHall[Hall must not be INACTIVE]
-    ValidateHall --> CheckOverlap[Reject overlapping hall schedule]
+    ValidateHall --> CheckTemplates[Hall must have seat templates]
+    CheckTemplates --> CheckOverlap[Reject overlapping hall schedule]
     CheckOverlap --> SaveShow[Save show as SCHEDULED]
     SaveShow --> GenerateSeats[Generate seats from hall templates]
-    GenerateSeats --> ReturnShow[Return ShowResponse]
+    GenerateSeats --> ReturnShow[Return ApiResponse ShowResponse]
 ```
 
 ## API Design
 
 - Base URL for local development: `http://localhost:8080`.
 - API prefix: `/api`.
-- Public endpoints: `/api/auth/**`, `/api/health/**`, `/api/movies/**`, `/api/halls/**`, `/api/shows/**`.
-- Admin endpoints: `/api/admin/**`, requires JWT with `ADMIN` role.
-- Booking endpoints: `/api/bookings/**`, requires any authenticated user at the Spring Security layer.
+- Public auth endpoints: `/api/auth/**`.
+- Public browsing endpoints: `/api/public/**`.
+- Customer endpoints: `/api/customer/**`, requires `CUSTOMER`, `STAFF`, or `ADMIN`.
+- Staff endpoints: `/api/staff/**`, requires `STAFF` or `ADMIN`.
+- Admin endpoints: `/api/admin/**`, requires `ADMIN`.
 - Request validation uses Jakarta Bean Validation annotations.
-- Error responses use `ErrorResponse` with `timestamp`, `status`, `error`, `message`, and `path`.
+- Non-empty responses use `ApiResponse<T>`.
 
-## Database And Schema Overview
+Standard response:
 
-Entities:
+```json
+{
+  "success": true,
+  "message": "Success message",
+  "data": {},
+  "errors": []
+}
+```
+
+## Database And Schema
+
+Tables:
 
 - `users`
 - `movies`
@@ -125,29 +155,22 @@ Entities:
 - `bookings`
 - `booking_seats`
 
-The schema is generated/updated by Hibernate because `spring.jpa.hibernate.ddl-auto=update`. No explicit migration files are present.
+Schema management:
 
-```mermaid
-erDiagram
-    USERS ||--o{ BOOKINGS : creates
-    MOVIES ||--o{ SHOWS : schedules
-    HALLS ||--o{ SHOWS : hosts
-    HALLS ||--o{ SEAT_TEMPLATES : defines
-    SHOWS ||--o{ SEATS : contains
-    SHOWS ||--o{ BOOKINGS : receives
-    BOOKINGS ||--o{ BOOKING_SEATS : includes
-    SEATS ||--o{ BOOKING_SEATS : selected_in
-```
+- Flyway migrations under `src/main/resources/db/migration`.
+- Hibernate `ddl-auto: validate`.
+- PostgreSQL for dev and prod.
+- H2 in PostgreSQL compatibility mode for tests.
 
 ## Auth And Security Approach
 
 - Passwords are hashed with BCrypt.
 - JWT tokens are generated with email as the subject and role as a custom claim.
-- JWT expiration is hardcoded to 1 hour.
-- JWT secret is hardcoded in `JwtUtil`.
+- JWT secret and expiration are configured through environment variables.
 - `JwtAuthenticationFilter` reads `Authorization: Bearer <token>`, validates the token, loads the user by email, and sets Spring Security authentication with `ROLE_{role}`.
-- CORS allows `http://localhost:4200`.
+- CORS allowed origins are configured through `CORS_ALLOWED_ORIGINS`.
 - CSRF is disabled because the API is stateless.
+- Security-level `401` and `403` responses use `ApiResponse`.
 
 ## Error Handling
 
@@ -162,22 +185,30 @@ erDiagram
 | `InvalidSeatSelectionException`, `InvalidBookingStateException`, validation/type/body errors, `IllegalArgumentException` | 400 |
 | `DataAccessException`, unhandled `Exception` | 500 |
 
-The JWT filter directly writes `{"error":"Token expired"}` or `{"error":"Invalid token"}` for some token failures, so those responses do not use `ErrorResponse`.
+Validation errors return:
 
-## Performance Considerations
+```json
+{
+  "success": false,
+  "message": "Validation failed",
+  "data": null,
+  "errors": ["field: message"]
+}
+```
 
-- Seat booking reads use pessimistic write locks to reduce double-booking risk.
+## Performance And Consistency Considerations
+
+- Seat hold and booking reads use pessimistic write locks to reduce double-booking risk.
 - Hall has indexes on `name` and `status`.
 - Show overlap check is handled in a database query.
-- Some repository methods may cause lazy-loading queries during DTO mapping.
 - `findAll()` endpoints are not paginated.
-- Expired locked seats can be queried by repository method, but no scheduled cleanup job is implemented.
+- Expired locks are handled when touched by hold or booking operations and through an expired-lock cleanup job component.
 
 ## Deployment Considerations
 
-- The application expects MySQL at `jdbc:mysql://localhost:3306/hamro_chalachitraghar_db`.
-- Database username and password are hardcoded in `application.yaml`.
-- JWT secret is hardcoded in source.
-- No Dockerfile, docker-compose file, CI/CD workflow, production profile, or externalized secret configuration was found.
-- Hibernate `ddl-auto=update` is convenient locally but risky for production schema management.
-- Unknown / needs confirmation: production host, database, secrets manager, logging aggregation, and monitoring stack.
+- Dev and prod use PostgreSQL.
+- Secrets and environment-specific values should be provided through environment variables.
+- Flyway must be allowed to apply migrations on startup.
+- Hibernate validates the schema after migrations.
+- No Dockerfile, docker-compose file, or CI/CD workflow is implemented yet.
+- Production host, database provisioning, secrets manager, logging aggregation, and monitoring stack are still project decisions.
