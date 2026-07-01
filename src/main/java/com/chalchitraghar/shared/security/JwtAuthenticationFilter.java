@@ -56,8 +56,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             token = authHeader.substring(7);
 
             try {
-                if (jwtUtil.validateToken(token)) {
-                    email = jwtUtil.extractUsername(token);
+                email = jwtUtil.extractUsername(token);
+                if (!jwtUtil.validateToken(token)) {
+                    email = null;
                 }
             } catch (ExpiredJwtException e) {
                 logger.error("JWT expired: " + e.getMessage());
