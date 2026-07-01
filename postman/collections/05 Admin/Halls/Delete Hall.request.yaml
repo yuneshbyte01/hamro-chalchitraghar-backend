@@ -1,0 +1,18 @@
+$kind: http-request
+name: Delete Hall
+description: |-
+  Purpose: Delete the demo hall.
+  Authentication required: Admin bearer token.
+  Notes: Run this after dependent show and booking checks are complete.
+url: "{{base_url}}/api/admin/halls/{{hall_id}}"
+method: DELETE
+headers:
+  Authorization: Bearer {{admin_token}}
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status code success", function () {
+          pm.expect(pm.response.code).to.be.oneOf([200, 204]);
+      });
+    language: text/javascript
+order: 6150

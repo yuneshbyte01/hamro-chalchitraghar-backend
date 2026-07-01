@@ -1,0 +1,32 @@
+$kind: http-request
+name: Get Profile
+description: |-
+  Purpose: Fetch the authenticated customer's profile.
+  Authentication required: Customer bearer token.
+  Notes: Run Login - Customer first to populate customer_token.
+url: "{{base_url}}/api/customer/profile"
+method: GET
+headers:
+  Authorization: Bearer {{customer_token}}
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status code success", function () {
+          pm.response.to.have.status(200);
+      });
+
+      const response = pm.response.json();
+
+      pm.test("Response has success field", function () {
+          pm.expect(response).to.have.property("success");
+      });
+
+      pm.test("Response has message field", function () {
+          pm.expect(response).to.have.property("message");
+      });
+
+      pm.test("Response has data field", function () {
+          pm.expect(response).to.have.property("data");
+      });
+    language: text/javascript
+order: 4000

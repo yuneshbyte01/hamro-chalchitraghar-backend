@@ -1,0 +1,18 @@
+$kind: http-request
+name: Delete Show
+description: |-
+  Purpose: Delete the demo show.
+  Authentication required: Admin bearer token.
+  Notes: Run this after booking-related checks are complete.
+url: "{{base_url}}/api/admin/shows/{{show_id}}"
+method: DELETE
+headers:
+  Authorization: Bearer {{admin_token}}
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status code success", function () {
+          pm.expect(pm.response.code).to.be.oneOf([200, 204]);
+      });
+    language: text/javascript
+order: 6240

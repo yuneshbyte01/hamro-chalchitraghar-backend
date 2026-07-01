@@ -1,0 +1,42 @@
+$kind: http-request
+name: Update Hall
+description: |-
+  Purpose: Update the demo AUD1 hall.
+  Authentication required: Admin bearer token.
+  Notes: Requires hall_id from Create Hall.
+url: "{{base_url}}/api/admin/halls/{{hall_id}}"
+method: PUT
+headers:
+  Authorization: Bearer {{admin_token}}
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "name": "AUD1",
+      "capacity": 188,
+      "layoutRef": "STANDARD",
+      "status": "ACTIVE"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status code success", function () {
+          pm.expect(pm.response.code).to.be.oneOf([200, 201]);
+      });
+
+      const response = pm.response.json();
+
+      pm.test("Response has success field", function () {
+          pm.expect(response).to.have.property("success");
+      });
+
+      pm.test("Response has message field", function () {
+          pm.expect(response).to.have.property("message");
+      });
+
+      pm.test("Response has data field", function () {
+          pm.expect(response).to.have.property("data");
+      });
+    language: text/javascript
+order: 6140

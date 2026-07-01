@@ -1,0 +1,26 @@
+$kind: http-request
+name: Health Check
+description: |-
+  Purpose: Verify that the public health endpoint is reachable.
+  Authentication required: No.
+  Notes: Uses the configured base_url environment variable.
+url: "{{base_url}}/api/public/health"
+method: GET
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status code success", function () {
+          pm.response.to.have.status(200);
+      });
+
+      const response = pm.response.json();
+
+      pm.test("Response has success field", function () {
+          pm.expect(response).to.have.property("success");
+      });
+
+      pm.test("Response has message field", function () {
+          pm.expect(response).to.have.property("message");
+      });
+    language: text/javascript
+order: 1782919508956

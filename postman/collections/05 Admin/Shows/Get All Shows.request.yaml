@@ -1,0 +1,32 @@
+$kind: http-request
+name: Get All Shows
+description: |-
+  Purpose: List all shows for admin management.
+  Authentication required: Admin bearer token.
+  Notes: Use this to review created show records.
+url: "{{base_url}}/api/admin/shows"
+method: GET
+headers:
+  Authorization: Bearer {{admin_token}}
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status code success", function () {
+          pm.response.to.have.status(200);
+      });
+
+      const response = pm.response.json();
+
+      pm.test("Response has success field", function () {
+          pm.expect(response).to.have.property("success");
+      });
+
+      pm.test("Response has message field", function () {
+          pm.expect(response).to.have.property("message");
+      });
+
+      pm.test("Response has data field", function () {
+          pm.expect(response).to.have.property("data");
+      });
+    language: text/javascript
+order: 6200

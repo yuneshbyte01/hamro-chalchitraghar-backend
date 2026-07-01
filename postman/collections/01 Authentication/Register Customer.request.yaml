@@ -1,0 +1,16 @@
+$kind: http-request
+name: Register Customer
+description: Create a new customer account.
+url: "{{base_url}}/api/auth/register"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "name": "Yunesh Timsina",
+      "email": "yunesh@example.com",
+      "password": "password123"
+    }
+order: 2000

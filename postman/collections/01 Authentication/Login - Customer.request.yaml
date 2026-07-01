@@ -1,0 +1,40 @@
+$kind: http-request
+name: Login - Customer
+description: Authenticate a customer and store the access token.
+url: "{{base_url}}/api/auth/login"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "email": "yunesh@example.com",
+      "password": "password123"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Request successful", function () {
+          pm.response.to.have.status(200);
+      });
+
+      const response = pm.response.json();
+
+      pm.test("Response has success field", function () {
+          pm.expect(response).to.have.property("success");
+      });
+
+      pm.test("Response has message field", function () {
+          pm.expect(response).to.have.property("message");
+      });
+
+      pm.test("Login response has token field", function () {
+          pm.expect(response.data).to.have.property("token");
+      });
+
+      if (response.success && response.data && response.data.token) {
+          pm.environment.set("customer_token", response.data.token);
+      }
+    language: text/javascript
+order: 2300

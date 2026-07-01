@@ -1,0 +1,25 @@
+name: Local
+values:
+  - key: base_url
+    value: 'http://localhost:8080'
+  - key: admin_token
+    value: ''
+  - key: staff_token
+    value: ''
+  - key: customer_token
+    value: ''
+  - key: refresh_token
+    value: ''
+  - key: movie_id
+    value: ''
+  - key: hall_id
+    value: ''
+  - key: show_id
+    value: ''
+  - key: seat_id_1
+    value: ''
+  - key: seat_id_2
+    value: ''
+  - key: booking_id
+    value: ''
+color: 60

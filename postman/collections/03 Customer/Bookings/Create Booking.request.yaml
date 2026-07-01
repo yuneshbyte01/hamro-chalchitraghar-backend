@@ -1,0 +1,48 @@
+$kind: http-request
+name: Create Booking
+description: |-
+  Purpose: Create a booking for the two selected demo seats.
+  Authentication required: Customer bearer token.
+  Notes: Saves response.data.bookingId into booking_id.
+url: "{{base_url}}/api/customer/bookings"
+method: POST
+headers:
+  Authorization: Bearer {{customer_token}}
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "showId": {{show_id}},
+      "seatIds": [{{seat_id_1}}, {{seat_id_2}}]
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status code success", function () {
+          pm.response.to.have.status(201);
+      });
+
+      const response = pm.response.json();
+
+      pm.test("Response has success field", function () {
+          pm.expect(response).to.have.property("success");
+      });
+
+      pm.test("Response has message field", function () {
+          pm.expect(response).to.have.property("message");
+      });
+
+      pm.test("Response has data field", function () {
+          pm.expect(response).to.have.property("data");
+      });
+
+      pm.test("Booking response has bookingId", function () {
+          pm.expect(response.data).to.have.property("bookingId");
+      });
+
+      if (response.success && response.data && response.data.bookingId) {
+          pm.environment.set("booking_id", response.data.bookingId);
+      }
+    language: text/javascript
+order: 4110

@@ -1,0 +1,32 @@
+$kind: http-request
+name: Get Booking By ID
+description: |-
+  Purpose: Fetch a booking by booking_id as staff.
+  Authentication required: Staff bearer token.
+  Notes: Run Login - Staff and Create Booking first.
+url: "{{base_url}}/api/staff/bookings/{{booking_id}}"
+method: GET
+headers:
+  Authorization: Bearer {{staff_token}}
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status code success", function () {
+          pm.response.to.have.status(200);
+      });
+
+      const response = pm.response.json();
+
+      pm.test("Response has success field", function () {
+          pm.expect(response).to.have.property("success");
+      });
+
+      pm.test("Response has message field", function () {
+          pm.expect(response).to.have.property("message");
+      });
+
+      pm.test("Response has data field", function () {
+          pm.expect(response).to.have.property("data");
+      });
+    language: text/javascript
+order: 5000

@@ -1,0 +1,28 @@
+$kind: http-request
+name: Cancel Booking
+description: |-
+  Purpose: Cancel the current demo booking.
+  Authentication required: Customer bearer token.
+  Notes: Requires booking_id from Create Booking.
+url: "{{base_url}}/api/customer/bookings/{{booking_id}}/cancel"
+method: POST
+headers:
+  Authorization: Bearer {{customer_token}}
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status code success", function () {
+          pm.expect(pm.response.code).to.be.oneOf([200, 201]);
+      });
+
+      const response = pm.response.json();
+
+      pm.test("Response has success field", function () {
+          pm.expect(response).to.have.property("success");
+      });
+
+      pm.test("Response has message field", function () {
+          pm.expect(response).to.have.property("message");
+      });
+    language: text/javascript
+order: 4150

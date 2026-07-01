@@ -1,0 +1,51 @@
+$kind: http-request
+name: Create Show
+description: |-
+  Purpose: Create the demo show for Jatra in AUD1.
+  Authentication required: Admin bearer token.
+  Notes: Saves response.data.id into show_id.
+url: "{{base_url}}/api/admin/shows"
+method: POST
+headers:
+  Authorization: Bearer {{admin_token}}
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "movieId": {{movie_id}},
+      "hallId": {{hall_id}},
+      "showDate": "2026-08-20",
+      "showTime": "18:15:00",
+      "endTime": "21:16:00"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status code success", function () {
+          pm.response.to.have.status(201);
+      });
+
+      const response = pm.response.json();
+
+      pm.test("Response has success field", function () {
+          pm.expect(response).to.have.property("success");
+      });
+
+      pm.test("Response has message field", function () {
+          pm.expect(response).to.have.property("message");
+      });
+
+      pm.test("Response has data field", function () {
+          pm.expect(response).to.have.property("data");
+      });
+
+      pm.test("Show response has id", function () {
+          pm.expect(response.data).to.have.property("id");
+      });
+
+      if (response.success && response.data && response.data.id) {
+          pm.environment.set("show_id", response.data.id);
+      }
+    language: text/javascript
+order: 6220

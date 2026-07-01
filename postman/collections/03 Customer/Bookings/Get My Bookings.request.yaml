@@ -1,0 +1,32 @@
+$kind: http-request
+name: Get My Bookings
+description: |-
+  Purpose: List bookings for the authenticated customer.
+  Authentication required: Customer bearer token.
+  Notes: Useful after creating or confirming a booking.
+url: "{{base_url}}/api/customer/bookings/my"
+method: GET
+headers:
+  Authorization: Bearer {{customer_token}}
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status code success", function () {
+          pm.response.to.have.status(200);
+      });
+
+      const response = pm.response.json();
+
+      pm.test("Response has success field", function () {
+          pm.expect(response).to.have.property("success");
+      });
+
+      pm.test("Response has message field", function () {
+          pm.expect(response).to.have.property("message");
+      });
+
+      pm.test("Response has data field", function () {
+          pm.expect(response).to.have.property("data");
+      });
+    language: text/javascript
+order: 4130

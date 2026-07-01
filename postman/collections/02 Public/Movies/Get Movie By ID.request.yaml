@@ -1,0 +1,30 @@
+$kind: http-request
+name: Get Movie By ID
+description: |-
+  Purpose: Fetch one public movie by movie_id.
+  Authentication required: No.
+  Notes: Run Create Movie first to populate movie_id.
+url: "{{base_url}}/api/public/movies/{{movie_id}}"
+method: GET
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status code success", function () {
+          pm.response.to.have.status(200);
+      });
+
+      const response = pm.response.json();
+
+      pm.test("Response has success field", function () {
+          pm.expect(response).to.have.property("success");
+      });
+
+      pm.test("Response has message field", function () {
+          pm.expect(response).to.have.property("message");
+      });
+
+      pm.test("Response has data field", function () {
+          pm.expect(response).to.have.property("data");
+      });
+    language: text/javascript
+order: 3010
