@@ -1,0 +1,14 @@
+target/
+.git/
+.idea/
+.vscode/
+*.iml
+.env
+logs/
+node_modules/
+*.log
+*.tmp
+*.temp
+*.swp
+*.swo
+HELP.md

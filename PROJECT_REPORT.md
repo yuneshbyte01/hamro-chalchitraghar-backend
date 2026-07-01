@@ -165,5 +165,6 @@ Current integration tests cover auth, public APIs, admin APIs, booking flow, aut
 - Staff booking detail is implemented.
 - Staff check-in is planned.
 - Admin staff creation is planned.
-- Docker and CI/CD are planned for a later phase.
+- Docker support and GitHub Actions test CI are implemented.
+- Production deployment automation is planned for a later phase.
 - Payment, email, and SMS integrations are not implemented.

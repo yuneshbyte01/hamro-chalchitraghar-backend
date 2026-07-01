@@ -105,6 +105,7 @@ The backend exposes public read APIs for browsing movies, halls, shows, and show
 - Admin staff creation is planned, not implemented.
 - Payment flow is not implemented.
 - Email/SMS ticket delivery is not implemented.
-- Docker and CI/CD are not implemented.
+- Docker support and GitHub Actions test CI are implemented.
+- Production deployment automation is not implemented.
 - Booking lifecycle after `INITIATED` and `CONFIRMED` does not include payment state.
 - Some enum values exist for future workflows beyond currently implemented services.

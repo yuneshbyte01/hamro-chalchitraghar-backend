@@ -278,12 +278,12 @@ POST /api/customer/bookings/{id}/cancel
 
 ## Phase 10: Docker And CI/CD
 
-* [ ] Add `Dockerfile`.
-* [ ] Add `docker-compose.yml`.
-* [ ] Add PostgreSQL service in Docker Compose.
-* [ ] Add GitHub Actions workflow.
-* [ ] Run tests in CI.
-* [ ] Commit Docker and CI/CD setup.
+* [x] Add `Dockerfile`.
+* [x] Add `docker-compose.yml`.
+* [x] Add PostgreSQL service in Docker Compose.
+* [x] Add GitHub Actions workflow.
+* [x] Run tests in CI.
+* [x] Commit Docker and CI/CD setup.
 
 ---
 
@@ -297,5 +297,6 @@ POST /api/customer/bookings/{id}/cancel
 * [x] Environment variables used for secrets.
 * [x] API responses standardized.
 * [x] Tests added.
-* [ ] Docker support added.
+* [x] Docker support added.
+* [x] GitHub Actions test CI added.
 * [x] Documentation updated.

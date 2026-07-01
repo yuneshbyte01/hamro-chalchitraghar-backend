@@ -7,9 +7,16 @@ pom.xml
 mvnw
 mvnw.cmd
 .env.example
+.dockerignore
+Dockerfile
+docker-compose.yml
 POSTMAN_COLLECTION.md
 PROJECT_REPORT.md
 PROJECT_STRUCTURE.txt
+
+.github/
+  workflows/
+    ci.yml
 
 Documentation
 -------------

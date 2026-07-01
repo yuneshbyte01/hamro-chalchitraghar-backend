@@ -210,5 +210,6 @@ Validation errors return:
 - Secrets and environment-specific values should be provided through environment variables.
 - Flyway must be allowed to apply migrations on startup.
 - Hibernate validates the schema after migrations.
-- No Dockerfile, docker-compose file, or CI/CD workflow is implemented yet.
+- Dockerfile, Docker Compose, and GitHub Actions test CI are implemented.
+- Production deployment automation is not implemented yet.
 - Production host, database provisioning, secrets manager, logging aggregation, and monitoring stack are still project decisions.

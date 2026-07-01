@@ -154,6 +154,50 @@ Create a package:
 
 The packaged artifact is written under `target/`.
 
+## Docker Compose
+
+Docker Compose starts both PostgreSQL and the Spring Boot app.
+
+Start:
+
+```powershell
+docker compose up --build
+```
+
+Stop:
+
+```powershell
+docker compose down
+```
+
+Stop and remove the PostgreSQL volume:
+
+```powershell
+docker compose down -v
+```
+
+Services:
+
+- `postgres`: PostgreSQL 16, database `hamro_chalachitraghar_db` by default.
+- `app`: backend app built from the local `Dockerfile`.
+
+Default local Compose values are safe development defaults. Override them with environment variables or a local `.env` file:
+
+```text
+DB_NAME=hamro_chalachitraghar_db
+DB_USERNAME=postgres
+DB_PASSWORD=postgres
+JWT_SECRET=replace_with_at_least_32_characters_secret
+JWT_EXPIRATION_MS=3600000
+CORS_ALLOWED_ORIGINS=http://localhost:4200
+```
+
+The Compose app service uses the `prod` profile and connects to PostgreSQL through:
+
+```text
+jdbc:postgresql://postgres:5432/hamro_chalachitraghar_db
+```
+
 ## Flyway Migrations
 
 Flyway runs at application startup for `dev` and `prod`.
@@ -244,3 +288,9 @@ CORS_ALLOWED_ORIGINS=http://localhost:4200
 ```
 
 Multiple origins can be comma-separated.
+
+### Docker App Cannot Connect To PostgreSQL
+
+- Confirm the `postgres` service is healthy: `docker compose ps`.
+- Check logs: `docker compose logs postgres` and `docker compose logs app`.
+- If local database state is stale, recreate the volume with `docker compose down -v` and then `docker compose up --build`.

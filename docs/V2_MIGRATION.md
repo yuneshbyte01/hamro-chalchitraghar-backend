@@ -143,3 +143,20 @@ Planned:
 - Admin staff creation endpoint.
 - Docker and CI/CD.
 - Payment, email, and SMS integrations.
+
+## Phase 10 Docker And CI
+
+V2 added:
+
+- Multi-stage `Dockerfile`.
+- `.dockerignore`.
+- `docker-compose.yml` with PostgreSQL and app services.
+- GitHub Actions workflow at `.github/workflows/ci.yml`.
+
+CI runs:
+
+```bash
+./mvnw -B clean test
+```
+
+with `SPRING_PROFILES_ACTIVE=test`.

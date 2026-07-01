@@ -71,4 +71,16 @@ Run tests:
 .\mvnw.cmd test
 ```
 
+Run with Docker Compose:
+
+```powershell
+docker compose up --build
+```
+
+Stop Docker Compose:
+
+```powershell
+docker compose down
+```
+
 See [Setup Guide](docs/SETUP.md) for full local setup and troubleshooting.

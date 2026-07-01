@@ -111,6 +111,58 @@ Current coverage areas:
 - Authorization for public, customer, staff, and admin route groups.
 - Standard validation, not found, invalid JWT, and expired JWT responses.
 
+## CI
+
+GitHub Actions workflow:
+
+```text
+.github/workflows/ci.yml
+```
+
+The CI workflow runs on push and pull request.
+
+It uses:
+
+- Ubuntu runner
+- Java 21
+- Maven dependency caching through `actions/setup-java`
+- `SPRING_PROFILES_ACTIVE=test`
+- `./mvnw -B clean test`
+
+Because tests use H2 in PostgreSQL compatibility mode, CI does not need a PostgreSQL service container.
+
+## Docker Maintenance
+
+Local Docker files:
+
+- `Dockerfile`
+- `.dockerignore`
+- `docker-compose.yml`
+
+Build and run locally:
+
+```powershell
+docker compose up --build
+```
+
+Stop:
+
+```powershell
+docker compose down
+```
+
+The Dockerfile is multi-stage:
+
+- Build stage: Java 21 JDK, Maven wrapper, packaged jar with tests skipped.
+- Runtime stage: Java 21 JRE, runs `java -jar app.jar`.
+
+Docker Compose runs:
+
+- `postgres`
+- `app`
+
+The app uses the `prod` profile and environment variables. Do not put production secrets in `docker-compose.yml`.
+
 Recommended coverage for future changes:
 
 - Add tests for every new endpoint.
@@ -159,7 +211,9 @@ Do not change old migrations that may already have run in another environment.
 - Admin staff creation is planned, not implemented.
 - Registration only creates `CUSTOMER` users.
 - Admin and staff users currently need trusted database setup or another operational process.
-- Payment, email, SMS, Docker, and CI/CD are not implemented.
+- Payment, email, and SMS are not implemented.
+- Docker and CI/CD are implemented for local containers and GitHub Actions tests.
+- Production deployment to a hosting provider is not implemented.
 - API list endpoints are not paginated.
 - The database does not enforce a unique active booking per seat; service logic prevents active duplicates.
 
