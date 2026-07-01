@@ -7,11 +7,13 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
 import javax.crypto.SecretKey;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Value;
 
 import com.chalchitraghar.modules.users.enums.Role;
 
@@ -20,6 +22,9 @@ import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 
 class AuthorizationAndErrorApiIntegrationTest extends AbstractIntegrationTest {
+
+    @Value("${jwt.secret}")
+    private String jwtSecret;
 
     @Test
     void publicEndpointsWorkWithoutToken() throws Exception {
@@ -125,7 +130,7 @@ class AuthorizationAndErrorApiIntegrationTest extends AbstractIntegrationTest {
     }
 
     private String expiredToken() {
-        SecretKey key = Keys.hmacShaKeyFor("1ba8d994184ee1bb8e98f6a323f45a5c".getBytes());
+        SecretKey key = Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
         return Jwts.builder()
                 .setSubject("expired@example.com")
                 .setIssuedAt(new java.util.Date(System.currentTimeMillis() - 120_000))
