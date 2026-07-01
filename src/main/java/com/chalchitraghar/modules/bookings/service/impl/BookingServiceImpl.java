@@ -16,6 +16,7 @@ import com.chalchitraghar.shared.exception.InvalidBookingStateException;
 import com.chalchitraghar.shared.exception.InvalidSeatSelectionException;
 import com.chalchitraghar.shared.exception.ResourceNotFoundException;
 import com.chalchitraghar.shared.exception.SeatAlreadyBookedException;
+import com.chalchitraghar.shared.exception.SeatLockedException;
 import com.chalchitraghar.modules.bookings.mapper.BookingMapper;
 import com.chalchitraghar.modules.bookings.entity.Booking;
 import com.chalchitraghar.modules.bookings.entity.BookingSeat;
@@ -58,36 +59,15 @@ public class BookingServiceImpl implements BookingService {
                     .filter(id -> !foundSeatIds.contains(id)).collect(Collectors.toList());
             throw new ResourceNotFoundException(String.format("Seats not found: %s", missingSeatIds));
         }
-        List<Seat> invalidSeats = seats.stream()
-                .filter(seat -> !seat.getShow().getId().equals(request.getShowId()))
-                .collect(Collectors.toList());
-        if (!invalidSeats.isEmpty()) {
-            throw new InvalidSeatSelectionException(
-                    String.format("Seats %s do not belong to show %d",
-                            invalidSeats.stream().map(Seat::getId).collect(Collectors.toList()),
-                            request.getShowId()));
-        }
-        List<BookingSeat> existingBookings = bookingSeatRepository.findBySeatIds(request.getSeatIds());
+        List<BookingSeat> existingBookings = bookingSeatRepository.findActiveBookingsBySeatIds(request.getSeatIds());
         if (!existingBookings.isEmpty()) {
             List<Long> bookedSeatIds = existingBookings.stream()
-                    .map(bs -> bs.getSeat().getId()).collect(Collectors.toList());
-            throw new SeatAlreadyBookedException(String.format("Seats %s are already booked", bookedSeatIds));
+                    .map(bs -> bs.getSeat().getId())
+                    .distinct()
+                    .collect(Collectors.toList());
+            throw new SeatAlreadyBookedException(String.format("Seats %s are already part of an active booking", bookedSeatIds));
         }
-        List<Seat> unavailableSeats = seats.stream()
-                .filter(seat -> {
-                    if (seat.getSeatStatus() == SeatStatus.BOOKED) return true;
-                    if (seat.getSeatStatus() == SeatStatus.RESERVED) return true;
-                    if (seat.getSeatStatus() == SeatStatus.LOCKED) {
-                        if (seat.getLockExpiresAt() != null && seat.getLockExpiresAt().isAfter(LocalDateTime.now()))
-                            return true;
-                    }
-                    return false;
-                })
-                .collect(Collectors.toList());
-        if (!unavailableSeats.isEmpty()) {
-            List<Long> unavailableSeatIds = unavailableSeats.stream().map(Seat::getId).collect(Collectors.toList());
-            throw new SeatAlreadyBookedException(String.format("Seats %s are not available", unavailableSeatIds));
-        }
+        validateSeatsForBookingCreation(seats, user.getId());
         Booking booking = Booking.builder()
                 .user(user)
                 .show(show)
@@ -104,6 +84,7 @@ public class BookingServiceImpl implements BookingService {
             seat.setSeatStatus(SeatStatus.RESERVED);
             seat.setLockedAt(null);
             seat.setLockExpiresAt(null);
+            seat.setLockedByUserId(null);
         }
         seatRepository.saveAll(seats);
         return bookingMapper.toResponseDto(booking, seats);
@@ -141,18 +122,19 @@ public class BookingServiceImpl implements BookingService {
             throw new SeatAlreadyBookedException(
                     String.format("Seats %s are already confirmed in another booking", bookedSeatIds));
         }
-        List<Seat> unavailableSeats = seats.stream()
-                .filter(seat -> seat.getSeatStatus() != SeatStatus.RESERVED && seat.getSeatStatus() != SeatStatus.AVAILABLE)
+        List<Seat> invalidSeats = seats.stream()
+                .filter(seat -> seat.getSeatStatus() != SeatStatus.RESERVED)
                 .collect(Collectors.toList());
-        if (!unavailableSeats.isEmpty()) {
-            List<Long> unavailableSeatIds = unavailableSeats.stream().map(Seat::getId).collect(Collectors.toList());
+        if (!invalidSeats.isEmpty()) {
+            List<Long> invalidSeatIds = invalidSeats.stream().map(Seat::getId).collect(Collectors.toList());
             throw new SeatAlreadyBookedException(
-                    String.format("Seats %s are no longer available for confirmation. Current status may be BOOKED or LOCKED", unavailableSeatIds));
+                    String.format("Seats %s are no longer reserved for confirmation", invalidSeatIds));
         }
         for (Seat seat : seats) {
             seat.setSeatStatus(SeatStatus.BOOKED);
             seat.setLockedAt(null);
             seat.setLockExpiresAt(null);
+            seat.setLockedByUserId(null);
         }
         seatRepository.saveAll(seats);
         booking.setStatus(BookingStatus.CONFIRMED);
@@ -208,6 +190,7 @@ public class BookingServiceImpl implements BookingService {
             seat.setSeatStatus(SeatStatus.AVAILABLE);
             seat.setLockedAt(null);
             seat.setLockExpiresAt(null);
+            seat.setLockedByUserId(null);
         }
         seatRepository.saveAll(seats);
         booking.setStatus(BookingStatus.CANCELLED);
@@ -228,5 +211,43 @@ public class BookingServiceImpl implements BookingService {
         List<BookingSeat> bookingSeats = bookingSeatRepository.findByBookingId(bookingId);
         List<Seat> seats = bookingSeats.stream().map(BookingSeat::getSeat).collect(Collectors.toList());
         return bookingMapper.toResponseDto(booking, seats);
+    }
+
+    private void validateSeatsForBookingCreation(List<Seat> seats, Long userId) {
+        LocalDateTime now = LocalDateTime.now();
+        for (Seat seat : seats) {
+            if (seat.getSeatStatus() == SeatStatus.LOCKED) {
+                if (isLockExpired(seat, now)) {
+                    clearLock(seat);
+                } else if (!userId.equals(seat.getLockedByUserId())) {
+                    throw new SeatLockedException(
+                            String.format("Seat %s (%s) is currently held by another user", seat.getSeatCode(), seat.getId()));
+                }
+            }
+            if (seat.getSeatStatus() == SeatStatus.BOOKED) {
+                throw new SeatAlreadyBookedException(
+                        String.format("Seat %s (%s) is already booked", seat.getSeatCode(), seat.getId()));
+            }
+            if (seat.getSeatStatus() == SeatStatus.RESERVED) {
+                throw new SeatAlreadyBookedException(
+                        String.format("Seat %s (%s) is already reserved", seat.getSeatCode(), seat.getId()));
+            }
+            if (seat.getSeatStatus() != SeatStatus.AVAILABLE && seat.getSeatStatus() != SeatStatus.LOCKED) {
+                throw new InvalidSeatSelectionException(
+                        String.format("Seat %s (%s) is not available for booking. Current status: %s",
+                                seat.getSeatCode(), seat.getId(), seat.getSeatStatus()));
+            }
+        }
+    }
+
+    private boolean isLockExpired(Seat seat, LocalDateTime now) {
+        return seat.getLockExpiresAt() == null || !seat.getLockExpiresAt().isAfter(now);
+    }
+
+    private void clearLock(Seat seat) {
+        seat.setSeatStatus(SeatStatus.AVAILABLE);
+        seat.setLockedAt(null);
+        seat.setLockExpiresAt(null);
+        seat.setLockedByUserId(null);
     }
 }

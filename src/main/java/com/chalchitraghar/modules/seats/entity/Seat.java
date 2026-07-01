@@ -111,6 +111,12 @@ public class Seat extends GenericEntity {
     private LocalDateTime lockExpiresAt;
 
     /**
+     * User ID that owns the active lock. Null when the seat is not locked.
+     */
+    @Column(nullable = true)
+    private Long lockedByUserId;
+
+    /**
      * Lifecycle callback invoked before entity persistence.
      * Sets default status to AVAILABLE.
      */

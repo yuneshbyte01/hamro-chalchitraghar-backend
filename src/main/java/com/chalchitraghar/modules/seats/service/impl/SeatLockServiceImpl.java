@@ -2,6 +2,7 @@ package com.chalchitraghar.modules.seats.service.impl;
 
 import com.chalchitraghar.modules.seats.service.SeatLockService;
 import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -12,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.chalchitraghar.shared.exception.InvalidSeatSelectionException;
 import com.chalchitraghar.shared.exception.SeatAlreadyBookedException;
 import com.chalchitraghar.shared.exception.SeatLockedException;
+import com.chalchitraghar.modules.bookings.dto.response.SeatHoldResponse;
 import com.chalchitraghar.modules.seats.entity.Seat;
 import com.chalchitraghar.modules.seats.enums.SeatStatus;
 import com.chalchitraghar.modules.seats.repository.SeatRepository;
@@ -27,9 +29,12 @@ public class SeatLockServiceImpl implements SeatLockService {
     private final SeatRepository seatRepository;
 
     @Override
-    public void validateAndLockSeats(Long showId, List<Long> seatIds, Long userId) {
+    public SeatHoldResponse holdSeats(Long showId, List<Long> seatIds, Long userId) {
         if (seatIds == null || seatIds.isEmpty()) {
             throw new InvalidSeatSelectionException("At least one seat must be selected");
+        }
+        if (new HashSet<>(seatIds).size() != seatIds.size()) {
+            throw new InvalidSeatSelectionException("Seat IDs contain duplicates");
         }
         List<Seat> seats = seatRepository.findByShowIdAndSeatIdsWithLock(showId, seatIds);
         if (seats.size() != seatIds.size()) {
@@ -41,20 +46,27 @@ public class SeatLockServiceImpl implements SeatLockService {
             throw new InvalidSeatSelectionException("All seats must belong to the same show");
         }
         LocalDateTime now = LocalDateTime.now();
+        LocalDateTime holdExpiresAt = now.plusMinutes(LOCK_DURATION_MINUTES);
         for (Seat seat : seats) {
             if (seat.getSeatStatus() == SeatStatus.LOCKED) {
-                if (seat.getLockExpiresAt() != null && seat.getLockExpiresAt().isAfter(now)) {
+                if (isLockExpired(seat, now)) {
+                    clearLock(seat);
+                } else if (userId.equals(seat.getLockedByUserId())) {
+                    seat.setLockedAt(now);
+                    seat.setLockExpiresAt(holdExpiresAt);
+                    continue;
+                } else {
                     throw new SeatLockedException(
                             String.format("Seat %s (%s) is currently locked by another user", seat.getSeatCode(), seat.getId()));
-                } else {
-                    seat.setSeatStatus(SeatStatus.AVAILABLE);
-                    seat.setLockedAt(null);
-                    seat.setLockExpiresAt(null);
                 }
             }
             if (seat.getSeatStatus() == SeatStatus.BOOKED) {
                 throw new SeatAlreadyBookedException(
                         String.format("Seat %s (%s) is already booked", seat.getSeatCode(), seat.getId()));
+            }
+            if (seat.getSeatStatus() == SeatStatus.RESERVED) {
+                throw new SeatAlreadyBookedException(
+                        String.format("Seat %s (%s) is already reserved", seat.getSeatCode(), seat.getId()));
             }
             if (seat.getSeatStatus() != SeatStatus.AVAILABLE) {
                 throw new InvalidSeatSelectionException(
@@ -63,25 +75,43 @@ public class SeatLockServiceImpl implements SeatLockService {
             }
             seat.setSeatStatus(SeatStatus.LOCKED);
             seat.setLockedAt(now);
-            seat.setLockExpiresAt(now.plusMinutes(LOCK_DURATION_MINUTES));
+            seat.setLockExpiresAt(holdExpiresAt);
+            seat.setLockedByUserId(userId);
         }
         seatRepository.saveAll(seats);
+        return new SeatHoldResponse("Seats held successfully", showId, seats.size(), holdExpiresAt);
     }
 
     @Override
     public void releaseSeatLocks(List<Long> seatIds) {
         if (seatIds == null || seatIds.isEmpty()) return;
         List<Seat> seats = seatRepository.findByIdsWithLock(seatIds);
-        LocalDateTime now = LocalDateTime.now();
         for (Seat seat : seats) {
             if (seat.getSeatStatus() == SeatStatus.LOCKED) {
-                if (seat.getLockExpiresAt() == null || seat.getLockExpiresAt().isAfter(now)) {
-                    seat.setSeatStatus(SeatStatus.AVAILABLE);
-                    seat.setLockedAt(null);
-                    seat.setLockExpiresAt(null);
-                }
+                clearLock(seat);
             }
         }
         seatRepository.saveAll(seats);
+    }
+
+    @Override
+    public int releaseExpiredSeatLocks() {
+        List<Seat> seats = seatRepository.findExpiredLockedSeats(LocalDateTime.now());
+        for (Seat seat : seats) {
+            clearLock(seat);
+        }
+        seatRepository.saveAll(seats);
+        return seats.size();
+    }
+
+    private boolean isLockExpired(Seat seat, LocalDateTime now) {
+        return seat.getLockExpiresAt() == null || !seat.getLockExpiresAt().isAfter(now);
+    }
+
+    private void clearLock(Seat seat) {
+        seat.setSeatStatus(SeatStatus.AVAILABLE);
+        seat.setLockedAt(null);
+        seat.setLockExpiresAt(null);
+        seat.setLockedByUserId(null);
     }
 }

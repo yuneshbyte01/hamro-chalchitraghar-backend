@@ -15,8 +15,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.chalchitraghar.modules.bookings.dto.request.BookingRequest;
 import com.chalchitraghar.modules.bookings.dto.response.BookingResponse;
-import com.chalchitraghar.modules.bookings.dto.request.BookingValidationRequest;
-import com.chalchitraghar.modules.bookings.dto.response.BookingValidationResponse;
+import com.chalchitraghar.modules.bookings.dto.request.SeatHoldRequest;
+import com.chalchitraghar.modules.bookings.dto.response.SeatHoldResponse;
 import com.chalchitraghar.modules.users.entity.User;
 import com.chalchitraghar.modules.bookings.service.BookingService;
 import com.chalchitraghar.modules.seats.service.SeatLockService;
@@ -35,16 +35,10 @@ public class BookingController {
     private final SeatLockService seatLockService;
     private final BookingService bookingService;
 
-    @PostMapping("/validate")
-    public ResponseEntity<BookingValidationResponse> validateAndLockSeats(
-            @Valid @RequestBody BookingValidationRequest request) {
+    @PostMapping("/hold")
+    public ResponseEntity<SeatHoldResponse> holdSeats(@Valid @RequestBody SeatHoldRequest request) {
         User currentUser = getCurrentUser();
-        seatLockService.validateAndLockSeats(request.getShowId(), request.getSeatIds(), currentUser.getId());
-        BookingValidationResponse response = new BookingValidationResponse(
-                "Seats validated and locked successfully",
-                request.getShowId(),
-                request.getSeatIds().size()
-        );
+        SeatHoldResponse response = seatLockService.holdSeats(request.getShowId(), request.getSeatIds(), currentUser.getId());
         return ResponseEntity.ok(response);
     }
 

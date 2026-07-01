@@ -21,6 +21,16 @@ public interface BookingSeatRepository extends JpaRepository<BookingSeat, Long> 
      */
     @Query("SELECT bs FROM BookingSeat bs WHERE bs.seat.id IN :seatIds")
     List<BookingSeat> findBySeatIds(@Param("seatIds") List<Long> seatIds);
+
+    /**
+     * Finds BookingSeat records for bookings that still hold a seat claim.
+     *
+     * @param seatIds list of seat IDs to check
+     * @return list of active BookingSeat records
+     */
+    @Query("SELECT bs FROM BookingSeat bs WHERE bs.seat.id IN :seatIds " +
+           "AND bs.booking.status NOT IN ('CANCELLED', 'EXPIRED')")
+    List<BookingSeat> findActiveBookingsBySeatIds(@Param("seatIds") List<Long> seatIds);
     
     /**
      * Finds all BookingSeat records for a specific booking.
