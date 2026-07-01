@@ -1,9 +1,11 @@
 package com.chalchitraghar.shared.security;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Date;
 
 import javax.crypto.SecretKey;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import com.chalchitraghar.modules.users.entity.User;
@@ -23,12 +25,19 @@ public class JwtUtil {
      * Secret key for signing and verifying JWT tokens.
      * Must be at least 256 bits for HS256 algorithm.
      */
-    private final String secret = "4Qnni8zBXDBnVf9hOQpF5n1t8Oe9Lw1qEqnbiLdR5m4VxXXlYX09c18ZHq4JihAs";
+    private final String secret;
 
     /**
-     * Token expiration time in milliseconds (1 hour).
+     * Token expiration time in milliseconds.
      */
-    private final long EXPIRATION_MS = 3600000;
+    private final long expirationMs;
+
+    public JwtUtil(
+            @Value("${jwt.secret}") String secret,
+            @Value("${jwt.expiration-ms}") long expirationMs) {
+        this.secret = secret;
+        this.expirationMs = expirationMs;
+    }
 
     /**
      * Generates a signing key from the secret string.
@@ -36,7 +45,7 @@ public class JwtUtil {
      * @return the secret key for JWT operations
      */
     private SecretKey getSigningKey() {
-        return Keys.hmacShaKeyFor(secret.getBytes());
+        return Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
     }
 
     /**
@@ -49,7 +58,7 @@ public class JwtUtil {
         return Jwts.builder()
                 .setSubject(user.getEmail())
                 .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION_MS))
+                .setExpiration(new Date(System.currentTimeMillis() + expirationMs))
                 .claim("role", user.getRole().name())
                 .signWith(getSigningKey(), SignatureAlgorithm.HS256)    
                 .compact();
