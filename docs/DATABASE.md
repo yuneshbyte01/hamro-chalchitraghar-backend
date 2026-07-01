@@ -1,60 +1,34 @@
-# Database Documentation
+# Database
 
-## Database Engine
+Hamro Chalchitraghar Backend uses PostgreSQL in development and production. The schema is managed by Flyway SQL migrations in `src/main/resources/db/migration`.
 
-The V2 backend uses PostgreSQL through Spring Data JPA and Hibernate.
+Hibernate is configured with `ddl-auto: validate`, so the application validates the schema at startup instead of generating it.
 
-Schema management:
+## Database Overview
 
-- Flyway owns schema creation and migration.
-- Hibernate is configured with `ddl-auto: validate`, not `update`.
-- Application startup fails if entities and the database schema do not match.
+| Item | Implementation |
+| --- | --- |
+| Database engine | PostgreSQL |
+| Local Docker version | PostgreSQL 16 |
+| ORM | Spring Data JPA / Hibernate |
+| Migration tool | Flyway |
+| Migration location | `classpath:db/migration` |
+| Primary key strategy | `BIGSERIAL` database identity columns |
+| Shared audit fields | `created_at`, `updated_at` on all entities |
 
-Migration files live under:
-
-```text
-src/main/resources/db/migration
-```
-
-Current migrations:
-
-```text
-V1__create_users_table.sql
-V2__create_movies_table.sql
-V3__create_halls_table.sql
-V4__create_seat_templates_table.sql
-V5__create_shows_table.sql
-V6__create_seats_table.sql
-V7__create_bookings_table.sql
-V8__create_booking_seats_table.sql
-V9__add_seat_lock_owner.sql
-```
-
-## Configuration
-
-Base configuration in `application.yaml`:
-
-```yaml
-spring:
-  datasource:
-    driver-class-name: org.postgresql.Driver
-  jpa:
-    database-platform: org.hibernate.dialect.PostgreSQLDialect
-    hibernate:
-      ddl-auto: validate
-  flyway:
-    enabled: true
-    locations: classpath:db/migration
-```
-
-Development database values come from environment variables with defaults in `application-dev.yaml`.
-
-Production database values are required from environment variables in `application-prod.yaml`.
-
-## Entity Relationship Overview
+## ER Diagram
 
 ```mermaid
 erDiagram
+    USERS ||--o{ BOOKINGS : creates
+    MOVIES ||--o{ SHOWS : scheduled_for
+    HALLS ||--o{ SHOWS : hosts
+    HALLS ||--o{ SEAT_TEMPLATES : defines
+    SHOWS ||--o{ SEATS : contains
+    SHOWS ||--o{ BOOKINGS : booked_for
+    BOOKINGS ||--o{ BOOKING_SEATS : includes
+    SEATS ||--o{ BOOKING_SEATS : selected_as
+
     USERS {
         bigint id PK
         timestamp created_at
@@ -71,7 +45,7 @@ erDiagram
         timestamp updated_at
         varchar title
         varchar genre
-        int duration_minutes
+        integer duration_minutes
         varchar language
         varchar description
         varchar poster_url
@@ -84,7 +58,7 @@ erDiagram
         timestamp created_at
         timestamp updated_at
         varchar name UK
-        int capacity
+        integer capacity
         varchar layout_ref
         varchar status
     }
@@ -95,10 +69,10 @@ erDiagram
         timestamp updated_at
         bigint hall_id FK
         varchar row_label
-        int seat_number
+        integer seat_number
         varchar seat_code
         varchar seat_type
-        int position_index
+        integer position_index
     }
 
     SHOWS {
@@ -118,13 +92,13 @@ erDiagram
         timestamp created_at
         timestamp updated_at
         bigint show_id FK
-        int seat_number
+        integer seat_number
         varchar row_label
         varchar seat_code
         varchar seat_type
         double price
         varchar seat_status
-        int position_index
+        integer position_index
         timestamp locked_at
         timestamp lock_expires_at
         bigint locked_by_user_id
@@ -147,200 +121,225 @@ erDiagram
         bigint booking_id FK
         bigint seat_id FK
     }
-
-    USERS ||--o{ BOOKINGS : creates
-    MOVIES ||--o{ SHOWS : has
-    HALLS ||--o{ SHOWS : hosts
-    HALLS ||--o{ SEAT_TEMPLATES : defines
-    SHOWS ||--o{ SEATS : has
-    SHOWS ||--o{ BOOKINGS : receives
-    BOOKINGS ||--o{ BOOKING_SEATS : includes
-    SEATS ||--o{ BOOKING_SEATS : selected
 ```
 
 ## Tables
 
 ### `users`
 
-Purpose: application users and authentication data.
+Stores authentication and authorization accounts.
 
-Important columns:
-
-- `email`: unique.
-- `password`: BCrypt hash.
-- `role`: `CUSTOMER`, `STAFF`, or `ADMIN`.
-
-Constraints:
-
-- Primary key: `id`
-- Unique: `uk_users_email`
+| Column | Type | Nullable | Constraints | Entity field |
+| --- | --- | --- | --- | --- |
+| `id` | `BIGSERIAL` | No | Primary key | `id` |
+| `created_at` | `TIMESTAMP` | No | Set by `GenericEntity` | `createdAt` |
+| `updated_at` | `TIMESTAMP` | No | Set by `GenericEntity` | `updatedAt` |
+| `name` | `VARCHAR(255)` | No | Not blank validation | `name` |
+| `email` | `VARCHAR(255)` | No | Unique `uk_users_email`, email validation | `email` |
+| `password` | `VARCHAR(255)` | No | BCrypt hash stored | `password` |
+| `role` | `VARCHAR(255)` | No | Enum string: `CUSTOMER`, `STAFF`, `ADMIN` | `role` |
 
 ### `movies`
 
-Purpose: movie catalog.
+Stores movie catalog metadata.
 
-Important columns:
-
-- `status`: `UPCOMING`, `NOW_SHOWING`, or `ENDED`.
-- `release_date`: required.
-
-Notes:
-
-- Delete operations soft-delete by setting movie status to `ENDED`.
-- The database does not currently enforce unique title/release date.
+| Column | Type | Nullable | Constraints | Entity field |
+| --- | --- | --- | --- | --- |
+| `id` | `BIGSERIAL` | No | Primary key | `id` |
+| `created_at` | `TIMESTAMP` | No | Audit field | `createdAt` |
+| `updated_at` | `TIMESTAMP` | No | Audit field | `updatedAt` |
+| `title` | `VARCHAR(255)` | No | Not blank validation | `title` |
+| `genre` | `VARCHAR(255)` | No | Not blank validation | `genre` |
+| `duration_minutes` | `INTEGER` | No | Positive-or-zero validation | `durationMinutes` |
+| `language` | `VARCHAR(255)` | No | Not blank validation | `language` |
+| `description` | `VARCHAR(255)` | No | Not blank validation | `description` |
+| `poster_url` | `VARCHAR(255)` | No | Not blank validation | `posterUrl` |
+| `release_date` | `DATE` | No | Not null validation | `releaseDate` |
+| `status` | `VARCHAR(255)` | No | Enum string: `UPCOMING`, `NOW_SHOWING`, `ENDED` | `status` |
 
 ### `halls`
 
-Purpose: cinema hall metadata.
+Stores cinema halls.
 
-Important columns:
-
-- `name`: unique.
-- `capacity`: required.
-- `layout_ref`: required.
-- `status`: `ACTIVE` or `INACTIVE`.
-
-Constraints and indexes:
-
-- Unique: `uk_halls_name`
-- Index: `idx_hall_name`
-- Index: `idx_hall_status`
-
-Notes:
-
-- Delete operations soft-delete by setting hall status to `INACTIVE`.
+| Column | Type | Nullable | Constraints | Entity field |
+| --- | --- | --- | --- | --- |
+| `id` | `BIGSERIAL` | No | Primary key | `id` |
+| `created_at` | `TIMESTAMP` | No | Audit field | `createdAt` |
+| `updated_at` | `TIMESTAMP` | No | Audit field | `updatedAt` |
+| `name` | `VARCHAR(255)` | No | Unique `uk_halls_name`, indexed by `idx_hall_name` | `name` |
+| `capacity` | `INTEGER` | No | Positive-or-zero validation | `capacity` |
+| `layout_ref` | `VARCHAR(255)` | No | Not blank validation | `layoutRef` |
+| `status` | `VARCHAR(255)` | No | Enum string: `ACTIVE`, `INACTIVE`; indexed by `idx_hall_status` | `status` |
 
 ### `seat_templates`
 
-Purpose: reusable hall-level seat layout.
+Stores reusable hall seat layouts. A show uses these templates to generate concrete `seats`.
 
-Important columns:
+| Column | Type | Nullable | Constraints | Entity field |
+| --- | --- | --- | --- | --- |
+| `id` | `BIGSERIAL` | No | Primary key | `id` |
+| `created_at` | `TIMESTAMP` | No | Audit field | `createdAt` |
+| `updated_at` | `TIMESTAMP` | No | Audit field | `updatedAt` |
+| `hall_id` | `BIGINT` | No | FK to `halls.id` | `hall` |
+| `row_label` | `VARCHAR(255)` | No | Not blank validation | `rowLabel` |
+| `seat_number` | `INTEGER` | No | Positive validation | `seatNumber` |
+| `seat_code` | `VARCHAR(255)` | No | Generated from row label and seat number | `seatCode` |
+| `seat_type` | `VARCHAR(255)` | No | Enum string: `PREMIUM`, `PLATINUM` | `seatType` |
+| `position_index` | `INTEGER` | No | Used for display ordering | `positionIndex` |
 
-- `hall_id`: foreign key to `halls.id`.
-- `row_label`, `seat_number`, `seat_code`, `seat_type`, `position_index`.
+The current seat layout generator creates 188 templates per hall:
 
-Foreign keys:
-
-- `fk_seat_templates_hall`
-
-Generated layout:
-
-- Row A, seats 1-8, type `PREMIUM`.
-- Rows B-J, seats 1-20, type `PLATINUM`.
-- Total generated templates per hall: 188.
+| Rows | Count | Type |
+| --- | --- | --- |
+| `A1` to `A8` | 8 | `PREMIUM` |
+| `B1` to `J20` | 180 | `PLATINUM` |
 
 ### `shows`
 
-Purpose: scheduled movie screenings.
+Stores scheduled screenings.
 
-Important columns:
+| Column | Type | Nullable | Constraints | Entity field |
+| --- | --- | --- | --- | --- |
+| `id` | `BIGSERIAL` | No | Primary key | `id` |
+| `created_at` | `TIMESTAMP` | No | Audit field | `createdAt` |
+| `updated_at` | `TIMESTAMP` | No | Audit field | `updatedAt` |
+| `movie_id` | `BIGINT` | No | FK to `movies.id` | `movie` |
+| `hall_id` | `BIGINT` | No | FK to `halls.id` | `hall` |
+| `status` | `VARCHAR(255)` | No | Enum string: `SCHEDULED`, `RUNNING`, `COMPLETED`, `CANCELLED` | `status` |
+| `show_date` | `DATE` | No | Must be a future date in request DTO | `showDate` |
+| `show_time` | `TIME` | No | Start time | `showTime` |
+| `end_time` | `TIME` | No | End time | `endTime` |
 
-- `movie_id`: foreign key to `movies.id`.
-- `hall_id`: foreign key to `halls.id`.
-- `status`: `SCHEDULED`, `RUNNING`, `COMPLETED`, or `CANCELLED`.
-- `show_date`, `show_time`, `end_time`: required.
-
-Foreign keys:
-
-- `fk_shows_movie`
-- `fk_shows_hall`
-
-Service rules:
-
-- Movie must be `NOW_SHOWING`.
-- Hall must not be `INACTIVE`.
-- Show time must not overlap another non-cancelled show in the same hall on the same date.
-- Seats are generated after show creation from `seat_templates`.
+The service prevents overlapping non-cancelled shows in the same hall on the same date.
 
 ### `seats`
 
-Purpose: show-specific seats and booking state.
+Stores concrete seats for a specific show.
 
-Important columns:
+| Column | Type | Nullable | Constraints | Entity field |
+| --- | --- | --- | --- | --- |
+| `id` | `BIGSERIAL` | No | Primary key | `id` |
+| `created_at` | `TIMESTAMP` | No | Audit field | `createdAt` |
+| `updated_at` | `TIMESTAMP` | No | Audit field | `updatedAt` |
+| `show_id` | `BIGINT` | No | FK to `shows.id` | `show` |
+| `seat_number` | `INTEGER` | No | Not null validation | `seatNumber` |
+| `row_label` | `VARCHAR(255)` | No | Not null validation | `rowLabel` |
+| `seat_code` | `VARCHAR(255)` | No | Not null validation | `seatCode` |
+| `seat_type` | `VARCHAR(255)` | No | Enum string: `PREMIUM`, `PLATINUM` | `seatType` |
+| `price` | `DOUBLE PRECISION` | No | Positive validation | `price` |
+| `seat_status` | `VARCHAR(255)` | No | Enum string: `AVAILABLE`, `LOCKED`, `BOOKED`, `RESERVED`, `CANCELLED` | `seatStatus` |
+| `position_index` | `INTEGER` | No | Used for display ordering | `positionIndex` |
+| `locked_at` | `TIMESTAMP` | Yes | Set when held | `lockedAt` |
+| `lock_expires_at` | `TIMESTAMP` | Yes | Set to 10 minutes after hold | `lockExpiresAt` |
+| `locked_by_user_id` | `BIGINT` | Yes | User ID that owns active lock | `lockedByUserId` |
 
-- `show_id`: foreign key to `shows.id`.
-- `seat_status`: `AVAILABLE`, `LOCKED`, `RESERVED`, `BOOKED`, or `CANCELLED`.
-- `locked_at`: timestamp when a hold started.
-- `lock_expires_at`: timestamp when a hold expires.
-- `locked_by_user_id`: ID of the user that owns the active hold.
+Current generated prices:
 
-Foreign keys:
-
-- `fk_seats_show`
-
-Seat prices:
-
-- `PREMIUM`: 750.0
-- `PLATINUM`: 500.0
+| Seat type | Price |
+| --- | --- |
+| `PREMIUM` | `750.0` |
+| `PLATINUM` | `500.0` |
 
 ### `bookings`
 
-Purpose: booking records.
+Stores a booking record for one user and one show.
 
-Important columns:
+| Column | Type | Nullable | Constraints | Entity field |
+| --- | --- | --- | --- | --- |
+| `id` | `BIGSERIAL` | No | Primary key | `id` |
+| `created_at` | `TIMESTAMP` | No | Audit field | `createdAt` |
+| `updated_at` | `TIMESTAMP` | No | Audit field | `updatedAt` |
+| `user_id` | `BIGINT` | No | FK to `users.id` | `user` |
+| `show_id` | `BIGINT` | No | FK to `shows.id` | `show` |
+| `booking_time` | `TIMESTAMP` | No | Defaults at persist time if not set | `bookingTime` |
+| `status` | `VARCHAR(255)` | No | Enum string: `INITIATED`, `PENDING`, `CONFIRMED`, `BOOKED`, `CANCELLED`, `EXPIRED` | `status` |
 
-- `user_id`: foreign key to `users.id`.
-- `show_id`: foreign key to `shows.id`.
-- `booking_time`: created booking time.
-- `status`: `INITIATED`, `PENDING`, `CONFIRMED`, `BOOKED`, `CANCELLED`, or `EXPIRED`.
-
-Foreign keys:
-
-- `fk_bookings_user`
-- `fk_bookings_show`
-
-Current flow:
-
-- Create booking sets status to `INITIATED`.
-- Confirm booking sets status to `CONFIRMED` and seats to `BOOKED`.
-- Cancel an initiated booking sets status to `CANCELLED` and seats to `AVAILABLE`.
+The current service flow uses `INITIATED`, `CONFIRMED`, and `CANCELLED`.
 
 ### `booking_seats`
 
-Purpose: join entity between bookings and seats.
+Join table between bookings and selected seats.
 
-Important columns:
+| Column | Type | Nullable | Constraints | Entity field |
+| --- | --- | --- | --- | --- |
+| `id` | `BIGSERIAL` | No | Primary key | `id` |
+| `created_at` | `TIMESTAMP` | No | Audit field | `createdAt` |
+| `updated_at` | `TIMESTAMP` | No | Audit field | `updatedAt` |
+| `booking_id` | `BIGINT` | No | FK to `bookings.id` | `booking` |
+| `seat_id` | `BIGINT` | No | FK to `seats.id` | `seat` |
 
-- `booking_id`: foreign key to `bookings.id`.
-- `seat_id`: foreign key to `seats.id`.
+## Constraints
 
-Foreign keys:
+| Name | Table | Definition |
+| --- | --- | --- |
+| `uk_users_email` | `users` | Unique email |
+| `uk_halls_name` | `halls` | Unique hall name |
+| `fk_seat_templates_hall` | `seat_templates` | `hall_id` references `halls(id)` |
+| `fk_shows_movie` | `shows` | `movie_id` references `movies(id)` |
+| `fk_shows_hall` | `shows` | `hall_id` references `halls(id)` |
+| `fk_seats_show` | `seats` | `show_id` references `shows(id)` |
+| `fk_bookings_user` | `bookings` | `user_id` references `users(id)` |
+| `fk_bookings_show` | `bookings` | `show_id` references `shows(id)` |
+| `fk_booking_seats_booking` | `booking_seats` | `booking_id` references `bookings(id)` |
+| `fk_booking_seats_seat` | `booking_seats` | `seat_id` references `seats(id)` |
 
-- `fk_booking_seats_booking`
-- `fk_booking_seats_seat`
+## Indexes
 
-Notes:
+| Index | Table | Columns |
+| --- | --- | --- |
+| `idx_hall_name` | `halls` | `name` |
+| `idx_hall_status` | `halls` | `status` |
 
-- The database does not currently enforce a unique seat booking constraint.
-- Active duplicate bookings are prevented in service logic.
+## Relationships
 
-## Adding A Migration
+| Relationship | Type |
+| --- | --- |
+| User to bookings | One user has many bookings |
+| Movie to shows | One movie has many shows |
+| Hall to shows | One hall has many shows |
+| Hall to seat templates | One hall has many seat templates |
+| Show to seats | One show has many generated seats |
+| Show to bookings | One show has many bookings |
+| Booking to seats | Many-to-many through `booking_seats` |
 
-1. Create a new SQL file under `src/main/resources/db/migration`.
-2. Use the next version number:
+## Booking Lifecycle
 
-```text
-V10__short_description.sql
-```
+1. A show is created by admin.
+2. Seats are generated from the hall's seat templates.
+3. A customer may hold available seats, changing `seats.seat_status` to `LOCKED`.
+4. The same customer can create a booking from held or directly available seats.
+5. Booking creation sets booking status to `INITIATED`, creates `booking_seats`, and marks seats `RESERVED`.
+6. Confirmation sets booking status to `CONFIRMED` and seats to `BOOKED`.
+7. Cancellation is allowed only for `INITIATED` bookings before show time and returns seats to `AVAILABLE`.
 
-3. Make the SQL PostgreSQL-compatible.
-4. Run:
+## Seat Hold Columns
 
-```powershell
-.\mvnw.cmd clean compile
-.\mvnw.cmd test
-```
+| Column | Purpose |
+| --- | --- |
+| `seat_status` | Stores `LOCKED` while a hold is active |
+| `locked_at` | Records when the hold was created or refreshed |
+| `lock_expires_at` | Records when the 10-minute hold expires |
+| `locked_by_user_id` | Allows the owning user to convert the hold into a booking while blocking other users |
 
-5. Start the app and confirm Flyway applies the migration.
+Seat locking queries use `PESSIMISTIC_WRITE` to prevent concurrent booking updates from claiming the same seat at the same time.
 
-Do not edit an already-applied migration in a shared environment. Add a new migration instead.
+## Flyway Migration Strategy
 
-## Test Database
+| Order | Purpose |
+| --- | --- |
+| 1 | Creates users |
+| 2 | Creates movies |
+| 3 | Creates halls and hall indexes |
+| 4 | Creates reusable hall seat templates |
+| 5 | Creates shows |
+| 6 | Creates concrete show seats and hold timestamps |
+| 7 | Creates bookings |
+| 8 | Creates booking-seat join table |
+| 9 | Adds `locked_by_user_id` to seats |
 
-Integration tests use the `test` profile:
+Migration rules:
 
-- H2 in PostgreSQL compatibility mode.
-- Flyway disabled.
-- Hibernate `ddl-auto: create-drop`.
-
-This keeps tests independent from a local PostgreSQL instance while still using JPA mappings and repository behavior.
+- Add schema changes as new `V<number>__description.sql` files.
+- Do not edit migrations that have already been applied to a shared database.
+- Keep entity mappings, DTOs, repositories, and documentation in sync with migrations.
+- Run tests after adding migrations.

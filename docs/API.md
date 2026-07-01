@@ -1,62 +1,102 @@
-# API Documentation
+# API Reference
 
-## Conventions
+Base URL for local development:
 
-- Local base URL: `http://localhost:8080`
-- JSON content type: `application/json`
-- Auth header: `Authorization: Bearer <jwt>`
+```text
+http://localhost:8080
+```
 
-All non-empty success and error responses use `ApiResponse<T>`.
+Swagger UI:
 
-Success:
+```text
+http://localhost:8080/swagger-ui/index.html
+```
+
+OpenAPI JSON:
+
+```text
+http://localhost:8080/v3/api-docs
+```
+
+## Standard API Response Format
+
+Successful and error responses use `ApiResponse<T>` except endpoints that intentionally return `204 No Content`.
 
 ```json
 {
   "success": true,
-  "message": "Success message",
+  "message": "Operation completed",
   "data": {},
   "errors": []
 }
 ```
 
-Error:
+Validation error example:
 
 ```json
 {
   "success": false,
-  "message": "Error message",
+  "message": "Validation failed",
   "data": null,
-  "errors": []
+  "errors": ["email: Invalid email address"]
 }
 ```
 
-Validation errors use `message: "Validation failed"` and field-specific messages in `errors`.
+## Authentication and Roles
 
-Delete endpoints that currently return `204 No Content` do not include a response body.
+JWT tokens are sent as bearer tokens:
 
-## Endpoint Groups
+```http
+Authorization: Bearer <token>
+```
 
-- `/api/auth/**`: public authentication endpoints.
-- `/api/public/**`: public browsing and health endpoints.
-- `/api/customer/**`: authenticated customer endpoints. `CUSTOMER`, `STAFF`, and `ADMIN` roles can pass security for this group.
-- `/api/staff/**`: staff endpoints. `STAFF` and `ADMIN` roles only.
-- `/api/admin/**`: admin management endpoints. `ADMIN` role only.
+| Route prefix | Authentication |
+| --- | --- |
+| `/api/auth/**` | Public |
+| `/api/public/**` | Public |
+| `/api/customer/**` | CUSTOMER, STAFF, ADMIN |
+| `/api/staff/**` | STAFF, ADMIN |
+| `/api/admin/**` | ADMIN |
 
-## Auth
+## Common Error Responses
 
-### POST `/api/auth/register`
+| Status | Typical message | Cause |
+| --- | --- | --- |
+| `400` | `Validation failed` | Bean Validation failure |
+| `400` | `The request body is invalid or cannot be parsed` | Malformed JSON |
+| `401` | `Authentication required` | Missing token on protected endpoint |
+| `401` | `Invalid token` or `Token expired` | JWT validation failure |
+| `403` | `Access denied` | Authenticated role is not allowed |
+| `404` | `<Resource> not found with id: <id>` | Missing entity |
+| `409` | Conflict-specific message | Seat conflict, hall conflict, or data integrity conflict |
+| `500` | `An unexpected error occurred while processing your request` | Unhandled server error |
 
-Auth: public
+## Auth Endpoints
+
+### `POST /api/auth/register`
+
+| Field | Value |
+| --- | --- |
+| Authentication | Public |
+| Description | Registers a new customer account. Passwords are stored as BCrypt hashes. |
 
 Request:
 
 ```json
 {
-  "name": "John Doe",
-  "email": "john@example.com",
-  "password": "password123"
+  "name": "Aarav Sharma",
+  "email": "aarav@example.com",
+  "password": "StrongPass123"
 }
 ```
+
+Validation:
+
+| Field | Rules |
+| --- | --- |
+| `name` | Required, not blank |
+| `email` | Required, valid email, unique |
+| `password` | Required, at least 8 characters |
 
 Response `201`:
 
@@ -66,29 +106,36 @@ Response `201`:
   "message": "User registered successfully",
   "data": {
     "message": "User registered successfully",
-    "email": "john@example.com"
+    "email": "aarav@example.com"
   },
   "errors": []
 }
 ```
 
-Notes:
+Errors: `400` validation or duplicate email.
 
-- Registration creates `CUSTOMER` users.
-- Passwords are stored as BCrypt hashes.
+### `POST /api/auth/login`
 
-### POST `/api/auth/login`
-
-Auth: public
+| Field | Value |
+| --- | --- |
+| Authentication | Public |
+| Description | Authenticates credentials and returns a JWT containing email and role claims. |
 
 Request:
 
 ```json
 {
-  "email": "john@example.com",
-  "password": "password123"
+  "email": "aarav@example.com",
+  "password": "StrongPass123"
 }
 ```
+
+Validation:
+
+| Field | Rules |
+| --- | --- |
+| `email` | Required, valid email |
+| `password` | Required |
 
 Response `200`:
 
@@ -97,42 +144,66 @@ Response `200`:
   "success": true,
   "message": "Login successful",
   "data": {
-    "token": "<jwt>",
-    "email": "john@example.com",
-    "name": "John Doe",
+    "token": "eyJhbGciOiJIUzI1NiJ9...",
+    "email": "aarav@example.com",
+    "name": "Aarav Sharma",
     "role": "CUSTOMER"
   },
   "errors": []
 }
 ```
 
-Errors:
+Errors: `401` invalid credentials.
 
-- `401`: invalid credentials.
+### `POST /api/auth/refresh`
 
-### POST `/api/auth/refresh`
-
-Auth: public
+| Field | Value |
+| --- | --- |
+| Authentication | Public |
+| Description | Validates an existing JWT and returns a new token. |
 
 Request:
 
 ```json
 {
-  "token": "<current-jwt>"
+  "token": "eyJhbGciOiJIUzI1NiJ9..."
 }
 ```
 
-Response `200`: same `data` shape as login with a new token.
+Validation:
 
-Errors:
+| Field | Rules |
+| --- | --- |
+| `token` | Required, not blank |
 
-- `401`: invalid or expired token.
+Response `200`:
 
-## Health
+```json
+{
+  "success": true,
+  "message": "Token refreshed successfully",
+  "data": {
+    "token": "eyJhbGciOiJIUzI1NiJ9...",
+    "email": "aarav@example.com",
+    "name": "Aarav Sharma",
+    "role": "CUSTOMER"
+  },
+  "errors": []
+}
+```
 
-### GET `/api/public/health`
+Errors: `401` invalid or expired token.
 
-Auth: public
+## Public Endpoints
+
+### `GET /api/public/health`
+
+| Field | Value |
+| --- | --- |
+| Authentication | Public |
+| Description | Health check endpoint. |
+| Request body | None |
+| Validation | None |
 
 Response `200`:
 
@@ -140,102 +211,244 @@ Response `200`:
 {
   "success": true,
   "message": "Health check successful",
-  "data": {
-    "status": "UP"
-  },
+  "data": { "status": "UP" },
   "errors": []
 }
 ```
 
-## Public Movies
+### `GET /api/public/movies`
 
-Movie response inside `data`:
+| Field | Value |
+| --- | --- |
+| Authentication | Public |
+| Description | Lists all movies. |
+| Request body | None |
+| Validation | None |
 
-```json
-{
-  "id": 1,
-  "title": "Movie Title",
-  "genre": "Action",
-  "durationMinutes": 120,
-  "language": "Nepali",
-  "description": "Description",
-  "posterUrl": "https://example.com/poster.jpg",
-  "releaseDate": "2026-07-10",
-  "status": "NOW_SHOWING",
-  "createdAt": "2026-06-30T10:00:00",
-  "updatedAt": "2026-06-30T10:00:00"
-}
-```
-
-- `GET /api/public/movies`: all movies.
-- `GET /api/public/movies/{id}`: movie by ID.
-- `GET /api/public/movies/now-showing`: movies with status `NOW_SHOWING`.
-- `GET /api/public/movies/upcoming`: movies with status `UPCOMING`.
-
-## Public Halls
-
-Hall response inside `data`:
+Response `200`:
 
 ```json
 {
-  "id": 1,
-  "name": "Hall A",
-  "capacity": 188,
-  "layoutRef": "standard",
-  "status": "ACTIVE",
-  "createdAt": "2026-06-30T10:00:00",
-  "updatedAt": "2026-06-30T10:00:00"
+  "success": true,
+  "message": "Movies fetched successfully",
+  "data": [
+    {
+      "id": 1,
+      "title": "Jatra",
+      "genre": "Comedy",
+      "durationMinutes": 125,
+      "language": "Nepali",
+      "description": "A Nepali comedy movie.",
+      "posterUrl": "https://example.com/posters/jatra.jpg",
+      "releaseDate": "2026-08-15",
+      "status": "NOW_SHOWING",
+      "createdAt": "2026-07-01T10:00:00",
+      "updatedAt": "2026-07-01T10:00:00"
+    }
+  ],
+  "errors": []
 }
 ```
 
-- `GET /api/public/halls`: all halls.
-- `GET /api/public/halls/{id}`: hall by ID.
-- `GET /api/public/halls/active`: active halls.
+### `GET /api/public/movies/{id}`
 
-## Public Shows
+| Field | Value |
+| --- | --- |
+| Authentication | Public |
+| Description | Fetches one movie by ID. |
+| Request body | None |
+| Validation | `id` must be numeric |
 
-Show response inside `data`:
+Response `200`: `MovieResponse` in the standard wrapper.
+
+Errors: `400` invalid ID type, `404` movie not found.
+
+### `GET /api/public/movies/now-showing`
+
+| Field | Value |
+| --- | --- |
+| Authentication | Public |
+| Description | Lists movies where `status` is `NOW_SHOWING`, ordered by release date ascending. |
+| Request body | None |
+| Validation | None |
+
+Response `200`: list of `MovieResponse`.
+
+### `GET /api/public/movies/upcoming`
+
+| Field | Value |
+| --- | --- |
+| Authentication | Public |
+| Description | Lists movies where `status` is `UPCOMING`, ordered by release date ascending. |
+| Request body | None |
+| Validation | None |
+
+Response `200`: list of `MovieResponse`.
+
+### `GET /api/public/halls`
+
+| Field | Value |
+| --- | --- |
+| Authentication | Public |
+| Description | Lists all halls. |
+| Request body | None |
+| Validation | None |
+
+Response `200`:
 
 ```json
 {
-  "id": 1,
-  "movie": { "...": "MovieResponse" },
-  "hall": { "...": "HallResponse" },
-  "status": "SCHEDULED",
-  "showDate": "2026-07-20",
-  "showTime": "14:00:00",
-  "endTime": "16:30:00",
-  "createdAt": "2026-06-30T10:00:00",
-  "updatedAt": "2026-06-30T10:00:00"
+  "success": true,
+  "message": "Halls fetched successfully",
+  "data": [
+    {
+      "id": 1,
+      "name": "Hall A",
+      "capacity": 188,
+      "layoutRef": "standard",
+      "status": "ACTIVE",
+      "createdAt": "2026-07-01T10:00:00",
+      "updatedAt": "2026-07-01T10:00:00"
+    }
+  ],
+  "errors": []
 }
 ```
 
-- `GET /api/public/shows`: all shows.
-- `GET /api/public/shows/{id}`: show by ID.
-- `GET /api/public/shows/movie/{movieId}`: shows for a movie.
-- `GET /api/public/shows?movieId={movieId}&date={yyyy-mm-dd}`: shows for a movie and date.
-- `GET /api/public/shows/{showId}/seats`: seats for a show.
+### `GET /api/public/halls/{id}`
 
-Seat response inside `data`:
+| Field | Value |
+| --- | --- |
+| Authentication | Public |
+| Description | Fetches one hall by ID. |
+| Request body | None |
+| Validation | `id` must be numeric |
+
+Response `200`: `HallResponse`.
+
+Errors: `400` invalid ID type, `404` hall not found.
+
+### `GET /api/public/halls/active`
+
+| Field | Value |
+| --- | --- |
+| Authentication | Public |
+| Description | Lists halls where `status` is `ACTIVE`. |
+| Request body | None |
+| Validation | None |
+
+Response `200`: list of `HallResponse`.
+
+### `GET /api/public/shows`
+
+| Field | Value |
+| --- | --- |
+| Authentication | Public |
+| Description | Lists all shows. |
+| Request body | None |
+| Validation | None |
+
+Response `200`:
 
 ```json
 {
-  "id": 1,
-  "rowLabel": "A",
-  "seatNumber": 1,
-  "seatCode": "A1",
-  "seatType": "PREMIUM",
-  "price": 750.0,
-  "positionIndex": 0,
-  "seatStatus": "AVAILABLE"
+  "success": true,
+  "message": "Shows fetched successfully",
+  "data": [
+    {
+      "id": 1,
+      "movie": { "id": 1, "title": "Jatra", "status": "NOW_SHOWING" },
+      "hall": { "id": 1, "name": "Hall A", "status": "ACTIVE" },
+      "status": "SCHEDULED",
+      "showDate": "2026-08-20",
+      "showTime": "18:30:00",
+      "endTime": "21:00:00",
+      "createdAt": "2026-07-01T10:00:00",
+      "updatedAt": "2026-07-01T10:00:00"
+    }
+  ],
+  "errors": []
 }
 ```
 
-## Customer Profile
+### `GET /api/public/shows/{id}`
 
-### GET `/api/customer/profile`
+| Field | Value |
+| --- | --- |
+| Authentication | Public |
+| Description | Fetches one active public show by ID. Cancelled, completed, or non-now-showing movie shows are treated as not found. |
+| Request body | None |
+| Validation | `id` must be numeric |
 
-Auth: authenticated user
+Response `200`: `ShowResponse`.
+
+Errors: `400` invalid ID type, `404` show not found.
+
+### `GET /api/public/shows/movie/{movieId}`
+
+| Field | Value |
+| --- | --- |
+| Authentication | Public |
+| Description | Lists shows for a movie ID. |
+| Request body | None |
+| Validation | `movieId` must be numeric |
+
+Response `200`: list of `ShowResponse`.
+
+### `GET /api/public/shows?movieId={movieId}&date={date}`
+
+| Field | Value |
+| --- | --- |
+| Authentication | Public |
+| Description | Lists non-cancelled, non-completed shows for a now-showing movie on a date. |
+| Request body | None |
+| Validation | `movieId` numeric, `date` parseable as `yyyy-MM-dd` |
+
+Response `200`: list of `ShowResponse`.
+
+Errors: `400` missing or invalid query parameters.
+
+### `GET /api/public/shows/{showId}/seats`
+
+| Field | Value |
+| --- | --- |
+| Authentication | Public |
+| Description | Lists all seats for a show ordered by `positionIndex`. |
+| Request body | None |
+| Validation | `showId` must be numeric |
+
+Response `200`:
+
+```json
+{
+  "success": true,
+  "message": "Seats fetched successfully",
+  "data": [
+    {
+      "id": 10,
+      "rowLabel": "A",
+      "seatNumber": 1,
+      "seatCode": "A1",
+      "seatType": "PREMIUM",
+      "price": 750.0,
+      "positionIndex": 0,
+      "seatStatus": "AVAILABLE"
+    }
+  ],
+  "errors": []
+}
+```
+
+## Customer Endpoints
+
+### `GET /api/customer/profile`
+
+| Field | Value |
+| --- | --- |
+| Authentication | CUSTOMER, STAFF, ADMIN |
+| Description | Returns the current authenticated user profile. |
+| Request body | None |
+| Validation | Valid bearer token |
 
 Response `200`:
 
@@ -245,30 +458,38 @@ Response `200`:
   "message": "Profile fetched successfully",
   "data": {
     "id": 1,
-    "name": "John Doe",
-    "email": "john@example.com",
+    "name": "Aarav Sharma",
+    "email": "aarav@example.com",
     "role": "CUSTOMER"
   },
   "errors": []
 }
 ```
 
-## Customer Bookings
+Errors: `401` missing or invalid token.
 
-All customer booking endpoints are under `/api/customer/bookings`.
+### `POST /api/customer/bookings/hold`
 
-### POST `/api/customer/bookings/hold`
-
-Holds seats for the current user for 10 minutes.
+| Field | Value |
+| --- | --- |
+| Authentication | CUSTOMER, STAFF, ADMIN |
+| Description | Holds available seats for the current user for 10 minutes. |
 
 Request:
 
 ```json
 {
   "showId": 1,
-  "seatIds": [1, 2]
+  "seatIds": [10, 11]
 }
 ```
+
+Validation:
+
+| Field | Rules |
+| --- | --- |
+| `showId` | Required |
+| `seatIds` | Required, non-empty, no duplicates |
 
 Response `200`:
 
@@ -280,33 +501,36 @@ Response `200`:
     "message": "Seats held successfully",
     "showId": 1,
     "heldSeatCount": 2,
-    "holdExpiresAt": "2026-07-01T12:10:00"
+    "holdExpiresAt": "2026-07-01T18:40:00"
   },
   "errors": []
 }
 ```
 
-Rules:
+Errors: `400` invalid selection, `401` unauthenticated, `409` locked/booked/reserved seat.
 
-- Seat IDs must not contain duplicates.
-- Seats must belong to the show.
-- Available seats become `LOCKED`.
-- A user can refresh their own active lock.
-- Another user cannot hold or book seats locked by someone else.
-- Expired locks are cleared before reuse.
+### `POST /api/customer/bookings`
 
-### POST `/api/customer/bookings`
-
-Creates an `INITIATED` booking from available seats or seats held by the current user.
+| Field | Value |
+| --- | --- |
+| Authentication | CUSTOMER, STAFF, ADMIN |
+| Description | Creates an `INITIATED` booking from available seats or seats held by the current user. Seats become `RESERVED`. |
 
 Request:
 
 ```json
 {
   "showId": 1,
-  "seatIds": [1, 2]
+  "seatIds": [10, 11]
 }
 ```
+
+Validation:
+
+| Field | Rules |
+| --- | --- |
+| `showId` | Required |
+| `seatIds` | Required, non-empty, no duplicates |
 
 Response `201`:
 
@@ -315,94 +539,213 @@ Response `201`:
   "success": true,
   "message": "Booking created successfully",
   "data": {
-    "bookingId": 10,
+    "bookingId": 5,
     "bookingStatus": "INITIATED",
     "showId": 1,
-    "movieName": "Movie Title",
+    "movieName": "Jatra",
     "hallName": "Hall A",
-    "showDateTime": "2026-07-20T14:00:00",
-    "startTime": "14:00",
-    "endTime": "16:30",
-    "selectedSeats": [{ "...": "SeatResponse" }],
-    "totalPrice": 1500.0,
-    "bookingTime": "2026-07-01T12:00:00"
+    "showDateTime": "2026-08-20T18:30:00",
+    "startTime": "18:30",
+    "endTime": "21:00",
+    "selectedSeats": [],
+    "totalPrice": 1250.0,
+    "bookingTime": "2026-07-01T18:30:00"
   },
   "errors": []
 }
 ```
 
-### POST `/api/customer/bookings/{bookingId}/confirm`
+Errors: `400` duplicate seat IDs, `404` show or seats not found, `409` active booking, locked seat, booked seat, or reserved seat.
 
-Confirms an `INITIATED` booking owned by the current user.
+### `POST /api/customer/bookings/{bookingId}/confirm`
 
-Response `200`: booking response with `bookingStatus` set to `CONFIRMED`; selected seats become `BOOKED`.
+| Field | Value |
+| --- | --- |
+| Authentication | CUSTOMER, STAFF, ADMIN |
+| Description | Confirms an `INITIATED` booking owned by the current user and marks seats `BOOKED`. |
+| Request body | None |
+| Validation | `bookingId` numeric, booking belongs to current user, booking status is `INITIATED` |
 
-### GET `/api/customer/bookings/my`
+Response `200`: `BookingResponse` with `bookingStatus` as `CONFIRMED`.
 
-Response `200`: current user's bookings ordered by booking time descending.
+Errors: `400` invalid booking state, `403` booking does not belong to user, `404` booking not found, `409` seats already confirmed elsewhere.
 
-### GET `/api/customer/bookings/{bookingId}`
+### `GET /api/customer/bookings/my`
 
-Response `200`: booking response.
+| Field | Value |
+| --- | --- |
+| Authentication | CUSTOMER, STAFF, ADMIN |
+| Description | Lists bookings for the current user ordered by booking time descending. |
+| Request body | None |
+| Validation | Valid bearer token |
 
-Access rules:
+Response `200`: list of `BookingResponse`.
 
-- Customers can view their own bookings.
-- Service logic allows `STAFF` and `ADMIN` to view any booking.
+### `GET /api/customer/bookings/{bookingId}`
 
-### POST `/api/customer/bookings/{bookingId}/cancel`
+| Field | Value |
+| --- | --- |
+| Authentication | CUSTOMER, STAFF, ADMIN |
+| Description | Fetches one booking. Customers can access only their own bookings; staff and admins can access any booking through the same service rule. |
+| Request body | None |
+| Validation | `bookingId` numeric |
 
-Cancels an `INITIATED` booking owned by the current user.
+Response `200`: `BookingResponse`.
 
-Response `200`: booking response with `bookingStatus` set to `CANCELLED`; selected seats become `AVAILABLE`.
+Errors: `403` booking not accessible, `404` booking not found.
 
-Rules:
+### `POST /api/customer/bookings/{bookingId}/cancel`
 
-- Only `INITIATED` bookings can be cancelled.
-- The show time must still be in the future.
+| Field | Value |
+| --- | --- |
+| Authentication | CUSTOMER, STAFF, ADMIN |
+| Description | Cancels an `INITIATED` booking owned by the current user before show time and releases seats to `AVAILABLE`. |
+| Request body | None |
+| Validation | `bookingId` numeric, owner only, status must be `INITIATED`, show time must not have passed |
 
-## Staff Bookings
+Response `200`: `BookingResponse` with `bookingStatus` as `CANCELLED`.
 
-Implemented staff endpoint:
+Errors: `400` invalid booking state or show already started, `403` owner mismatch, `404` booking not found.
 
-- `GET /api/staff/bookings/{bookingId}`: returns a booking by ID for `STAFF` and `ADMIN`.
+## Staff Endpoints
 
-Planned but not implemented:
+### `GET /api/staff/bookings/{bookingId}`
 
-- Staff check-in endpoint.
-- Staff booking list endpoint.
-- Staff show/seat operational endpoints.
+| Field | Value |
+| --- | --- |
+| Authentication | STAFF, ADMIN |
+| Description | Fetches a booking by ID for staff workflows. |
+| Request body | None |
+| Validation | `bookingId` numeric |
 
-## Admin Movies
+Response `200`: `BookingResponse`.
 
-Auth: `ADMIN`
+Errors: `401` unauthenticated, `403` role not allowed, `404` booking not found.
 
-Movie request:
+## Admin Endpoints
+
+### Movies
+
+#### `GET /api/admin/movies`
+
+| Field | Value |
+| --- | --- |
+| Authentication | ADMIN |
+| Description | Lists all movies for admin. |
+| Request body | None |
+| Validation | ADMIN token |
+
+Response `200`: list of `MovieResponse`.
+
+#### `GET /api/admin/movies/{id}`
+
+| Field | Value |
+| --- | --- |
+| Authentication | ADMIN |
+| Description | Fetches one movie by ID for admin. |
+| Request body | None |
+| Validation | `id` numeric |
+
+Response `200`: `MovieResponse`.
+
+Errors: `404` movie not found.
+
+#### `POST /api/admin/movies`
+
+| Field | Value |
+| --- | --- |
+| Authentication | ADMIN |
+| Description | Creates a movie. |
+
+Request:
 
 ```json
 {
-  "title": "Movie Title",
-  "genre": "Action",
-  "durationMinutes": 120,
+  "title": "Jatra",
+  "genre": "Comedy",
+  "durationMinutes": 125,
   "language": "Nepali",
-  "description": "Description",
-  "posterUrl": "https://example.com/poster.jpg",
-  "releaseDate": "2026-07-10",
+  "description": "A Nepali comedy movie about an unexpected chain of events.",
+  "posterUrl": "https://example.com/posters/jatra.jpg",
+  "releaseDate": "2026-08-15",
   "status": "NOW_SHOWING"
 }
 ```
 
-- `GET /api/admin/movies`: all movies.
-- `GET /api/admin/movies/{id}`: movie by ID.
-- `POST /api/admin/movies`: `201`, creates a movie.
-- `PUT /api/admin/movies/{id}`: updates a movie.
-- `DELETE /api/admin/movies/{id}`: `204`, soft-deletes by setting status to `ENDED`.
+Validation: `title`, `genre`, `language`, `description`, and `posterUrl` are required; `durationMinutes`, `releaseDate`, and `status` are required; status must be a valid `MovieStatus`.
 
-## Admin Halls
+Response `201`: `MovieResponse`.
 
-Auth: `ADMIN`
+#### `PUT /api/admin/movies/{id}`
 
-Hall request:
+| Field | Value |
+| --- | --- |
+| Authentication | ADMIN |
+| Description | Replaces movie fields from `MovieRequest`. |
+| Validation | Same body rules as create plus numeric `id` |
+
+Response `200`: `MovieResponse`.
+
+Errors: `400` validation, `404` movie not found.
+
+#### `DELETE /api/admin/movies/{id}`
+
+| Field | Value |
+| --- | --- |
+| Authentication | ADMIN |
+| Description | Soft-deletes a movie by setting status to `ENDED`. |
+| Request body | None |
+| Validation | `id` numeric |
+
+Response `204`: empty body.
+
+Errors: `404` movie not found.
+
+### Halls
+
+#### `GET /api/admin/halls`
+
+| Field | Value |
+| --- | --- |
+| Authentication | ADMIN |
+| Description | Lists all halls for admin. |
+| Request body | None |
+| Validation | ADMIN token |
+
+Response `200`: list of `HallResponse`.
+
+#### `GET /api/admin/halls/{id}`
+
+| Field | Value |
+| --- | --- |
+| Authentication | ADMIN |
+| Description | Fetches one hall by ID for admin. |
+| Request body | None |
+| Validation | `id` numeric |
+
+Response `200`: `HallResponse`.
+
+Errors: `404` hall not found.
+
+#### `GET /api/admin/halls/active`
+
+| Field | Value |
+| --- | --- |
+| Authentication | ADMIN |
+| Description | Lists active halls. |
+| Request body | None |
+| Validation | ADMIN token |
+
+Response `200`: list of `HallResponse`.
+
+#### `POST /api/admin/halls`
+
+| Field | Value |
+| --- | --- |
+| Authentication | ADMIN |
+| Description | Creates a hall. |
+
+Request:
 
 ```json
 {
@@ -413,57 +756,194 @@ Hall request:
 }
 ```
 
-- `GET /api/admin/halls`: all halls.
-- `GET /api/admin/halls/{id}`: hall by ID.
-- `GET /api/admin/halls/active`: active halls.
-- `POST /api/admin/halls`: `201`, creates a hall.
-- `PUT /api/admin/halls/{id}`: updates a hall.
-- `DELETE /api/admin/halls/{id}`: `204`, soft-deletes by setting status to `INACTIVE`.
-- `POST /api/admin/halls/{hallId}/seat-layout`: creates 188 seat templates for the hall.
+Validation: `name`, `capacity`, `layoutRef`, and `status` are required; `name` must be unique; status must be `ACTIVE` or `INACTIVE`.
 
-## Admin Shows
+Response `201`: `HallResponse`.
 
-Auth: `ADMIN`
+Errors: `400` duplicate hall name or validation failure.
 
-Show request:
+#### `PUT /api/admin/halls/{id}`
+
+| Field | Value |
+| --- | --- |
+| Authentication | ADMIN |
+| Description | Replaces hall fields from `HallRequest`. |
+| Validation | Same body rules as create plus numeric `id` |
+
+Response `200`: `HallResponse`.
+
+Errors: `404` hall not found.
+
+#### `DELETE /api/admin/halls/{id}`
+
+| Field | Value |
+| --- | --- |
+| Authentication | ADMIN |
+| Description | Soft-deletes a hall by setting status to `INACTIVE`. |
+| Request body | None |
+| Validation | `id` numeric |
+
+Response `204`: empty body.
+
+Errors: `404` hall not found.
+
+#### `POST /api/admin/halls/{hallId}/seat-layout`
+
+| Field | Value |
+| --- | --- |
+| Authentication | ADMIN |
+| Description | Generates seat templates for the hall. The current generator creates 188 templates. |
+| Request body | None |
+| Validation | `hallId` numeric; layout must not already exist |
+
+Response `200`:
+
+```json
+{
+  "success": true,
+  "message": "Seat layout generated successfully",
+  "data": null,
+  "errors": []
+}
+```
+
+Errors: `400` layout already exists, `404` hall not found.
+
+### Shows
+
+#### `GET /api/admin/shows`
+
+| Field | Value |
+| --- | --- |
+| Authentication | ADMIN |
+| Description | Lists all shows for admin. |
+| Request body | None |
+| Validation | ADMIN token |
+
+Response `200`: list of `ShowResponse`.
+
+#### `GET /api/admin/shows/{id}`
+
+| Field | Value |
+| --- | --- |
+| Authentication | ADMIN |
+| Description | Fetches one show by ID using the same service rules as public show lookup. |
+| Request body | None |
+| Validation | `id` numeric |
+
+Response `200`: `ShowResponse`.
+
+Errors: `404` show not found, cancelled, completed, or linked to a non-now-showing movie.
+
+#### `POST /api/admin/shows`
+
+| Field | Value |
+| --- | --- |
+| Authentication | ADMIN |
+| Description | Creates a show and generates seats from the hall seat templates. |
+
+Request:
 
 ```json
 {
   "movieId": 1,
   "hallId": 1,
-  "showDate": "2026-07-20",
-  "showTime": "14:00:00",
-  "endTime": "16:30:00"
+  "showDate": "2026-08-20",
+  "showTime": "18:30:00",
+  "endTime": "21:00:00"
 }
 ```
 
-- `GET /api/admin/shows`: all shows.
-- `GET /api/admin/shows/{id}`: show by ID.
-- `POST /api/admin/shows`: `201`, creates a show and generates seats from the hall's seat templates.
-- `PUT /api/admin/shows/{id}`: updates a show.
-- `DELETE /api/admin/shows/{id}`: `204`, soft-deletes by setting status to `CANCELLED`.
+Validation:
 
-Rules:
+| Field | Rules |
+| --- | --- |
+| `movieId` | Required; movie must exist and have status `NOW_SHOWING` |
+| `hallId` | Required; hall must exist and not be `INACTIVE` |
+| `showDate` | Required; must be in the future |
+| `showTime` | Required |
+| `endTime` | Required |
+| Schedule | Must not overlap another non-cancelled show in the same hall/date |
+| Seat templates | The hall must already have seat templates |
 
-- Movie must be `NOW_SHOWING`.
-- Hall must not be `INACTIVE`.
-- Hall must already have seat templates.
-- Show time must not overlap another non-cancelled show in the same hall on the same date.
+Response `201`: `ShowResponse`.
 
-## Admin Users
+Errors: `400` validation, `404` movie/hall/seat template not found, `409` inactive hall, non-now-showing movie, or overlapping show.
 
-Auth: `ADMIN`
+#### `PUT /api/admin/shows/{id}`
 
-- `GET /api/admin/users`: all users.
-- `GET /api/admin/users/{id}`: user by ID.
+| Field | Value |
+| --- | --- |
+| Authentication | ADMIN |
+| Description | Updates a show after validating movie status, hall status, and schedule conflicts. |
+| Validation | Same body rules as create plus numeric `id` |
 
-Admin staff creation endpoint: planned, not implemented.
+Response `200`: `ShowResponse`.
 
-## Common Error Status Codes
+Errors: `400` validation, `404` show/movie/hall not found, `409` schedule conflict or invalid movie/hall status.
 
-- `400`: validation error or bad request.
-- `401`: missing, invalid, expired token, or invalid credentials.
-- `403`: authenticated but not allowed.
-- `404`: resource not found.
-- `409`: conflict such as locked/booked seats or show overlap.
-- `500`: unexpected server error with a generic message.
+#### `DELETE /api/admin/shows/{id}`
+
+| Field | Value |
+| --- | --- |
+| Authentication | ADMIN |
+| Description | Soft-deletes a show by setting status to `CANCELLED`. |
+| Request body | None |
+| Validation | `id` numeric |
+
+Response `204`: empty body.
+
+Errors: `404` show not found.
+
+### Users
+
+#### `GET /api/admin/users`
+
+| Field | Value |
+| --- | --- |
+| Authentication | ADMIN |
+| Description | Lists all users without password hashes. |
+| Request body | None |
+| Validation | ADMIN token |
+
+Response `200`:
+
+```json
+{
+  "success": true,
+  "message": "Users fetched successfully",
+  "data": [
+    {
+      "id": 1,
+      "name": "Aarav Sharma",
+      "email": "aarav@example.com",
+      "role": "CUSTOMER"
+    }
+  ],
+  "errors": []
+}
+```
+
+#### `GET /api/admin/users/{id}`
+
+| Field | Value |
+| --- | --- |
+| Authentication | ADMIN |
+| Description | Fetches one user without password hash. |
+| Request body | None |
+| Validation | `id` numeric |
+
+Response `200`: `UserResponse`.
+
+Errors: `404` user not found.
+
+## Response DTO Summary
+
+| DTO | Fields |
+| --- | --- |
+| `MovieResponse` | `id`, `title`, `genre`, `durationMinutes`, `language`, `description`, `posterUrl`, `releaseDate`, `status`, `createdAt`, `updatedAt` |
+| `HallResponse` | `id`, `name`, `capacity`, `layoutRef`, `status`, `createdAt`, `updatedAt` |
+| `ShowResponse` | `id`, `movie`, `hall`, `status`, `showDate`, `showTime`, `endTime`, `createdAt`, `updatedAt` |
+| `SeatResponse` | `id`, `rowLabel`, `seatNumber`, `seatCode`, `seatType`, `price`, `positionIndex`, `seatStatus` |
+| `BookingResponse` | `bookingId`, `bookingStatus`, `showId`, `movieName`, `hallName`, `showDateTime`, `startTime`, `endTime`, `selectedSeats`, `totalPrice`, `bookingTime` |
+| `UserResponse` | `id`, `name`, `email`, `role` |

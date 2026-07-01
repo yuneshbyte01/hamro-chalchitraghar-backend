@@ -1,86 +1,252 @@
 # Hamro Chalchitraghar Backend
 
-Spring Boot backend for Hamro Chalchitraghar, a cinema ticket booking API for movies, halls, shows, seats, users, and bookings.
+![Java](https://img.shields.io/badge/Java-21-blue)
+![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.5.9-brightgreen)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-blue)
+![Flyway](https://img.shields.io/badge/Flyway-enabled-red)
+![Docker](https://img.shields.io/badge/Docker-ready-blue)
 
-This repository is currently on backend V2. V2 uses a modular monolith structure, PostgreSQL, Flyway migrations, JWT authentication, role-based endpoint groups, a seat hold booking flow, standard API responses, and integration tests.
+Hamro Chalchitraghar Backend is a Spring Boot REST API for a cinema ticket booking system. It provides public movie, hall, show, and seat browsing; JWT authentication; customer booking and seat hold workflows; staff booking lookup; and admin management for movies, halls, seat layouts, shows, and users.
 
-## Tech Stack
+The implementation is a modular monolith: one deployable Spring Boot application organized into domain modules with controller, service, repository, mapper, DTO, entity, and shared infrastructure layers.
 
-- Java 21
-- Spring Boot 3.x
-- Spring Web
-- Spring Security with JWT
-- Spring Data JPA and Hibernate
-- PostgreSQL
-- Flyway database migrations
-- Maven wrapper
-- JUnit, MockMvc, Spring Security Test, and H2 for tests
+## Features
 
-## Documentation
+| Area | Current implementation |
+| --- | --- |
+| Authentication | Register, login, and refresh JWT tokens |
+| Authorization | Role-based access for CUSTOMER, STAFF, and ADMIN |
+| Public catalog | Browse movies, halls, shows, and show seats |
+| Admin catalog | Create, update, soft-delete, and list movies, halls, and shows |
+| Seat layout | Generate standard hall seat templates and show seats |
+| Seat hold | Lock seats for 10 minutes before booking |
+| Booking | Create, confirm, cancel, and list customer bookings |
+| Staff | Lookup bookings by ID |
+| Persistence | PostgreSQL schema managed by Flyway |
+| API docs | Swagger UI through springdoc-openapi |
+| Tests | Spring Boot integration tests with MockMvc and H2 |
+| Deployment | Multi-stage Dockerfile and Docker Compose with PostgreSQL |
 
-- [Product Requirements](docs/PRD.md)
-- [Technical Requirements](docs/TRD.md)
-- [Architecture](docs/ARCHITECTURE.md)
-- [API Reference](docs/API.md)
-- [Setup Guide](docs/SETUP.md)
-- [Database Documentation](docs/DATABASE.md)
-- [Maintenance Guide](docs/MAINTENANCE.md)
-- [V2 Migration Notes](docs/V2_MIGRATION.md)
+## Technology Stack
 
-## Quick Start
+| Layer | Technology |
+| --- | --- |
+| Language | Java 21 |
+| Framework | Spring Boot 3.5.9 |
+| Web | Spring MVC |
+| Security | Spring Security, JWT with JJWT |
+| Persistence | Spring Data JPA, Hibernate |
+| Database | PostgreSQL 16 |
+| Migration | Flyway |
+| Validation | Jakarta Bean Validation |
+| Documentation | springdoc-openapi Swagger UI |
+| Testing | JUnit 5, Spring Boot Test, MockMvc, H2 |
+| Build | Maven Wrapper |
+| Runtime | Docker, Eclipse Temurin 21 |
 
-Prerequisites:
+## Architecture Overview
 
-- Java 21
-- PostgreSQL
-- Git
-
-Create a local PostgreSQL database:
-
-```sql
-CREATE DATABASE hamro_chalachitraghar_db;
+```mermaid
+flowchart LR
+    Client[Client / Frontend] --> API[Spring Boot REST API]
+    API --> Security[JWT Security Filter]
+    Security --> Controllers[Application Controllers]
+    Controllers --> Services[Domain Services]
+    Services --> Repositories[Spring Data JPA Repositories]
+    Repositories --> DB[(PostgreSQL)]
+    Flyway[Flyway Migrations] --> DB
+    Swagger[Swagger UI] --> API
 ```
 
-Copy `.env.example` to `.env` or set equivalent environment variables:
+The code separates external API surfaces under `applications`, domain logic under `modules`, and common infrastructure under `shared`.
+
+## Project Structure
 
 ```text
-DB_URL=jdbc:postgresql://localhost:5432/hamro_chalachitraghar_db
-DB_USERNAME=postgres
-DB_PASSWORD=your_password_here
-JWT_SECRET=replace_with_at_least_32_characters_secret
-JWT_EXPIRATION_MS=3600000
-CORS_ALLOWED_ORIGINS=http://localhost:4200
-SPRING_PROFILES_ACTIVE=dev
+src/main/java/com/chalchitraghar
+├── applications
+│   ├── admin
+│   ├── auth
+│   ├── customer
+│   ├── publicapi
+│   └── staff
+├── modules
+│   ├── auth
+│   ├── bookings
+│   ├── halls
+│   ├── movies
+│   ├── seats
+│   ├── shows
+│   └── users
+└── shared
+    ├── config
+    ├── exception
+    ├── response
+    └── security
 ```
 
-Run the application on Windows:
+## Installation
+
+Requirements:
+
+- Java 21
+- Maven Wrapper from this repository
+- PostgreSQL 16 for local development
+- Docker and Docker Compose for containerized execution
+
+Clone the repository and install dependencies:
+
+```bash
+./mvnw clean test
+```
+
+On Windows PowerShell:
 
 ```powershell
-.\mvnw.cmd spring-boot:run
+.\mvnw.cmd clean test
 ```
 
-Health check:
+## Environment Variables
+
+The application reads configuration from Spring profiles and environment variables.
+
+| Variable | Required in prod | Default in dev | Description |
+| --- | --- | --- | --- |
+| `SPRING_PROFILES_ACTIVE` | No | `dev` | Active Spring profile |
+| `DB_URL` | Yes | `jdbc:postgresql://localhost:5432/hamro_chalachitraghar_db` | JDBC URL |
+| `DB_USERNAME` | Yes | `postgres` | Database username |
+| `DB_PASSWORD` | Yes | `Himal123!` | Database password |
+| `JWT_SECRET` | Yes | Development secret in `application-dev.yaml` | HS256 signing secret, at least 32 characters recommended |
+| `JWT_EXPIRATION_MS` | No | `3600000` | JWT lifetime in milliseconds |
+| `CORS_ALLOWED_ORIGINS` | Yes in prod | `http://localhost:4200` | Comma-separated allowed origins |
+
+Use `.env.example` as the local template.
+
+## Running Locally
+
+Start PostgreSQL, create the database, and run:
+
+```bash
+./mvnw spring-boot:run
+```
+
+The API runs on:
 
 ```text
-GET http://localhost:8080/api/public/health
+http://localhost:8080
 ```
 
-Run tests:
+Flyway runs automatically at startup and applies SQL migrations from `src/main/resources/db/migration`.
 
-```powershell
-.\mvnw.cmd test
-```
+## Docker
 
-Run with Docker Compose:
+Run the backend and PostgreSQL together:
 
-```powershell
+```bash
 docker compose up --build
 ```
 
-Stop Docker Compose:
+Services:
 
-```powershell
-docker compose down
+| Service | Port | Description |
+| --- | --- | --- |
+| `postgres` | `5432` | PostgreSQL 16 database |
+| `app` | `8080` | Spring Boot backend |
+
+The Docker image is built with a multi-stage Dockerfile using Eclipse Temurin 21.
+
+## Swagger
+
+Swagger UI:
+
+```text
+http://localhost:8080/swagger-ui/index.html
 ```
 
-See [Setup Guide](docs/SETUP.md) for full local setup and troubleshooting.
+OpenAPI JSON:
+
+```text
+http://localhost:8080/v3/api-docs
+```
+
+## Authentication
+
+Authentication uses JWT bearer tokens.
+
+1. Register with `POST /api/auth/register`.
+2. Login with `POST /api/auth/login`.
+3. Send authenticated requests with:
+
+```http
+Authorization: Bearer <token>
+```
+
+Access rules:
+
+| Route prefix | Access |
+| --- | --- |
+| `/api/auth/**` | Public |
+| `/api/public/**` | Public |
+| `/api/customer/**` | CUSTOMER, STAFF, ADMIN |
+| `/api/staff/**` | STAFF, ADMIN |
+| `/api/admin/**` | ADMIN |
+| `/swagger-ui/**`, `/v3/api-docs/**` | Public |
+
+## Testing
+
+Run all tests:
+
+```bash
+./mvnw test
+```
+
+The test profile uses H2 in PostgreSQL compatibility mode with Flyway disabled and validates authentication, authorization, catalog management, show scheduling, seat generation, seat holds, and booking lifecycle behavior.
+
+## API Overview
+
+| Group | Endpoints |
+| --- | --- |
+| Auth | Register, login, refresh token |
+| Public | Health, movies, halls, shows, seats |
+| Customer | Profile, hold seats, create booking, confirm booking, cancel booking, list my bookings |
+| Staff | Booking lookup |
+| Admin | Movie CRUD, hall CRUD, seat layout generation, show CRUD, user lookup |
+
+Full endpoint documentation is in [docs/API.md](docs/API.md).
+
+## Folder Structure
+
+| Path | Purpose |
+| --- | --- |
+| `src/main/java/com/chalchitraghar/applications` | REST controllers grouped by API audience |
+| `src/main/java/com/chalchitraghar/modules` | Domain modules and business logic |
+| `src/main/java/com/chalchitraghar/shared` | Security, response wrapper, exceptions, configuration, base entity |
+| `src/main/resources/db/migration` | Flyway SQL migrations |
+| `src/test/java/com/chalchitraghar` | Integration tests |
+| `.github/workflows/ci.yml` | GitHub Actions test workflow |
+| `docs` | Project documentation |
+
+## Screenshots Placeholders
+
+Add screenshots here when the backend is demonstrated in a portfolio:
+
+| Screenshot | Placeholder |
+| --- | --- |
+| Swagger UI | `docs/screenshots/swagger-ui.png` |
+| Authentication response | `docs/screenshots/auth-response.png` |
+| Booking flow | `docs/screenshots/booking-flow.png` |
+| Docker running services | `docs/screenshots/docker-services.png` |
+
+## Contributing
+
+1. Create a feature branch.
+2. Keep changes scoped to one module or workflow.
+3. Add or update integration tests for API behavior.
+4. Run `./mvnw clean test`.
+5. Open a pull request with a clear summary and verification notes.
+
+See [docs/MAINTENANCE.md](docs/MAINTENANCE.md) for developer workflow details.
+
+## License
+
+No license file is currently present in the repository.

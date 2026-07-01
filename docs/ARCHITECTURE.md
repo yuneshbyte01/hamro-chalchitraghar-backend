@@ -1,206 +1,236 @@
 # Architecture
 
-## Overview
+Hamro Chalchitraghar Backend is a Spring Boot modular monolith. It is deployed as one application, but the code is organized by domain modules and API audience boundaries.
 
-Hamro Chalchitraghar backend V2 is a modular monolith built with Spring Boot 3.x and Java 21.
+## Overall Architecture
 
-The application is deployed as one Spring Boot service, but code is organized by business module and application boundary:
-
-- `modules/*`: core domain logic, DTOs, repositories, services, mappers, and entities.
-- `applications/*`: HTTP controllers grouped by caller role.
-- `shared/*`: cross-cutting infrastructure such as security, configuration, exception handling, and standard responses.
-
-## Package Structure
-
-```text
-src/main/java/com/chalchitraghar/
-  HamroChalchitragharBackendApplication.java
-
-  applications/
-    auth/
-    publicapi/
-    customer/
-    staff/
-    admin/
-
-  modules/
-    auth/
-    users/
-    movies/
-    halls/
-    shows/
-    seats/
-    bookings/
-
-  shared/
-    config/
-    exception/
-    response/
-    security/
+```mermaid
+flowchart TB
+    Client[Client] --> REST[REST Controllers]
+    REST --> Security[Spring Security + JWT]
+    REST --> Services[Domain Services]
+    Services --> Mappers[DTO Mappers]
+    Services --> Repos[JPA Repositories]
+    Repos --> DB[(PostgreSQL)]
+    Flyway[Flyway SQL Migrations] --> DB
+    Swagger[Swagger UI / OpenAPI] --> REST
 ```
 
-Important shared classes:
+## Layered Architecture
 
-- `shared/config/SecurityConfig.java`
-- `shared/security/JwtAuthenticationFilter.java`
-- `shared/security/JwtUtil.java`
-- `shared/exception/GlobalExceptionHandler.java`
-- `shared/response/ApiResponse.java`
+| Layer | Packages | Responsibility |
+| --- | --- | --- |
+| Application/API | `com.chalchitraghar.applications.*` | HTTP routing, request validation, response wrapping |
+| Domain modules | `com.chalchitraghar.modules.*` | Business behavior for auth, users, movies, halls, shows, seats, bookings |
+| Persistence | `modules.*.repository` | Spring Data JPA access and custom locking queries |
+| Mapping | `modules.*.mapper` | Entity-to-DTO and DTO-to-entity conversion |
+| Shared infrastructure | `com.chalchitraghar.shared.*` | Security, exceptions, API response wrapper, base entity, OpenAPI config |
+| Database migration | `src/main/resources/db/migration` | Versioned PostgreSQL schema migrations |
 
-## Request Flow
+## Modular Monolith Structure
+
+```text
+com.chalchitraghar
+├── applications
+│   ├── auth
+│   ├── publicapi
+│   ├── customer
+│   ├── staff
+│   └── admin
+├── modules
+│   ├── auth
+│   ├── users
+│   ├── movies
+│   ├── halls
+│   ├── shows
+│   ├── seats
+│   └── bookings
+└── shared
+    ├── config
+    ├── exception
+    ├── response
+    └── security
+```
+
+The `applications` package defines entry points by audience. The `modules` package contains reusable domain logic and persistence. This keeps endpoint authorization boundaries visible without splitting the backend into separate services.
+
+## Controller to Service to Repository Flow
+
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant Ctrl as Controller
+    participant Svc as Service
+    participant Repo as Repository
+    participant DB as Database
+
+    C->>Ctrl: HTTP request
+    Ctrl->>Ctrl: Validate DTO
+    Ctrl->>Svc: Call use case
+    Svc->>Repo: Query/save entities
+    Repo->>DB: SQL via JPA/Hibernate
+    DB-->>Repo: Rows
+    Repo-->>Svc: Entities
+    Svc-->>Ctrl: Response DTO
+    Ctrl-->>C: ApiResponse<T>
+```
+
+## DTO Flow
+
+Request DTOs are validated with Jakarta Bean Validation in controller methods annotated with `@Valid`. Services receive validated DTOs and current user context where needed.
+
+```mermaid
+flowchart LR
+    JSON[JSON Request] --> RequestDTO[Request DTO]
+    RequestDTO --> Validation[Bean Validation]
+    Validation --> Service[Service Method]
+    Service --> Entity[Entity]
+    Entity --> Mapper[Mapper]
+    Mapper --> ResponseDTO[Response DTO]
+    ResponseDTO --> ApiResponse[ApiResponse Wrapper]
+```
+
+Important DTOs:
+
+| DTO | Used by |
+| --- | --- |
+| `RegistrationRequest`, `LoginRequest`, `RefreshTokenRequest` | Auth |
+| `MovieRequest`, `HallRequest`, `ShowRequest` | Admin management |
+| `SeatHoldRequest`, `BookingRequest` | Customer booking workflow |
+| `MovieResponse`, `HallResponse`, `ShowResponse`, `SeatResponse`, `BookingResponse`, `UserResponse` | API responses |
+
+## Mapper Flow
+
+Mappers are Spring components and convert between entities and DTOs:
+
+| Mapper | Responsibility |
+| --- | --- |
+| `MovieMapper` | Movie request/response mapping |
+| `HallMapper` | Hall request/response mapping |
+| `ShowMapper` | Show mapping with nested movie and hall responses |
+| `SeatMapper` | Seat entity to public seat response |
+| `BookingMapper` | Booking response with selected seats and total price |
+
+## Authentication Flow
 
 ```mermaid
 sequenceDiagram
     participant Client
-    participant JwtFilter as JwtAuthenticationFilter
-    participant Security as Spring Security
-    participant Controller
-    participant Service
-    participant Repository
-    participant DB as PostgreSQL
+    participant AuthController
+    participant AuthService
+    participant UserService
+    participant JwtUtil
 
-    Client->>JwtFilter: HTTP request
-    JwtFilter->>JwtFilter: Read and validate bearer token if present
-    JwtFilter->>Security: Set authenticated principal and roles
-    Security->>Controller: Allow request based on route and role
-    Controller->>Service: Call business operation
-    Service->>Repository: Query or mutate entities
-    Repository->>DB: SQL through Hibernate
-    DB-->>Repository: Result
-    Repository-->>Service: Entities
-    Service-->>Controller: DTOs or exceptions
-    Controller-->>Client: ApiResponse JSON
+    Client->>AuthController: POST /api/auth/login
+    AuthController->>AuthService: login(email, password)
+    AuthService->>UserService: getUserByEmail(email)
+    UserService-->>AuthService: User with BCrypt password
+    AuthService->>AuthService: passwordEncoder.matches()
+    AuthService->>JwtUtil: generateToken(user)
+    JwtUtil-->>AuthService: JWT with subject=email and role claim
+    AuthService-->>AuthController: LoginResponse
+    AuthController-->>Client: ApiResponse<LoginResponse>
 ```
 
-## Controller Groups
+`JwtAuthenticationFilter` extracts `Authorization: Bearer <token>`, validates the token, loads the user by email, and sets Spring Security authentication with `ROLE_<role>`.
 
-Controllers are separated by caller type:
+## Authorization Flow
 
-- `applications/auth`: public auth endpoints under `/api/auth/**`.
-- `applications/publicapi`: public browsing endpoints under `/api/public/**`.
-- `applications/customer`: authenticated customer endpoints under `/api/customer/**`.
-- `applications/staff`: staff endpoints under `/api/staff/**`.
-- `applications/admin`: admin management endpoints under `/api/admin/**`.
+Authorization is centralized in `SecurityConfig`.
 
-This keeps public, customer, staff, and admin API surfaces explicit.
+| Matcher | Access |
+| --- | --- |
+| `/swagger-ui.html`, `/swagger-ui/**`, `/v3/api-docs/**` | Public |
+| `/api/auth/**` | Public |
+| `/api/public/**` | Public |
+| `/api/customer/**` | CUSTOMER, STAFF, ADMIN |
+| `/api/staff/**` | STAFF, ADMIN |
+| `/api/admin/**` | ADMIN |
+| Other requests | Authenticated |
 
-## Layering
+Controllers do not use `@PreAuthorize`; route-level access is controlled by request matchers.
 
-The main flow is:
+## Booking Flow
 
-```text
-Controller -> Service -> Repository -> Database
+```mermaid
+stateDiagram-v2
+    [*] --> AVAILABLE: show seat generated
+    AVAILABLE --> LOCKED: customer holds seat
+    LOCKED --> AVAILABLE: hold expires or is released
+    LOCKED --> RESERVED: same user creates booking
+    AVAILABLE --> RESERVED: user creates booking directly
+    RESERVED --> BOOKED: booking confirmed
+    RESERVED --> AVAILABLE: initiated booking cancelled
 ```
 
-Responsibilities:
+Booking entity statuses used by the code:
 
-- Controllers validate request bodies, read path/query params, call services, and wrap success responses.
-- Services contain business rules and transaction boundaries.
-- Repositories are Spring Data JPA interfaces.
-- Mappers convert entities to response DTOs.
-- Entities define persistence structure.
-- Exceptions are mapped centrally by `GlobalExceptionHandler`.
-
-## Standard API Response
-
-Most controller responses use:
-
-```java
-ApiResponse<T>
+```mermaid
+stateDiagram-v2
+    [*] --> INITIATED: create booking
+    INITIATED --> CONFIRMED: confirm booking
+    INITIATED --> CANCELLED: cancel booking
 ```
 
-Shape:
+`BookingStatus` also defines `PENDING`, `BOOKED`, and `EXPIRED`, but the current service workflow creates `INITIATED`, confirms to `CONFIRMED`, and cancels to `CANCELLED`.
 
-```json
-{
-  "success": true,
-  "message": "Success message",
-  "data": {},
-  "errors": []
-}
+## Seat Hold Flow
+
+```mermaid
+sequenceDiagram
+    participant C as Customer
+    participant API as BookingController
+    participant Lock as SeatLockService
+    participant SeatRepo as SeatRepository
+
+    C->>API: POST /api/customer/bookings/hold
+    API->>Lock: holdSeats(showId, seatIds, userId)
+    Lock->>SeatRepo: findByShowIdAndSeatIdsWithLock()
+    SeatRepo-->>Lock: Pessimistic write-locked seats
+    Lock->>Lock: validate duplicate IDs, ownership, status, expiry
+    Lock->>SeatRepo: save LOCKED seats
+    Lock-->>API: SeatHoldResponse
+    API-->>C: holdExpiresAt
 ```
 
-Errors use the same shape with `success: false`, `data: null`, and `errors` as an array.
+Seat holds last 10 minutes. `ExpiredSeatLockCleanupJob` runs every 60 seconds and releases expired `LOCKED` seats.
 
-Security-level `401` and `403` failures also use this response shape.
+## Flyway Startup
 
-## Security
+```mermaid
+flowchart LR
+    Start[Application startup] --> DataSource[Create DataSource]
+    DataSource --> Flyway[Flyway enabled]
+    Flyway --> Migrations[Apply db/migration scripts]
+    Migrations --> Hibernate[Hibernate validate]
+    Hibernate --> AppReady[Application ready]
+```
 
-Authentication is stateless JWT bearer authentication.
+The main profile uses PostgreSQL with `spring.jpa.hibernate.ddl-auto=validate`. Schema changes are expected to be made through Flyway migrations.
 
-Security rules are centralized in `SecurityConfig`:
+## Docker Architecture
 
-- `/api/auth/**`: public.
-- `/api/public/**`: public.
-- `/api/customer/**`: `CUSTOMER`, `STAFF`, or `ADMIN`.
-- `/api/staff/**`: `STAFF` or `ADMIN`.
-- `/api/admin/**`: `ADMIN`.
-- Everything else: authenticated.
+```mermaid
+flowchart LR
+    Compose[docker compose] --> App[app container: Spring Boot]
+    Compose --> PG[postgres container: PostgreSQL 16]
+    App -->|JDBC| PG
+    App -->|8080| Host[Host machine]
+    PG -->|5432| Host
+```
 
-`JwtAuthenticationFilter`:
+The Dockerfile builds the application with Maven in a JDK image, then runs the packaged jar in a smaller JRE image.
 
-1. Reads `Authorization: Bearer <jwt>`.
-2. Validates token signature and expiration.
-3. Loads the user by email.
-4. Adds a `ROLE_<role>` authority to the Spring Security context.
-5. Returns standard `ApiResponse` errors for invalid or expired tokens.
+## Request Lifecycle
 
-## Database Startup
-
-The application uses PostgreSQL and Flyway.
-
-Startup flow:
-
-1. Spring creates the datasource.
-2. Flyway applies pending migrations from `src/main/resources/db/migration`.
-3. Hibernate validates the schema because `ddl-auto` is `validate`.
-4. Application startup continues only if schema validation passes.
-
-## Booking Hold Flow
-
-The booking flow separates temporary seat holds from booking creation.
-
-1. Customer calls `POST /api/customer/bookings/hold`.
-2. Service validates seat IDs and checks for duplicates.
-3. Seats are loaded with pessimistic write locking.
-4. Available seats become `LOCKED`.
-5. Lock metadata is stored:
-   - `locked_at`
-   - `lock_expires_at`
-   - `locked_by_user_id`
-6. The same user can create a booking from held seats.
-7. Booking creation changes seats to `RESERVED`.
-8. Confirming the booking changes seats to `BOOKED`.
-9. Cancelling an initiated booking changes seats back to `AVAILABLE`.
-
-Expired locks are cleared when a seat hold or booking operation touches those seats. There is also an expired-lock cleanup job component in the seats module.
-
-## Tests
-
-Integration tests use:
-
-- Spring Boot Test
-- MockMvc
-- Spring Security Test
-- H2 in PostgreSQL compatibility mode
-- `test` profile
-
-Current coverage includes auth, public APIs, admin APIs, show validation, seat layout generation, booking flow, authorization, and standard error responses.
-
-## External Integrations
-
-Implemented:
-
-- PostgreSQL database.
-- JWT authentication.
-- Configurable CORS origins.
-
-Not implemented:
-
-- Payment provider.
-- Email or SMS notifications.
-- Docker setup.
-- CI/CD workflow.
-- File storage for poster images.
-
-Poster images are currently represented by a URL string only.
+1. Client sends HTTP request.
+2. CORS and Spring Security filters run.
+3. JWT filter validates bearer token if present.
+4. Security matchers authorize the route.
+5. Controller binds path/query/body parameters.
+6. Bean Validation validates request DTOs.
+7. Service executes the business use case in a transaction when needed.
+8. Repository reads or writes entities.
+9. Mapper returns DTOs.
+10. Controller wraps response in `ApiResponse<T>`.
+11. `GlobalExceptionHandler` converts exceptions into standard error responses.

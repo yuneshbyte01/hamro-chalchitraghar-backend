@@ -1,229 +1,286 @@
 # Maintenance Guide
 
-## How To Add A New Feature
+This guide describes how to extend and maintain Hamro Chalchitraghar Backend while staying consistent with the current implementation.
 
-1. Decide the application boundary:
-   - public: `applications/publicapi`
-   - customer: `applications/customer`
-   - staff: `applications/staff`
-   - admin: `applications/admin`
-2. Add or update request/response DTOs in the relevant `modules/<domain>/dto` package.
-3. Add or update entities and enums in the relevant `modules/<domain>` package if persistence changes are needed.
-4. Add repository methods under `modules/<domain>/repository`.
-5. Add business logic to service interfaces and implementations under `modules/<domain>/service`.
-6. Add mapper logic when response DTOs expose entity data.
-7. Add controller endpoints under `applications/<area>`.
-8. Add validation annotations to request DTOs.
-9. Add custom exceptions or extend `GlobalExceptionHandler` for new failure modes.
-10. Return success responses using `ApiResponse`.
-11. Add or update integration tests.
-12. Update docs in `docs/`.
+## Development Workflow
 
-## How To Add Or Modify APIs
+1. Create or update code in the relevant module under `src/main/java/com/chalchitraghar/modules`.
+2. Add or update the controller under the correct audience package in `applications`.
+3. Add DTO validation with Jakarta Bean Validation.
+4. Add mapper logic if entities cross the API boundary.
+5. Add repository queries only where derived queries are not enough.
+6. Add integration tests with MockMvc.
+7. Run `./mvnw clean test`.
+8. Update documentation when public behavior, schema, or setup changes.
 
-- Keep endpoint groups role-based:
-  - `/api/auth/**`
-  - `/api/public/**`
-  - `/api/customer/**`
-  - `/api/staff/**`
-  - `/api/admin/**`
-- Keep request payloads in request DTO classes.
-- Keep response payloads in response DTO classes.
-- Do not expose entities directly from controllers.
-- Keep controllers thin and put business rules in services.
-- Preserve status codes:
-  - `200` for reads and updates.
-  - `201` for creates.
-  - `204` for current delete endpoints with no body.
-- Update `docs/API.md` when endpoint behavior changes.
-- Update `SecurityConfig` when adding a new route group.
+## Add a New Module
 
-## Standard Response Maintenance
-
-Use `ApiResponse<T>` for non-empty responses:
-
-```json
-{
-  "success": true,
-  "message": "Success message",
-  "data": {},
-  "errors": []
-}
-```
-
-Errors should use:
-
-```json
-{
-  "success": false,
-  "message": "Error message",
-  "data": null,
-  "errors": []
-}
-```
-
-Validation errors should use:
-
-```json
-{
-  "success": false,
-  "message": "Validation failed",
-  "data": null,
-  "errors": ["field: message"]
-}
-```
-
-## How To Run Tests
-
-Windows:
-
-```powershell
-.\mvnw.cmd test
-```
-
-Run compile only:
-
-```powershell
-.\mvnw.cmd clean compile
-```
-
-Run one test class:
-
-```powershell
-.\mvnw.cmd -Dtest=BookingApiIntegrationTest test
-```
-
-Current test profile:
-
-- `src/test/resources/application-test.yaml`
-- H2 in PostgreSQL compatibility mode
-- Flyway disabled
-- Hibernate `create-drop`
-
-Current coverage areas:
-
-- Auth registration, login, duplicate email, invalid login, password hashing.
-- Public movie, hall, show, seat, and health responses.
-- Admin movie, hall, show, and user authorization behavior.
-- Show overlap and status validation.
-- Seat layout generation.
-- Booking hold, create, confirm, cancel, expired locks, duplicate seat IDs.
-- Authorization for public, customer, staff, and admin route groups.
-- Standard validation, not found, invalid JWT, and expired JWT responses.
-
-## CI
-
-GitHub Actions workflow:
+Create a package under:
 
 ```text
-.github/workflows/ci.yml
+src/main/java/com/chalchitraghar/modules/<module>
 ```
 
-The CI workflow runs on push and pull request.
+Use the existing module layout where applicable:
 
-It uses:
-
-- Ubuntu runner
-- Java 21
-- Maven dependency caching through `actions/setup-java`
-- `SPRING_PROFILES_ACTIVE=test`
-- `./mvnw -B clean test`
-
-Because tests use H2 in PostgreSQL compatibility mode, CI does not need a PostgreSQL service container.
-
-## Docker Maintenance
-
-Local Docker files:
-
-- `Dockerfile`
-- `.dockerignore`
-- `docker-compose.yml`
-
-Build and run locally:
-
-```powershell
-docker compose up --build
+```text
+<module>
+├── dto
+│   ├── request
+│   └── response
+├── entity
+├── enums
+├── mapper
+├── repository
+├── service
+│   └── impl
 ```
 
-Stop:
+Add controllers under `applications` based on audience:
 
-```powershell
-docker compose down
+| Audience | Package |
+| --- | --- |
+| Public | `applications.publicapi` |
+| Customer | `applications.customer` |
+| Staff | `applications.staff` |
+| Admin | `applications.admin` |
+| Auth | `applications.auth` |
+
+## Add an Endpoint
+
+1. Add a method to the correct controller.
+2. Use `@GetMapping`, `@PostMapping`, `@PutMapping`, or `@DeleteMapping`.
+3. Use `@Valid @RequestBody` for request DTOs.
+4. Return `ResponseEntity<ApiResponse<T>>` for JSON responses.
+5. Add `@Operation` and `@Tag` metadata for Swagger.
+6. Rely on `SecurityConfig` request matchers for role access.
+7. Add an integration test for success and expected failure cases.
+
+Example controller pattern:
+
+```java
+@PostMapping
+public ResponseEntity<ApiResponse<MovieResponse>> createMovie(@Valid @RequestBody MovieRequest dto) {
+    MovieResponse created = movieService.addMovie(dto);
+    return ResponseEntity.status(HttpStatus.CREATED)
+            .body(ApiResponse.success("Movie created successfully", created));
+}
 ```
 
-The Dockerfile is multi-stage:
+## Add a Migration
 
-- Build stage: Java 21 JDK, Maven wrapper, packaged jar with tests skipped.
-- Runtime stage: Java 21 JRE, runs `java -jar app.jar`.
-
-Docker Compose runs:
-
-- `postgres`
-- `app`
-
-The app uses the `prod` profile and environment variables. Do not put production secrets in `docker-compose.yml`.
-
-Recommended coverage for future changes:
-
-- Add tests for every new endpoint.
-- Add authorization tests whenever `SecurityConfig` changes.
-- Add migration-focused checks when schema changes become complex.
-- Add service-level tests for complicated business rules if integration tests become too large.
-
-## How To Add A Migration
-
-1. Add a new SQL file under:
+Create a new SQL file in:
 
 ```text
 src/main/resources/db/migration
 ```
 
-2. Use the next version number:
+Naming format:
 
 ```text
-V10__description.sql
+V<number>__short_description.sql
 ```
 
-3. Keep SQL PostgreSQL-compatible.
-4. Run:
+Rules:
 
-```powershell
-.\mvnw.cmd clean compile
-.\mvnw.cmd test
+| Rule | Reason |
+| --- | --- |
+| Never edit applied migrations in shared databases | Flyway tracks checksums |
+| Add indexes and constraints explicitly | Keeps database behavior visible |
+| Keep entity annotations aligned with SQL | Hibernate validates schema |
+| Run tests after adding migrations | Detects mapping and startup issues |
+
+## Add a DTO
+
+Place request DTOs under:
+
+```text
+modules/<module>/dto/request
 ```
 
-5. Start the app locally and confirm Flyway applies the migration.
+Place response DTOs under:
 
-Do not change old migrations that may already have run in another environment.
+```text
+modules/<module>/dto/response
+```
 
-## Logging And Debugging
+Use validation annotations on request DTOs:
 
-- `GlobalExceptionHandler` logs handled exceptions with SLF4J.
-- `JwtAuthenticationFilter` logs token expiration and token validation errors.
-- SQL logging is currently enabled with `spring.jpa.show-sql=true`.
-- No custom tracing, request correlation IDs, or metrics integration is implemented.
+| Annotation | Use |
+| --- | --- |
+| `@NotBlank` | Required strings |
+| `@NotNull` | Required object values |
+| `@Email` | Email addresses |
+| `@Size` | Length limits |
+| `@Future` | Future dates |
+| `@Positive` / `@PositiveOrZero` | Numeric constraints |
 
-## Known Partial Or Planned Features
+## Add an Entity
 
-- Staff booking detail is implemented: `GET /api/staff/bookings/{bookingId}`.
-- Staff check-in is planned, not implemented.
-- Staff booking list and staff show operations are planned, not implemented.
-- Admin staff creation is planned, not implemented.
-- Registration only creates `CUSTOMER` users.
-- Admin and staff users currently need trusted database setup or another operational process.
-- Payment, email, and SMS are not implemented.
-- Docker and CI/CD are implemented for local containers and GitHub Actions tests.
-- Production deployment to a hosting provider is not implemented.
-- API list endpoints are not paginated.
-- The database does not enforce a unique active booking per seat; service logic prevents active duplicates.
+1. Extend `GenericEntity` for `id`, `createdAt`, and `updatedAt`.
+2. Annotate with `@Entity` and `@Table`.
+3. Match table and column names to Flyway SQL.
+4. Use `@Enumerated(EnumType.STRING)` for enums.
+5. Use explicit `@JoinColumn` for relationships.
+6. Add validation annotations matching the domain rules.
 
-## Routine Maintenance Checklist
+Entity defaults can be set with `@PrePersist`, as seen in `Hall`, `Show`, `Seat`, and `Booking`.
 
-- Run `.\mvnw.cmd clean compile`.
-- Run `.\mvnw.cmd test`.
-- Review `SecurityConfig` for route changes.
-- Keep `docs/API.md` synchronized with controller paths and DTO output.
-- Keep `docs/DATABASE.md` synchronized with migrations.
-- Avoid committing real secrets.
-- Add migration files for schema changes.
-- Add integration tests for new user-facing behavior.
+## Add a Repository
+
+Create an interface under:
+
+```text
+modules/<module>/repository
+```
+
+Extend `JpaRepository<Entity, Long>`.
+
+Use derived queries for simple reads. Use `@Query` for domain-specific checks, such as overlapping shows or active bookings.
+
+For concurrent seat updates, use pessimistic locking as in `SeatRepository`:
+
+```java
+@Lock(LockModeType.PESSIMISTIC_WRITE)
+@Query("SELECT s FROM Seat s WHERE s.show.id = :showId AND s.id IN :seatIds")
+List<Seat> findByShowIdAndSeatIdsWithLock(Long showId, List<Long> seatIds);
+```
+
+## Add a Service
+
+1. Define the service interface under `service`.
+2. Implement it under `service.impl`.
+3. Annotate implementation with `@Service`.
+4. Use `@Transactional` for write workflows.
+5. Throw domain exceptions from `shared.exception` where possible.
+6. Keep HTTP concerns out of services.
+
+Services should own business rules. Controllers should remain thin.
+
+## Add a Controller
+
+Controller conventions:
+
+| Convention | Current pattern |
+| --- | --- |
+| Package | `applications.<audience>` |
+| Base path | `/api/<audience-or-public>/<resource>` |
+| Response wrapper | `ApiResponse<T>` |
+| Validation | `@Valid` |
+| Swagger | `@Tag`, `@Operation`, `@SecurityRequirement` for protected controllers |
+| Current user | Read from `SecurityContextHolder` where needed |
+
+## Add Tests
+
+Integration tests live in:
+
+```text
+src/test/java/com/chalchitraghar
+```
+
+Use `AbstractIntegrationTest` for:
+
+- MockMvc
+- ObjectMapper
+- Repositories
+- Test data helpers
+- Login token helpers
+- Database cleanup
+
+Test coverage should include:
+
+| Area | Examples |
+| --- | --- |
+| Success path | Endpoint returns expected `ApiResponse` |
+| Validation | Missing or invalid DTO fields |
+| Authorization | Role cannot access restricted routes |
+| Domain rules | Seat conflicts, duplicate seats, show overlap |
+| Persistence side effects | Seat status changes, booking status changes |
+
+Run tests:
+
+```bash
+./mvnw clean test
+```
+
+## Run Flyway
+
+Flyway runs automatically during application startup for non-test profiles.
+
+To verify migrations:
+
+```bash
+./mvnw spring-boot:run
+```
+
+The application should start only if Flyway succeeds and Hibernate validates the schema.
+
+## Run Docker
+
+```bash
+docker compose up --build
+```
+
+Inspect logs:
+
+```bash
+docker compose logs app
+docker compose logs postgres
+```
+
+Stop:
+
+```bash
+docker compose down
+```
+
+## Run CI Locally
+
+The GitHub Actions CI workflow runs:
+
+```bash
+./mvnw -B clean test
+```
+
+Run the same command locally before pushing.
+
+## Coding Conventions
+
+| Concern | Convention |
+| --- | --- |
+| Java version | Java 21 |
+| Constructor injection | Lombok `@RequiredArgsConstructor` |
+| DTOs | Lombok `@Data`, `@NoArgsConstructor`, `@AllArgsConstructor` where useful |
+| Responses | Standard `ApiResponse<T>` |
+| Exceptions | Centralized by `GlobalExceptionHandler` |
+| Authorization | Centralized in `SecurityConfig` |
+| Passwords | BCrypt only |
+| JWT claims | Subject is email, `role` claim is role name |
+| Entity enums | Stored as strings |
+| Soft delete | Status updates, not row deletion, for movies, halls, and shows |
+| Schema changes | Flyway migration first, entity mapping second |
+
+## Git Workflow
+
+1. Branch from the current main development branch.
+2. Keep commits focused.
+3. Run tests before opening a pull request.
+4. Include verification notes in the pull request.
+5. Avoid mixing documentation-only changes with Java behavior changes unless the behavior requires doc updates.
+
+## Current Domain Rules to Preserve
+
+| Domain | Rule |
+| --- | --- |
+| Registration | New users are created with `CUSTOMER` role |
+| Login | Passwords are checked with BCrypt |
+| Shows | Can be scheduled only for `NOW_SHOWING` movies |
+| Shows | Cannot be scheduled in `INACTIVE` halls |
+| Shows | Cannot overlap another non-cancelled show in the same hall/date |
+| Seat templates | Generated once per hall |
+| Show seats | Generated once per show from hall templates |
+| Seat hold | Holds last 10 minutes |
+| Seat hold | Held seats are owned by `locked_by_user_id` |
+| Booking creation | Allows available seats or seats held by the same user |
+| Booking confirmation | Only `INITIATED` bookings can be confirmed |
+| Booking cancellation | Only owner can cancel an `INITIATED` booking before show time |
