@@ -3,6 +3,9 @@ package com.chalchitraghar.modules.auth.dto.request;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+
+import com.chalchitraghar.shared.validation.StrongPassword;
+
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
@@ -22,7 +25,8 @@ public class RegistrationRequest {
     private String email;
 
     @Size(min = 8, message = "Password must be at least 8 characters")
+    @StrongPassword
     @NotBlank(message = "Password is required")
-    @Schema(example = "StrongPass123")
+    @Schema(example = "StrongPass123!")
     private String password;
 }
