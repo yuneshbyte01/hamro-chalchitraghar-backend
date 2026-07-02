@@ -86,7 +86,7 @@ Request:
 {
   "name": "Aarav Sharma",
   "email": "aarav@example.com",
-  "password": "StrongPass123"
+  "password": "StrongPass123!"
 }
 ```
 
@@ -96,7 +96,7 @@ Validation:
 | --- | --- |
 | `name` | Required, not blank |
 | `email` | Required, valid email, unique |
-| `password` | Required, at least 8 characters |
+| `password` | Required, at least 8 characters, at least one uppercase letter, one lowercase letter, one digit, and one special character |
 
 Response `201`:
 
@@ -126,7 +126,7 @@ Request:
 ```json
 {
   "email": "aarav@example.com",
-  "password": "StrongPass123"
+  "password": "StrongPass123!"
 }
 ```
 
@@ -467,6 +467,81 @@ Response `200`:
 ```
 
 Errors: `401` missing or invalid token.
+
+### `PUT /api/customer/profile`
+
+| Field | Value |
+| --- | --- |
+| Authentication | CUSTOMER, STAFF, ADMIN |
+| Description | Updates only the current authenticated user's name. Email and role cannot be changed from this endpoint. |
+
+Request:
+
+```json
+{
+  "name": "Updated Name"
+}
+```
+
+Validation:
+
+| Field | Rules |
+| --- | --- |
+| `name` | Required, not blank, at most 100 characters |
+
+Response `200`:
+
+```json
+{
+  "success": true,
+  "message": "Profile updated successfully",
+  "data": {
+    "id": 1,
+    "name": "Updated Name",
+    "email": "aarav@example.com",
+    "role": "CUSTOMER"
+  },
+  "errors": []
+}
+```
+
+Errors: `400` validation error, `401` missing or invalid token.
+
+### `PUT /api/customer/profile/password`
+
+| Field | Value |
+| --- | --- |
+| Authentication | CUSTOMER, STAFF, ADMIN |
+| Description | Changes the current authenticated user's password after verifying the current password. |
+
+Request:
+
+```json
+{
+  "currentPassword": "OldPass@123",
+  "newPassword": "NewStrongPass@123"
+}
+```
+
+Validation:
+
+| Field | Rules |
+| --- | --- |
+| `currentPassword` | Required, must match current password |
+| `newPassword` | Required, at least 8 characters, at least one uppercase letter, one lowercase letter, one digit, one special character, and different from current password |
+
+Response `200`:
+
+```json
+{
+  "success": true,
+  "message": "Password changed successfully",
+  "data": null,
+  "errors": []
+}
+```
+
+Errors: `400` validation error, wrong current password, or same password; `401` missing or invalid token.
 
 ### `POST /api/customer/bookings/hold`
 

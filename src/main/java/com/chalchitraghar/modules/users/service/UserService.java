@@ -16,4 +16,8 @@ public interface UserService {
     List<User> getAllUsers();
 
     User getUserById(Long id);
+
+    User updateCurrentUserProfile(User currentUser, String name);
+
+    void changeCurrentUserPassword(User currentUser, String currentPassword, String newPassword);
 }
