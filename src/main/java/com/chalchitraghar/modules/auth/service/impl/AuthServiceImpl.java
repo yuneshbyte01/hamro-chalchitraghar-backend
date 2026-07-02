@@ -1,5 +1,7 @@
 package com.chalchitraghar.modules.auth.service.impl;
 
+import java.time.LocalDateTime;
+
 import com.chalchitraghar.modules.auth.dto.request.LoginRequest;
 import com.chalchitraghar.modules.auth.dto.request.GoogleLoginRequest;
 import com.chalchitraghar.modules.auth.dto.request.RefreshTokenRequest;
@@ -19,10 +21,14 @@ import com.chalchitraghar.shared.security.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
+
+    private static final int MAX_FAILED_LOGIN_ATTEMPTS = 5;
+    private static final int ACCOUNT_LOCK_MINUTES = 15;
 
     private final UserService userService;
     private final UserRepository userRepository;
@@ -44,18 +50,23 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
+    @Transactional(noRollbackFor = AuthenticationException.class)
     public LoginResponse login(LoginRequest request) {
         User user = userService.getUserByEmail(request.getEmail());
+        ensureAccountCanAuthenticate(user);
         if (user.getAuthProvider() == AuthProvider.GOOGLE && user.getPassword() == null) {
             throw new AuthenticationException("This account uses Google Sign-In.");
         }
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+            recordFailedLogin(user);
             throw new AuthenticationException("Invalid credentials");
         }
+        recordSuccessfulLogin(user);
         return toLoginResponse(user);
     }
 
     @Override
+    @Transactional
     public LoginResponse googleLogin(GoogleLoginRequest request) {
         GoogleUserInfo googleUser = googleTokenVerifier.verify(request.getIdToken());
         if (!googleUser.emailVerified()) {
@@ -63,9 +74,14 @@ public class AuthServiceImpl implements AuthService {
         }
 
         User user = userRepository.findByEmail(googleUser.email())
-                .map(existingUser -> linkOrUpdateGoogleAccount(existingUser, googleUser))
+                .map(existingUser -> {
+                    ensureAccountCanAuthenticate(existingUser);
+                    return linkOrUpdateGoogleAccount(existingUser, googleUser);
+                })
                 .orElseGet(() -> createGoogleUser(googleUser));
 
+        ensureAccountCanAuthenticate(user);
+        recordSuccessfulLogin(user);
         return toLoginResponse(user);
     }
 
@@ -77,6 +93,7 @@ public class AuthServiceImpl implements AuthService {
         }
         String email = jwtUtil.extractUsername(token);
         User user = userService.getUserByEmail(email);
+        ensureAccountCanUseToken(user, token);
         return toLoginResponse(user);
     }
 
@@ -102,6 +119,58 @@ public class AuthServiceImpl implements AuthService {
                 .emailVerified(true)
                 .build();
         return userRepository.save(user);
+    }
+
+    private void ensureAccountCanAuthenticate(User user) {
+        if (!user.isEnabled()) {
+            throw new AuthenticationException("Account is disabled");
+        }
+        if (isLocked(user)) {
+            throw new AuthenticationException("Account is temporarily locked. Please try again later.");
+        }
+        if (isLockExpired(user)) {
+            clearLock(user);
+            userRepository.save(user);
+        }
+    }
+
+    private void ensureAccountCanUseToken(User user, String token) {
+        ensureAccountCanAuthenticate(user);
+        if (jwtUtil.wasIssuedBeforePasswordChanged(token, user)) {
+            throw new AuthenticationException("Token is no longer valid after password change");
+        }
+    }
+
+    private boolean isLocked(User user) {
+        return user.isLocked()
+                && (user.getLockedUntil() == null || user.getLockedUntil().isAfter(LocalDateTime.now()));
+    }
+
+    private boolean isLockExpired(User user) {
+        return user.isLocked()
+                && user.getLockedUntil() != null
+                && !user.getLockedUntil().isAfter(LocalDateTime.now());
+    }
+
+    private void recordFailedLogin(User user) {
+        user.setFailedLoginAttempts(user.getFailedLoginAttempts() + 1);
+        if (user.getFailedLoginAttempts() >= MAX_FAILED_LOGIN_ATTEMPTS) {
+            user.setLocked(true);
+            user.setLockedUntil(LocalDateTime.now().plusMinutes(ACCOUNT_LOCK_MINUTES));
+        }
+        userRepository.save(user);
+    }
+
+    private void recordSuccessfulLogin(User user) {
+        clearLock(user);
+        user.setLastLoginAt(LocalDateTime.now());
+        userRepository.save(user);
+    }
+
+    private void clearLock(User user) {
+        user.setFailedLoginAttempts(0);
+        user.setLocked(false);
+        user.setLockedUntil(null);
     }
 
     private LoginResponse toLoginResponse(User user) {

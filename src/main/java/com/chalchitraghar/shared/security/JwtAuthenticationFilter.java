@@ -17,6 +17,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 
@@ -75,6 +76,19 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             var user = userRepository.findByEmail(email).orElse(null);
 
             if (user != null) {
+                if (!user.isEnabled()) {
+                    writeUnauthorizedResponse(response, "Account is disabled");
+                    return;
+                }
+                if (isLocked(user)) {
+                    writeUnauthorizedResponse(response, "Account is temporarily locked. Please try again later.");
+                    return;
+                }
+                if (jwtUtil.wasIssuedBeforePasswordChanged(token, user)) {
+                    writeUnauthorizedResponse(response, "Token is no longer valid after password change");
+                    return;
+                }
+
                 String role = jwtUtil.extractRole(token);
                 List<SimpleGrantedAuthority> authorities = role != null
                         ? Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + role))
@@ -96,5 +110,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         response.setContentType("application/json");
         response.getWriter().write(objectMapper.writeValueAsString(ApiResponse.error(message)));
+    }
+
+    private boolean isLocked(com.chalchitraghar.modules.users.entity.User user) {
+        return user.isLocked()
+                && (user.getLockedUntil() == null || user.getLockedUntil().isAfter(LocalDateTime.now()));
     }
 }

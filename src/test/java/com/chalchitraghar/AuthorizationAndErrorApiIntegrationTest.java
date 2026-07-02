@@ -1,6 +1,7 @@
 package com.chalchitraghar;
 
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.nullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -62,6 +63,23 @@ class AuthorizationAndErrorApiIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void adminUsersEndpointAcceptsValidAdminToken() throws Exception {
+        String adminToken = tokenFor("admin-users@example.com", Role.ADMIN);
+        saveUser("listed-customer@example.com", Role.CUSTOMER);
+
+        mockMvc.perform(get("/api/admin/users")
+                        .header("Authorization", bearer(adminToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.message").value("Users fetched successfully"))
+                .andExpect(jsonPath("$.data").isArray())
+                .andExpect(jsonPath("$.data[*].email", hasItems(
+                        "admin-users@example.com",
+                        "listed-customer@example.com")))
+                .andExpect(jsonPath("$.errors").isArray());
+    }
+
+    @Test
     void staffEndpointFollowsSecurityRules() throws Exception {
         String customerToken = tokenFor("staff-denied@example.com", Role.CUSTOMER);
         String staffToken = tokenFor("staff-allowed@example.com", Role.STAFF);
@@ -99,6 +117,20 @@ class AuthorizationAndErrorApiIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.message").value("Token expired"))
+                .andExpect(jsonPath("$.data").value(nullValue()))
+                .andExpect(jsonPath("$.errors").isArray());
+    }
+
+    @Test
+    void expiredRefreshTokenReturnsStandardApiResponse() throws Exception {
+        String expiredToken = expiredToken();
+
+        mockMvc.perform(post("/api/auth/refresh")
+                        .contentType("application/json")
+                        .content(json(Map.of("token", expiredToken))))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("Invalid or expired token"))
                 .andExpect(jsonPath("$.data").value(nullValue()))
                 .andExpect(jsonPath("$.errors").isArray());
     }
