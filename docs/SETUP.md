@@ -73,6 +73,8 @@ MAIL_FROM=no-reply@hamrochalachitraghar.com
 MAIL_ENABLED=false
 PASSWORD_RESET_OTP_EXPIRATION_MINUTES=10
 PASSWORD_RESET_MAX_ATTEMPTS=5
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
 SPRING_PROFILES_ACTIVE=dev
 ```
 
@@ -93,8 +95,12 @@ SPRING_PROFILES_ACTIVE=dev
 | `MAIL_ENABLED` | `false` disables SMTP delivery in dev/test; `true` sends through SMTP |
 | `PASSWORD_RESET_OTP_EXPIRATION_MINUTES` | Password reset OTP validity window |
 | `PASSWORD_RESET_MAX_ATTEMPTS` | Maximum failed OTP verification attempts |
+| `GOOGLE_CLIENT_ID` | Google OAuth client ID used as the expected ID token audience |
+| `GOOGLE_CLIENT_SECRET` | Google OAuth client secret; loaded from configuration and never hardcoded |
 
 For local development, `MAIL_ENABLED` defaults to `false`; forgot-password still creates the reset OTP and logs the OTP only under the `dev` profile. In production, configure SMTP credentials and keep `MAIL_ENABLED=true`.
+
+Google Sign-In verifies frontend-provided Google ID tokens against `GOOGLE_CLIENT_ID`. Keep both Google values out of source control and configure separate OAuth clients for development and production when needed.
 
 ## Running Locally
 

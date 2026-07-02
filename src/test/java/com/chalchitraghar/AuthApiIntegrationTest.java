@@ -4,8 +4,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -17,12 +19,18 @@ import java.util.Map;
 
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
+import com.chalchitraghar.modules.auth.dto.GoogleUserInfo;
 import com.chalchitraghar.modules.auth.entity.PasswordResetOtp;
 import com.chalchitraghar.modules.auth.service.EmailService;
+import com.chalchitraghar.modules.auth.service.GoogleTokenVerifier;
 import com.chalchitraghar.modules.users.entity.User;
+import com.chalchitraghar.modules.users.enums.AuthProvider;
 import com.chalchitraghar.modules.users.enums.Role;
+import com.chalchitraghar.shared.exception.AuthenticationException;
+import com.chalchitraghar.shared.security.JwtUtil;
 
 class AuthApiIntegrationTest extends AbstractIntegrationTest {
 
@@ -32,6 +40,12 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
 
     @MockitoBean
     private EmailService emailService;
+
+    @MockitoBean
+    private GoogleTokenVerifier googleTokenVerifier;
+
+    @Autowired
+    private JwtUtil jwtUtil;
 
     @Test
     void registerCustomerSuccessfullyWithStrongPassword() throws Exception {
@@ -155,6 +169,144 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.message").value("Invalid or expired token"))
                 .andExpect(jsonPath("$.data").value(nullValue()))
                 .andExpect(jsonPath("$.errors").isArray());
+    }
+
+    @Test
+    void googleLoginWithValidTokenCreatesNewGoogleAccount() throws Exception {
+        when(googleTokenVerifier.verify("valid-google-token"))
+                .thenReturn(googleUser("google-123", "google-new@example.com", true));
+
+        String token = googleLoginToken("valid-google-token", "google-new@example.com");
+
+        User user = userRepository.findByEmail("google-new@example.com").orElseThrow();
+        assertThat(user.getAuthProvider()).isEqualTo(AuthProvider.GOOGLE);
+        assertThat(user.getPassword()).isNull();
+        assertThat(user.getGoogleId()).isEqualTo("google-123");
+        assertThat(user.getAvatarUrl()).isEqualTo("https://example.com/avatar.png");
+        assertThat(user.isEmailVerified()).isTrue();
+        assertThat(user.getRole()).isEqualTo(Role.CUSTOMER);
+        assertThat(jwtUtil.extractUsername(token)).isEqualTo("google-new@example.com");
+        assertThat(jwtUtil.extractRole(token)).isEqualTo("CUSTOMER");
+    }
+
+    @Test
+    void googleLoginWithInvalidTokenFails() throws Exception {
+        when(googleTokenVerifier.verify("invalid-google-token"))
+                .thenThrow(new AuthenticationException("Invalid Google ID token"));
+
+        mockMvc.perform(post("/api/auth/google")
+                        .contentType("application/json")
+                        .content(json(Map.of("idToken", "invalid-google-token"))))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("Invalid Google ID token"))
+                .andExpect(jsonPath("$.data").value(nullValue()))
+                .andExpect(jsonPath("$.errors").isArray());
+    }
+
+    @Test
+    void googleLoginWithExpiredTokenFails() throws Exception {
+        when(googleTokenVerifier.verify("expired-google-token"))
+                .thenThrow(new AuthenticationException("Invalid Google ID token"));
+
+        mockMvc.perform(post("/api/auth/google")
+                        .contentType("application/json")
+                        .content(json(Map.of("idToken", "expired-google-token"))))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("Invalid Google ID token"));
+    }
+
+    @Test
+    void googleLoginWithUnverifiedEmailFails() throws Exception {
+        when(googleTokenVerifier.verify("unverified-google-token"))
+                .thenReturn(googleUser("google-unverified", "unverified@example.com", false));
+
+        mockMvc.perform(post("/api/auth/google")
+                        .contentType("application/json")
+                        .content(json(Map.of("idToken", "unverified-google-token"))))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("Google email is not verified"))
+                .andExpect(jsonPath("$.data").value(nullValue()))
+                .andExpect(jsonPath("$.errors").isArray());
+    }
+
+    @Test
+    void googleLoginWithExistingGoogleAccountLogsInAndUpdatesAvatar() throws Exception {
+        saveGoogleUser("existing-google@example.com", "google-existing", "https://example.com/old.png");
+        when(googleTokenVerifier.verify("existing-google-token"))
+                .thenReturn(new GoogleUserInfo(
+                        "google-existing",
+                        "existing-google@example.com",
+                        "Google Existing",
+                        "https://example.com/new.png",
+                        true));
+
+        googleLoginToken("existing-google-token", "existing-google@example.com");
+
+        User user = userRepository.findByEmail("existing-google@example.com").orElseThrow();
+        assertThat(user.getAuthProvider()).isEqualTo(AuthProvider.GOOGLE);
+        assertThat(user.getGoogleId()).isEqualTo("google-existing");
+        assertThat(user.getAvatarUrl()).isEqualTo("https://example.com/new.png");
+        assertThat(user.getPassword()).isNull();
+    }
+
+    @Test
+    void googleLoginLinksExistingLocalAccountWithoutOverwritingPassword() throws Exception {
+        saveCustomerWithPassword("local-link@example.com", "OldPass@123");
+        when(googleTokenVerifier.verify("link-google-token"))
+                .thenReturn(googleUser("google-linked", "local-link@example.com", true));
+
+        googleLoginToken("link-google-token", "local-link@example.com");
+
+        User user = userRepository.findByEmail("local-link@example.com").orElseThrow();
+        assertThat(user.getAuthProvider()).isEqualTo(AuthProvider.LOCAL);
+        assertThat(user.getGoogleId()).isEqualTo("google-linked");
+        assertThat(user.getAvatarUrl()).isEqualTo("https://example.com/avatar.png");
+        assertThat(user.isEmailVerified()).isTrue();
+        assertThat(passwordEncoder.matches("OldPass@123", user.getPassword())).isTrue();
+
+        mockMvc.perform(post("/api/auth/login")
+                        .contentType("application/json")
+                        .content(json(Map.of(
+                                "email", "local-link@example.com",
+                                "password", "OldPass@123"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.token").isNotEmpty());
+    }
+
+    @Test
+    void localLoginStillWorksForLocalAccount() throws Exception {
+        saveCustomerWithPassword("local-still-works@example.com", "OldPass@123");
+
+        mockMvc.perform(post("/api/auth/login")
+                        .contentType("application/json")
+                        .content(json(Map.of(
+                                "email", "local-still-works@example.com",
+                                "password", "OldPass@123"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.token").isNotEmpty());
+    }
+
+    @Test
+    void passwordLoginForGoogleAccountFailsGracefully() throws Exception {
+        saveGoogleUser("google-password@example.com", "google-password", "https://example.com/avatar.png");
+
+        mockMvc.perform(post("/api/auth/login")
+                        .contentType("application/json")
+                        .content(json(Map.of(
+                                "email", "google-password@example.com",
+                                "password", "AnyPass@123"))))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("This account uses Google Sign-In."))
+                .andExpect(jsonPath("$.data").value(nullValue()))
+                .andExpect(jsonPath("$.errors").isArray());
+
+        verify(googleTokenVerifier, org.mockito.Mockito.never()).verify(anyString());
     }
 
     @Test
@@ -589,6 +741,22 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
                 .email(email)
                 .password(passwordEncoder.encode(password))
                 .role(Role.CUSTOMER)
+                .authProvider(AuthProvider.LOCAL)
+                .emailVerified(false)
+                .build();
+        return userRepository.save(user);
+    }
+
+    private User saveGoogleUser(String email, String googleId, String avatarUrl) {
+        User user = User.builder()
+                .name("Google User")
+                .email(email)
+                .password(null)
+                .role(Role.CUSTOMER)
+                .authProvider(AuthProvider.GOOGLE)
+                .googleId(googleId)
+                .avatarUrl(avatarUrl)
+                .emailVerified(true)
                 .build();
         return userRepository.save(user);
     }
@@ -619,5 +787,32 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
 
     private String differentOtpThan(String otp) {
         return "000000".equals(otp) ? "000001" : "000000";
+    }
+
+    private GoogleUserInfo googleUser(String googleId, String email, boolean emailVerified) {
+        return new GoogleUserInfo(
+                googleId,
+                email,
+                "Google User",
+                "https://example.com/avatar.png",
+                emailVerified);
+    }
+
+    private String googleLoginToken(String idToken, String expectedEmail) throws Exception {
+        var result = mockMvc.perform(post("/api/auth/google")
+                        .contentType("application/json")
+                        .content(json(Map.of("idToken", idToken))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.message").value("Login successful"))
+                .andExpect(jsonPath("$.data.token").isNotEmpty())
+                .andExpect(jsonPath("$.data.email").value(expectedEmail))
+                .andExpect(jsonPath("$.data.role").value("CUSTOMER"))
+                .andExpect(jsonPath("$.errors").isArray())
+                .andReturn();
+        return objectMapper.readTree(result.getResponse().getContentAsString())
+                .path("data")
+                .path("token")
+                .asText();
     }
 }

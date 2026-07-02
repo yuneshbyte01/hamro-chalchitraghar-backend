@@ -94,7 +94,7 @@ Important DTOs:
 
 | DTO | Used by |
 | --- | --- |
-| `RegistrationRequest`, `LoginRequest`, `RefreshTokenRequest`, `ForgotPasswordRequest`, `ResetPasswordRequest` | Auth |
+| `RegistrationRequest`, `LoginRequest`, `GoogleLoginRequest`, `RefreshTokenRequest`, `ForgotPasswordRequest`, `ResetPasswordRequest` | Auth |
 | `MovieRequest`, `HallRequest`, `ShowRequest` | Admin management |
 | `SeatHoldRequest`, `BookingRequest` | Customer booking workflow |
 | `MovieResponse`, `HallResponse`, `ShowResponse`, `SeatResponse`, `BookingResponse`, `UserResponse` | API responses |
@@ -133,6 +133,32 @@ sequenceDiagram
 ```
 
 `JwtAuthenticationFilter` extracts `Authorization: Bearer <token>`, validates the token, loads the user by email, and sets Spring Security authentication with `ROLE_<role>`.
+
+## Google Authentication Flow
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant AuthController
+    participant AuthService
+    participant GoogleVerifier as GoogleTokenVerifier
+    participant UserRepo as UserRepository
+    participant JwtUtil
+
+    Client->>AuthController: POST /api/auth/google
+    AuthController->>AuthService: googleLogin(idToken)
+    AuthService->>GoogleVerifier: verify ID token with Google library
+    GoogleVerifier-->>AuthService: googleId, email, name, picture, email_verified
+    AuthService->>AuthService: reject invalid token or unverified email
+    AuthService->>UserRepo: findByEmail(email)
+    AuthService->>AuthService: link LOCAL account, update GOOGLE account, or create GOOGLE account
+    AuthService->>JwtUtil: generateToken(user)
+    JwtUtil-->>AuthService: JWT with subject=email and role claim
+    AuthService-->>AuthController: LoginResponse
+    AuthController-->>Client: ApiResponse<LoginResponse>
+```
+
+Google authentication keeps the existing JWT format unchanged: subject is the user email and the `role` claim is the role name. Existing local accounts are linked only when Google reports a verified email, and the local BCrypt password is preserved. Google-only accounts store no password and password login returns `This account uses Google Sign-In.`.
 
 ## Password Reset Flow
 

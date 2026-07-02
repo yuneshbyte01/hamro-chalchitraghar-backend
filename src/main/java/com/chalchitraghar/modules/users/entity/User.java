@@ -2,6 +2,7 @@ package com.chalchitraghar.modules.users.entity;
 
 import com.chalchitraghar.shared.GenericEntity;
 
+import com.chalchitraghar.modules.users.enums.AuthProvider;
 import com.chalchitraghar.modules.users.enums.Role;
 
 import jakarta.persistence.Column;
@@ -12,7 +13,6 @@ import jakarta.persistence.Table;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -47,11 +47,9 @@ public class User extends GenericEntity {
     private String email;
 
     /**
-     * Encrypted password. Must be at least 8 characters long.
+     * Encrypted password. Nullable for Google-only accounts.
      */
-    @Column(nullable = false)
-    @NotBlank(message = "Password is required")
-    @Size(min = 8, message = "Password must be at least 8 characters long")
+    @Column
     private String password;
 
     /**
@@ -62,4 +60,20 @@ public class User extends GenericEntity {
     @NotNull(message = "Role is required")
     @Enumerated(EnumType.STRING)
     private Role role;
+
+    @Column(nullable = false, length = 20)
+    @NotNull(message = "Auth provider is required")
+    @Enumerated(EnumType.STRING)
+    @Builder.Default
+    private AuthProvider authProvider = AuthProvider.LOCAL;
+
+    @Column
+    private String googleId;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean emailVerified = false;
+
+    @Column(length = 500)
+    private String avatarUrl;
 }

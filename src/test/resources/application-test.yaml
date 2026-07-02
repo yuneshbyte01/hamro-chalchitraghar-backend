@@ -31,3 +31,7 @@ app:
   password-reset:
     otp-expiration-minutes: 10
     max-attempts: 5
+
+google:
+  client-id: test-google-client-id
+  client-secret: test-google-client-secret

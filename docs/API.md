@@ -153,7 +153,52 @@ Response `200`:
 }
 ```
 
-Errors: `401` invalid credentials.
+Errors: `401` invalid credentials. Google-only accounts return `This account uses Google Sign-In.` when password login is attempted.
+
+### `POST /api/auth/google`
+
+| Field | Value |
+| --- | --- |
+| Authentication | Public |
+| Description | Verifies a Google ID token with Google's official verifier, links or creates the account, and returns the same JWT response shape as local login. |
+
+Request:
+
+```json
+{
+  "idToken": "GOOGLE_ID_TOKEN"
+}
+```
+
+Validation:
+
+| Field | Rules |
+| --- | --- |
+| `idToken` | Required, valid Google ID token, audience must match `GOOGLE_CLIENT_ID`, email must be verified |
+
+Response `200`:
+
+```json
+{
+  "success": true,
+  "message": "Login successful",
+  "data": {
+    "token": "eyJhbGciOiJIUzI1NiJ9...",
+    "email": "aarav@example.com",
+    "name": "Aarav Sharma",
+    "role": "CUSTOMER"
+  },
+  "errors": []
+}
+```
+
+Account handling:
+
+- Existing `LOCAL` account with the same verified email is linked by storing `google_id`, `avatar_url`, and `email_verified=true`; the local password is never overwritten.
+- Existing `GOOGLE` account logs in directly and refreshes the avatar URL when it changes.
+- New Google users are created with role `CUSTOMER`, `auth_provider=GOOGLE`, verified email, nullable password, and JWT authentication.
+
+Errors: `400` missing token, `401` invalid token, expired token, audience mismatch, or unverified Google email.
 
 ### `POST /api/auth/refresh`
 

@@ -9,6 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.chalchitraghar.shared.exception.ResourceNotFoundException;
 import com.chalchitraghar.modules.users.entity.User;
+import com.chalchitraghar.modules.users.enums.AuthProvider;
 import com.chalchitraghar.modules.users.enums.Role;
 import com.chalchitraghar.modules.users.repository.UserRepository;
 
@@ -31,6 +32,8 @@ public class UserServiceImpl implements UserService {
                 .email(email)
                 .password(passwordEncoder.encode(password))
                 .role(Role.CUSTOMER)
+                .authProvider(AuthProvider.LOCAL)
+                .emailVerified(false)
                 .build();
         return userRepository.save(user);
     }

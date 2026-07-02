@@ -38,6 +38,10 @@ erDiagram
         varchar email UK
         varchar password
         varchar role
+        varchar auth_provider
+        varchar google_id
+        boolean email_verified
+        varchar avatar_url
     }
 
     PASSWORD_RESET_OTPS {
@@ -141,15 +145,25 @@ erDiagram
 
 Stores authentication and authorization accounts.
 
-| Column       | Type           | Nullable | Constraints                               | Entity field |
-|--------------|----------------|----------|-------------------------------------------|--------------|
-| `id`         | `BIGSERIAL`    | No       | Primary key                               | `id`         |
-| `created_at` | `TIMESTAMP`    | No       | Set by `GenericEntity`                    | `createdAt`  |
-| `updated_at` | `TIMESTAMP`    | No       | Set by `GenericEntity`                    | `updatedAt`  |
-| `name`       | `VARCHAR(255)` | No       | Not blank validation                      | `name`       |
-| `email`      | `VARCHAR(255)` | No       | Unique `uk_users_email`, email validation | `email`      |
-| `password`   | `VARCHAR(255)` | No       | BCrypt hash stored                        | `password`   |
-| `role`       | `VARCHAR(255)` | No       | Enum string: `CUSTOMER`, `STAFF`, `ADMIN` | `role`       |
+| Column           | Type           | Nullable | Constraints                                      | Entity field     |
+|------------------|----------------|----------|--------------------------------------------------|------------------|
+| `id`             | `BIGSERIAL`    | No       | Primary key                                      | `id`             |
+| `created_at`     | `TIMESTAMP`    | No       | Set by `GenericEntity`                           | `createdAt`      |
+| `updated_at`     | `TIMESTAMP`    | No       | Set by `GenericEntity`                           | `updatedAt`      |
+| `name`           | `VARCHAR(255)` | No       | Not blank validation                             | `name`           |
+| `email`          | `VARCHAR(255)` | No       | Unique `uk_users_email`, email validation        | `email`          |
+| `password`       | `VARCHAR(255)` | Yes      | BCrypt hash for local accounts; null for Google-only accounts | `password`       |
+| `role`           | `VARCHAR(255)` | No       | Enum string: `CUSTOMER`, `STAFF`, `ADMIN`        | `role`           |
+| `auth_provider`  | `VARCHAR(20)`  | No       | Enum string: `LOCAL`, `GOOGLE`; default `LOCAL`  | `authProvider`   |
+| `google_id`      | `VARCHAR(255)` | Yes      | Google account subject identifier                | `googleId`       |
+| `email_verified` | `BOOLEAN`      | No       | Default `false`; true for verified Google email  | `emailVerified`  |
+| `avatar_url`     | `VARCHAR(500)` | Yes      | Google profile picture URL                       | `avatarUrl`      |
+
+Authentication provider rules:
+
+- `LOCAL` users authenticate with BCrypt password login and may also be linked to Google by verified email.
+- `GOOGLE` users authenticate with Google ID tokens; their password is nullable and password login is rejected with a clean authentication error.
+- Account linking stores Google metadata without overwriting an existing local password.
 
 ### `password_reset_otps`
 
@@ -374,6 +388,7 @@ Seat locking queries use `PESSIMISTIC_WRITE` to prevent concurrent booking updat
 | 8     | Creates booking-seat join table                 |
 | 9     | Adds `locked_by_user_id` to seats               |
 | 10    | Creates password reset OTPs                     |
+| 11    | Adds Google auth fields to users                |
 
 Migration rules:
 

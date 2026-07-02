@@ -29,3 +29,7 @@ app:
   password-reset:
     otp-expiration-minutes: ${PASSWORD_RESET_OTP_EXPIRATION_MINUTES}
     max-attempts: ${PASSWORD_RESET_MAX_ATTEMPTS}
+
+google:
+  client-id: ${GOOGLE_CLIENT_ID}
+  client-secret: ${GOOGLE_CLIENT_SECRET}

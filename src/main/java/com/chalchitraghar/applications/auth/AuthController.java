@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.chalchitraghar.modules.auth.dto.request.LoginRequest;
 import com.chalchitraghar.modules.auth.dto.response.LoginResponse;
 import com.chalchitraghar.modules.auth.dto.request.ForgotPasswordRequest;
+import com.chalchitraghar.modules.auth.dto.request.GoogleLoginRequest;
 import com.chalchitraghar.modules.auth.dto.request.RefreshTokenRequest;
 import com.chalchitraghar.modules.auth.dto.request.RegistrationRequest;
 import com.chalchitraghar.modules.auth.dto.request.ResetPasswordRequest;
@@ -18,6 +19,8 @@ import com.chalchitraghar.modules.auth.service.AuthService;
 import com.chalchitraghar.modules.auth.service.PasswordResetService;
 import com.chalchitraghar.shared.response.ApiResponse;
 
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -60,6 +63,48 @@ public class AuthController {
     @Operation(summary = "Login and get a JWT", description = "Authenticates credentials and returns a JWT with email and role claims.")
     public ResponseEntity<ApiResponse<LoginResponse>> login(@Valid @RequestBody LoginRequest request) {
         LoginResponse response = authService.login(request);
+        return ResponseEntity.ok(ApiResponse.success("Login successful", response));
+    }
+
+    @PostMapping("/google")
+    @Operation(
+            summary = "Login with Google",
+            description = "Verifies a Google ID token, links or creates the account, and returns a JWT.")
+    @io.swagger.v3.oas.annotations.responses.ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "Google login successful",
+                    content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
+                            {
+                              "success": true,
+                              "message": "Login successful",
+                              "data": {
+                                "token": "eyJhbGciOiJIUzI1NiJ9...",
+                                "email": "aarav@example.com",
+                                "name": "Aarav Sharma",
+                                "role": "CUSTOMER"
+                              },
+                              "errors": []
+                            }
+                            """))),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "400",
+                    description = "Missing Google ID token",
+                    content = @Content(mediaType = "application/json")),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "401",
+                    description = "Invalid token, expired token, audience mismatch, or unverified Google email",
+                    content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
+                            {
+                              "success": false,
+                              "message": "Invalid Google ID token",
+                              "data": null,
+                              "errors": []
+                            }
+                            """)))
+    })
+    public ResponseEntity<ApiResponse<LoginResponse>> googleLogin(@Valid @RequestBody GoogleLoginRequest request) {
+        LoginResponse response = authService.googleLogin(request);
         return ResponseEntity.ok(ApiResponse.success("Login successful", response));
     }
 
