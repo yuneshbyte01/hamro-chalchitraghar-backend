@@ -1,21 +1,23 @@
 package com.chalchitraghar.applications.admin;
 
-import java.util.List;
-
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.chalchitraghar.modules.users.dto.request.AdminUserSearchCriteria;
 import com.chalchitraghar.modules.users.dto.response.AdminUserDetailResponse;
 import com.chalchitraghar.modules.users.dto.response.AdminUserSummaryResponse;
 import com.chalchitraghar.modules.users.entity.User;
 import com.chalchitraghar.modules.users.mapper.UserMapper;
 import com.chalchitraghar.modules.users.service.UserService;
 import com.chalchitraghar.shared.response.ApiResponse;
+import com.chalchitraghar.shared.response.PageResponse;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -46,23 +48,53 @@ public class AdminUserController {
                     {
                       "success": true,
                       "message": "Users fetched successfully",
-                      "data": [
-                        {
-                          "id": 1,
-                          "name": "Aarav Sharma",
-                          "email": "aarav@example.com",
-                          "role": "CUSTOMER",
-                          "enabled": true,
-                          "locked": false
-                        }
-                      ],
+                      "data": {
+                        "content": [
+                          {
+                            "id": 1,
+                            "name": "Aarav Sharma",
+                            "email": "aarav@example.com",
+                            "role": "CUSTOMER",
+                            "enabled": true,
+                            "locked": false
+                          }
+                        ],
+                        "page": 0,
+                        "size": 20,
+                        "totalElements": 1,
+                        "totalPages": 1,
+                        "last": true
+                      },
                       "errors": []
                     }
                     """)))
-    public ResponseEntity<ApiResponse<List<AdminUserSummaryResponse>>> getAllUsers() {
-        List<AdminUserSummaryResponse> users = userService.getAllUsers().stream()
-                .map(userMapper::toAdminSummaryResponse)
-                .toList();
+    public ResponseEntity<ApiResponse<PageResponse<AdminUserSummaryResponse>>> getAllUsers(
+            @Parameter(description = "Zero-based page index")
+            @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "Page size")
+            @RequestParam(defaultValue = "20") int size,
+            @Parameter(description = "Sort field: id, name, email, role, enabled, locked, authProvider, createdAt, updatedAt, lastLoginAt")
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @Parameter(description = "Sort direction: asc or desc")
+            @RequestParam(defaultValue = "desc") String sortDir,
+            @Parameter(description = "Case-insensitive search term matched against name and email")
+            @RequestParam(required = false) String search,
+            @Parameter(description = "Filter by role: CUSTOMER, STAFF, ADMIN")
+            @RequestParam(required = false) String role,
+            @Parameter(description = "Filter by auth provider: LOCAL, GOOGLE")
+            @RequestParam(required = false) String authProvider,
+            @Parameter(description = "Filter by enabled account status")
+            @RequestParam(required = false) Boolean enabled,
+            @Parameter(description = "Filter by locked account status")
+            @RequestParam(required = false) Boolean locked,
+            @Parameter(description = "Filter by email verification status")
+            @RequestParam(required = false) Boolean emailVerified) {
+        PageResponse<AdminUserSummaryResponse> users = userService.getAdminUsers(
+                new AdminUserSearchCriteria(search, role, authProvider, enabled, locked, emailVerified),
+                page,
+                size,
+                sortBy,
+                sortDir);
         return ResponseEntity.ok(ApiResponse.success("Users fetched successfully", users));
     }
 

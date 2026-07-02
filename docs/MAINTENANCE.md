@@ -252,6 +252,7 @@ Run the same command locally before pushing.
 | Constructor injection | Lombok `@RequiredArgsConstructor` |
 | DTOs | Lombok `@Data`, `@NoArgsConstructor`, `@AllArgsConstructor` where useful |
 | Responses | Standard `ApiResponse<T>` |
+| Pagination | Use `PageResponse<T>` inside `ApiResponse<T>` for paginated list endpoints |
 | Exceptions | Centralized by `GlobalExceptionHandler` |
 | Authorization | Centralized in `SecurityConfig` |
 | Passwords | BCrypt only |
@@ -273,6 +274,25 @@ Account status is tracked on `users`:
 - Google token verification failures do not increment local password failure counters.
 - Registration, profile password change, and OTP reset update `password_changed_at`.
 - JWTs issued before `password_changed_at` return `Token is no longer valid after password change`.
+
+## Admin User List Maintenance
+
+`GET /api/admin/users` is intentionally paginated and filterable so it remains safe on large user tables.
+
+Supported query parameters:
+
+| Parameter | Purpose |
+| --- | --- |
+| `page`, `size` | Bound result windows; defaults are `0` and `20` |
+| `sortBy`, `sortDir` | Sort by an allowlisted field in `asc` or `desc` direction |
+| `search` | Case-insensitive match against user `name` or `email` |
+| `role` | Filter by `CUSTOMER`, `STAFF`, or `ADMIN` |
+| `authProvider` | Filter by `LOCAL` or `GOOGLE` |
+| `enabled`, `locked`, `emailVerified` | Filter by account booleans |
+
+Allowed sort fields are `id`, `name`, `email`, `role`, `enabled`, `locked`, `authProvider`, `createdAt`, `updatedAt`, and `lastLoginAt`.
+
+Keep user list changes inside `UserService`, `UserSpecification`, `UserMapper`, and the admin controller. Do not expose `password`, `googleId`, OTP hashes, or other internal authentication data in list or detail DTOs.
 
 ## Git Workflow
 

@@ -13,12 +13,13 @@ import org.junit.jupiter.api.Test;
 import org.springframework.test.web.servlet.MvcResult;
 
 import com.chalchitraghar.modules.users.entity.User;
+import com.chalchitraghar.modules.users.enums.AuthProvider;
 import com.chalchitraghar.modules.users.enums.Role;
 
 class AdminUserApiIntegrationTest extends AbstractIntegrationTest {
 
     @Test
-    void getAdminUsersReturnsSummaryForAdmin() throws Exception {
+    void getAdminUsersReturnsDefaultPaginatedSummaryForAdmin() throws Exception {
         String adminToken = tokenFor("admin-list@example.com", Role.ADMIN);
         User customer = saveUser("customer-list@example.com", Role.CUSTOMER);
         customer.setEnabled(false);
@@ -30,14 +31,19 @@ class AdminUserApiIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.message").value("Users fetched successfully"))
-                .andExpect(jsonPath("$.data").isArray())
-                .andExpect(jsonPath("$.data[*].email", hasItems(
+                .andExpect(jsonPath("$.data.content").isArray())
+                .andExpect(jsonPath("$.data.page").value(0))
+                .andExpect(jsonPath("$.data.size").value(20))
+                .andExpect(jsonPath("$.data.totalElements").value(2))
+                .andExpect(jsonPath("$.data.totalPages").value(1))
+                .andExpect(jsonPath("$.data.last").value(true))
+                .andExpect(jsonPath("$.data.content[*].email", hasItems(
                         "admin-list@example.com",
                         "customer-list@example.com")))
-                .andExpect(jsonPath("$.data[*].enabled").isArray())
-                .andExpect(jsonPath("$.data[*].locked").isArray())
-                .andExpect(jsonPath("$.data[0].password").doesNotExist())
-                .andExpect(jsonPath("$.data[0].googleId").doesNotExist())
+                .andExpect(jsonPath("$.data.content[*].enabled").isArray())
+                .andExpect(jsonPath("$.data.content[*].locked").isArray())
+                .andExpect(jsonPath("$.data.content[0].password").doesNotExist())
+                .andExpect(jsonPath("$.data.content[0].googleId").doesNotExist())
                 .andExpect(jsonPath("$.errors").isArray())
                 .andReturn();
 
@@ -45,6 +51,257 @@ class AdminUserApiIntegrationTest extends AbstractIntegrationTest {
         assertThat(body).doesNotContain("\"password\":");
         assertThat(body).doesNotContain("\"googleId\":");
         assertThat(body).doesNotContain("\"otp");
+    }
+
+    @Test
+    void getAdminUsersSupportsPageAndSizeParameters() throws Exception {
+        String adminToken = tokenFor("admin-page@example.com", Role.ADMIN);
+        saveUser("page-a@example.com", Role.CUSTOMER);
+        saveUser("page-b@example.com", Role.CUSTOMER);
+        saveUser("page-c@example.com", Role.CUSTOMER);
+
+        mockMvc.perform(get("/api/admin/users")
+                        .header("Authorization", bearer(adminToken))
+                        .param("page", "1")
+                        .param("size", "2")
+                        .param("sortBy", "email")
+                        .param("sortDir", "asc"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.content").isArray())
+                .andExpect(jsonPath("$.data.content.length()").value(2))
+                .andExpect(jsonPath("$.data.page").value(1))
+                .andExpect(jsonPath("$.data.size").value(2))
+                .andExpect(jsonPath("$.data.totalElements").value(4))
+                .andExpect(jsonPath("$.data.totalPages").value(2))
+                .andExpect(jsonPath("$.data.last").value(true));
+    }
+
+    @Test
+    void getAdminUsersSortsByNameAscending() throws Exception {
+        String adminToken = tokenFor("admin-sort-name@example.com", Role.ADMIN);
+        saveNamedUser("zeta@example.com", "Zeta User", Role.CUSTOMER);
+        saveNamedUser("alpha@example.com", "Alpha User", Role.CUSTOMER);
+
+        MvcResult result = mockMvc.perform(get("/api/admin/users")
+                        .header("Authorization", bearer(adminToken))
+                        .param("role", "CUSTOMER")
+                        .param("sortBy", "name")
+                        .param("sortDir", "asc"))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        var content = objectMapper.readTree(result.getResponse().getContentAsString())
+                .path("data")
+                .path("content");
+        assertThat(content.get(0).path("name").asText()).isEqualTo("Alpha User");
+        assertThat(content.get(1).path("name").asText()).isEqualTo("Zeta User");
+    }
+
+    @Test
+    void getAdminUsersSortsByCreatedAtDescending() throws Exception {
+        String adminToken = tokenFor("admin-sort-created@example.com", Role.ADMIN);
+        saveNamedUser("older@example.com", "Older User", Role.CUSTOMER);
+        Thread.sleep(20);
+        saveNamedUser("newer@example.com", "Newer User", Role.CUSTOMER);
+
+        MvcResult result = mockMvc.perform(get("/api/admin/users")
+                        .header("Authorization", bearer(adminToken))
+                        .param("role", "CUSTOMER")
+                        .param("sortBy", "createdAt")
+                        .param("sortDir", "desc"))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        var content = objectMapper.readTree(result.getResponse().getContentAsString())
+                .path("data")
+                .path("content");
+        assertThat(content.get(0).path("email").asText()).isEqualTo("newer@example.com");
+        assertThat(content.get(1).path("email").asText()).isEqualTo("older@example.com");
+    }
+
+    @Test
+    void getAdminUsersRejectsInvalidSortBy() throws Exception {
+        String adminToken = tokenFor("admin-invalid-sort-by@example.com", Role.ADMIN);
+
+        mockMvc.perform(get("/api/admin/users")
+                        .header("Authorization", bearer(adminToken))
+                        .param("sortBy", "password"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.startsWith("Invalid sortBy")))
+                .andExpect(jsonPath("$.data").value(nullValue()))
+                .andExpect(jsonPath("$.errors").isArray());
+    }
+
+    @Test
+    void getAdminUsersRejectsInvalidSortDir() throws Exception {
+        String adminToken = tokenFor("admin-invalid-sort-dir@example.com", Role.ADMIN);
+
+        mockMvc.perform(get("/api/admin/users")
+                        .header("Authorization", bearer(adminToken))
+                        .param("sortDir", "sideways"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("Invalid sortDir. Allowed values: asc, desc"))
+                .andExpect(jsonPath("$.data").value(nullValue()))
+                .andExpect(jsonPath("$.errors").isArray());
+    }
+
+    @Test
+    void getAdminUsersSearchesByName() throws Exception {
+        String adminToken = tokenFor("admin-search-name@example.com", Role.ADMIN);
+        saveNamedUser("ram-name@example.com", "Ram Bahadur", Role.CUSTOMER);
+        saveNamedUser("sita-name@example.com", "Sita Devi", Role.CUSTOMER);
+
+        mockMvc.perform(get("/api/admin/users")
+                        .header("Authorization", bearer(adminToken))
+                        .param("search", "ram")
+                        .param("role", "CUSTOMER"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.totalElements").value(1))
+                .andExpect(jsonPath("$.data.content[0].email").value("ram-name@example.com"));
+    }
+
+    @Test
+    void getAdminUsersSearchesByEmail() throws Exception {
+        String adminToken = tokenFor("admin-search-email@example.com", Role.ADMIN);
+        saveNamedUser("ram.email@example.com", "Email Match", Role.CUSTOMER);
+        saveNamedUser("sita.email@example.com", "Other Match", Role.CUSTOMER);
+
+        mockMvc.perform(get("/api/admin/users")
+                        .header("Authorization", bearer(adminToken))
+                        .param("search", "ram.email")
+                        .param("role", "CUSTOMER"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.totalElements").value(1))
+                .andExpect(jsonPath("$.data.content[0].email").value("ram.email@example.com"));
+    }
+
+    @Test
+    void getAdminUsersFiltersByRole() throws Exception {
+        String adminToken = tokenFor("admin-filter-role@example.com", Role.ADMIN);
+        saveUser("role-customer@example.com", Role.CUSTOMER);
+        saveUser("role-staff@example.com", Role.STAFF);
+
+        mockMvc.perform(get("/api/admin/users")
+                        .header("Authorization", bearer(adminToken))
+                        .param("role", "STAFF"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.totalElements").value(1))
+                .andExpect(jsonPath("$.data.content[0].email").value("role-staff@example.com"))
+                .andExpect(jsonPath("$.data.content[0].role").value("STAFF"));
+    }
+
+    @Test
+    void getAdminUsersFiltersByEnabled() throws Exception {
+        String adminToken = tokenFor("admin-filter-enabled@example.com", Role.ADMIN);
+        User disabled = saveUser("disabled-filter@example.com", Role.CUSTOMER);
+        disabled.setEnabled(false);
+        userRepository.save(disabled);
+        saveUser("enabled-filter@example.com", Role.CUSTOMER);
+
+        mockMvc.perform(get("/api/admin/users")
+                        .header("Authorization", bearer(adminToken))
+                        .param("role", "CUSTOMER")
+                        .param("enabled", "false"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.totalElements").value(1))
+                .andExpect(jsonPath("$.data.content[0].email").value("disabled-filter@example.com"))
+                .andExpect(jsonPath("$.data.content[0].enabled").value(false));
+    }
+
+    @Test
+    void getAdminUsersFiltersByLocked() throws Exception {
+        String adminToken = tokenFor("admin-filter-locked@example.com", Role.ADMIN);
+        User locked = saveUser("locked-filter@example.com", Role.CUSTOMER);
+        locked.setLocked(true);
+        userRepository.save(locked);
+        saveUser("unlocked-filter@example.com", Role.CUSTOMER);
+
+        mockMvc.perform(get("/api/admin/users")
+                        .header("Authorization", bearer(adminToken))
+                        .param("role", "CUSTOMER")
+                        .param("locked", "true"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.totalElements").value(1))
+                .andExpect(jsonPath("$.data.content[0].email").value("locked-filter@example.com"))
+                .andExpect(jsonPath("$.data.content[0].locked").value(true));
+    }
+
+    @Test
+    void getAdminUsersFiltersByAuthProvider() throws Exception {
+        String adminToken = tokenFor("admin-filter-provider@example.com", Role.ADMIN);
+        saveGoogleUser("google-filter@example.com");
+        saveUser("local-filter@example.com", Role.CUSTOMER);
+
+        mockMvc.perform(get("/api/admin/users")
+                        .header("Authorization", bearer(adminToken))
+                        .param("authProvider", "GOOGLE"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.totalElements").value(1))
+                .andExpect(jsonPath("$.data.content[0].email").value("google-filter@example.com"));
+    }
+
+    @Test
+    void getAdminUsersFiltersByEmailVerified() throws Exception {
+        String adminToken = tokenFor("admin-filter-verified@example.com", Role.ADMIN);
+        User verified = saveUser("verified-filter@example.com", Role.CUSTOMER);
+        verified.setEmailVerified(true);
+        userRepository.save(verified);
+        saveUser("unverified-filter@example.com", Role.CUSTOMER);
+
+        mockMvc.perform(get("/api/admin/users")
+                        .header("Authorization", bearer(adminToken))
+                        .param("role", "CUSTOMER")
+                        .param("emailVerified", "true"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.totalElements").value(1))
+                .andExpect(jsonPath("$.data.content[0].email").value("verified-filter@example.com"));
+    }
+
+    @Test
+    void getAdminUsersCombinesSearchAndFilter() throws Exception {
+        String adminToken = tokenFor("admin-combined@example.com", Role.ADMIN);
+        User matching = saveNamedUser("ram-enabled@example.com", "Ram Enabled", Role.CUSTOMER);
+        matching.setEnabled(true);
+        userRepository.save(matching);
+        User disabled = saveNamedUser("ram-disabled@example.com", "Ram Disabled", Role.CUSTOMER);
+        disabled.setEnabled(false);
+        userRepository.save(disabled);
+        saveNamedUser("sita-enabled@example.com", "Sita Enabled", Role.CUSTOMER);
+
+        mockMvc.perform(get("/api/admin/users")
+                        .header("Authorization", bearer(adminToken))
+                        .param("search", "ram")
+                        .param("role", "CUSTOMER")
+                        .param("enabled", "true"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.totalElements").value(1))
+                .andExpect(jsonPath("$.data.content[0].email").value("ram-enabled@example.com"));
+    }
+
+    @Test
+    void getAdminUsersRejectsInvalidRole() throws Exception {
+        String adminToken = tokenFor("admin-invalid-role@example.com", Role.ADMIN);
+
+        mockMvc.perform(get("/api/admin/users")
+                        .header("Authorization", bearer(adminToken))
+                        .param("role", "OWNER"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.startsWith("Invalid role")));
+    }
+
+    @Test
+    void getAdminUsersRejectsInvalidAuthProvider() throws Exception {
+        String adminToken = tokenFor("admin-invalid-provider@example.com", Role.ADMIN);
+
+        mockMvc.perform(get("/api/admin/users")
+                        .header("Authorization", bearer(adminToken))
+                        .param("authProvider", "PASSWORD"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.startsWith("Invalid authProvider")));
     }
 
     @Test
@@ -153,5 +410,23 @@ class AdminUserApiIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.message").value("Access denied"));
+    }
+
+    private User saveNamedUser(String email, String name, Role role) {
+        User user = saveUser(email, role);
+        user.setName(name);
+        return userRepository.save(user);
+    }
+
+    private User saveGoogleUser(String email) {
+        User user = User.builder()
+                .name("Google User")
+                .email(email)
+                .password(null)
+                .role(Role.CUSTOMER)
+                .authProvider(AuthProvider.GOOGLE)
+                .emailVerified(true)
+                .build();
+        return userRepository.save(user);
     }
 }

@@ -72,10 +72,12 @@ class AuthorizationAndErrorApiIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.message").value("Users fetched successfully"))
-                .andExpect(jsonPath("$.data").isArray())
-                .andExpect(jsonPath("$.data[*].email", hasItems(
+                .andExpect(jsonPath("$.data.content").isArray())
+                .andExpect(jsonPath("$.data.content[*].email", hasItems(
                         "admin-users@example.com",
                         "listed-customer@example.com")))
+                .andExpect(jsonPath("$.data.page").value(0))
+                .andExpect(jsonPath("$.data.size").value(20))
                 .andExpect(jsonPath("$.errors").isArray());
     }
 

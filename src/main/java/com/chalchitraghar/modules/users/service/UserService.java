@@ -2,7 +2,10 @@ package com.chalchitraghar.modules.users.service;
 
 import java.util.List;
 
+import com.chalchitraghar.modules.users.dto.request.AdminUserSearchCriteria;
+import com.chalchitraghar.modules.users.dto.response.AdminUserSummaryResponse;
 import com.chalchitraghar.modules.users.entity.User;
+import com.chalchitraghar.shared.response.PageResponse;
 
 /**
  * Service for user management operations.
@@ -14,6 +17,13 @@ public interface UserService {
     User getUserByEmail(String email);
 
     List<User> getAllUsers();
+
+    PageResponse<AdminUserSummaryResponse> getAdminUsers(
+            AdminUserSearchCriteria criteria,
+            int page,
+            int size,
+            String sortBy,
+            String sortDir);
 
     User getUserById(Long id);
 

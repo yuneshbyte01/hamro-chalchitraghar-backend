@@ -1110,9 +1110,31 @@ Errors: `404` show not found.
 | Field | Value |
 | --- | --- |
 | Authentication | ADMIN |
-| Description | Lists all users using `AdminUserSummaryResponse`. Passwords, Google subject IDs, and OTP data are never returned. |
+| Description | Lists users using paginated `AdminUserSummaryResponse` results. Passwords, Google subject IDs, and OTP data are never returned. |
 | Request body | None |
-| Validation | ADMIN token |
+| Validation | ADMIN token; invalid sort fields, sort direction, or enum filters return `400` |
+
+Query parameters:
+
+| Parameter | Default | Description |
+| --- | --- | --- |
+| `page` | `0` | Zero-based page index |
+| `size` | `20` | Number of users per page |
+| `sortBy` | `createdAt` | One of `id`, `name`, `email`, `role`, `enabled`, `locked`, `authProvider`, `createdAt`, `updatedAt`, `lastLoginAt` |
+| `sortDir` | `desc` | `asc` or `desc` |
+| `search` | none | Case-insensitive match against `name` or `email` |
+| `role` | none | `CUSTOMER`, `STAFF`, or `ADMIN` |
+| `authProvider` | none | `LOCAL` or `GOOGLE` |
+| `enabled` | none | `true` or `false` |
+| `locked` | none | `true` or `false` |
+| `emailVerified` | none | `true` or `false` |
+
+Example filters:
+
+```http
+GET /api/admin/users?search=ram&role=CUSTOMER&enabled=true
+GET /api/admin/users?authProvider=GOOGLE&sortBy=lastLoginAt&sortDir=desc
+```
 
 Response `200`:
 
@@ -1120,19 +1142,28 @@ Response `200`:
 {
   "success": true,
   "message": "Users fetched successfully",
-  "data": [
-    {
-      "id": 1,
-      "name": "Aarav Sharma",
-      "email": "aarav@example.com",
-      "role": "CUSTOMER",
-      "enabled": true,
-      "locked": false
-    }
-  ],
+  "data": {
+    "content": [
+      {
+        "id": 1,
+        "name": "Aarav Sharma",
+        "email": "aarav@example.com",
+        "role": "CUSTOMER",
+        "enabled": true,
+        "locked": false
+      }
+    ],
+    "page": 0,
+    "size": 20,
+    "totalElements": 100,
+    "totalPages": 5,
+    "last": false
+  },
   "errors": []
 }
 ```
+
+Errors: `400` invalid `sortBy`, `sortDir`, `role`, or `authProvider`; `401` unauthenticated; `403` non-admin role.
 
 #### `GET /api/admin/users/{id}`
 
@@ -1177,6 +1208,7 @@ User response separation:
 - `AdminUserSummaryResponse` is used for admin user lists and adds `enabled` and `locked`.
 - `AdminUserDetailResponse` is used for admin user detail and adds account status, auth provider, login metadata, and audit timestamps.
 - `UserMapper` converts `User` entities to each safe response shape.
+- `PageResponse<T>` wraps paginated list content with `page`, `size`, `totalElements`, `totalPages`, and `last`.
 
 ## Response DTO Summary
 
@@ -1190,3 +1222,4 @@ User response separation:
 | `UserResponse` | `id`, `name`, `email`, `role` |
 | `AdminUserSummaryResponse` | `id`, `name`, `email`, `role`, `enabled`, `locked` |
 | `AdminUserDetailResponse` | `id`, `name`, `email`, `role`, `authProvider`, `emailVerified`, `enabled`, `locked`, `failedLoginAttempts`, `lockedUntil`, `lastLoginAt`, `passwordChangedAt`, `createdAt`, `updatedAt` |
+| `PageResponse<T>` | `content`, `page`, `size`, `totalElements`, `totalPages`, `last` |
