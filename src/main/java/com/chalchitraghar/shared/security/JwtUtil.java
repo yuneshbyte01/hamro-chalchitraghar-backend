@@ -1,6 +1,7 @@
 package com.chalchitraghar.shared.security;
 
 import java.nio.charset.StandardCharsets;
+import java.time.ZoneId;
 import java.util.Date;
 
 import javax.crypto.SecretKey;
@@ -83,6 +84,21 @@ public class JwtUtil {
     public String extractRole(String token) {
         Object role = extractAllClaims(token).get("role");
         return (role == null) ? null : role.toString();
+    }
+
+    public Date extractIssuedAt(String token) {
+        return extractAllClaims(token).getIssuedAt();
+    }
+
+    public boolean wasIssuedBeforePasswordChanged(String token, User user) {
+        if (user.getPasswordChangedAt() == null) {
+            return false;
+        }
+        Date issuedAt = extractIssuedAt(token);
+        Date passwordChangedAt = Date.from(user.getPasswordChangedAt()
+                .atZone(ZoneId.systemDefault())
+                .toInstant());
+        return issuedAt.before(passwordChangedAt);
     }
 
     /**

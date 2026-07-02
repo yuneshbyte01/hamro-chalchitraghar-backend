@@ -256,9 +256,23 @@ Run the same command locally before pushing.
 | Authorization | Centralized in `SecurityConfig` |
 | Passwords | BCrypt only |
 | JWT claims | Subject is email, `role` claim is role name |
+| JWT validity | Reject tokens issued before `password_changed_at` |
 | Entity enums | Stored as strings |
 | Soft delete | Status updates, not row deletion, for movies, halls, and shows |
 | Schema changes | Flyway migration first, entity mapping second |
+
+## Authentication Hardening
+
+Account status is tracked on `users`:
+
+- `enabled=false` blocks local login, Google login, and protected endpoint access with existing JWTs.
+- Wrong local passwords increment `failed_login_attempts`.
+- 5 failed local password attempts set `locked=true` and `locked_until=now+15 minutes`.
+- Active lockouts return `Account is temporarily locked. Please try again later.`
+- Successful local or Google login resets failed attempts, clears expired lock state, and updates `last_login_at`.
+- Google token verification failures do not increment local password failure counters.
+- Registration, profile password change, and OTP reset update `password_changed_at`.
+- JWTs issued before `password_changed_at` return `Token is no longer valid after password change`.
 
 ## Git Workflow
 
@@ -274,6 +288,9 @@ Run the same command locally before pushing.
 | --- | --- |
 | Registration | New users are created with `CUSTOMER` role |
 | Login | Passwords are checked with BCrypt |
+| Login | 5 failed local password attempts lock the account for 15 minutes |
+| Login | Disabled or actively locked accounts cannot authenticate |
+| JWT | Tokens issued before the latest password change are rejected |
 | Shows | Can be scheduled only for `NOW_SHOWING` movies |
 | Shows | Cannot be scheduled in `INACTIVE` halls |
 | Shows | Cannot overlap another non-cancelled show in the same hall/date |

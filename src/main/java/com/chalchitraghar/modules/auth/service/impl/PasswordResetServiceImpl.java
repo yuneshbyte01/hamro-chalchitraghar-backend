@@ -91,6 +91,10 @@ public class PasswordResetServiceImpl implements PasswordResetService {
         }
 
         user.setPassword(passwordEncoder.encode(newPassword));
+        user.setPasswordChangedAt(LocalDateTime.now());
+        user.setFailedLoginAttempts(0);
+        user.setLocked(false);
+        user.setLockedUntil(null);
         resetOtp.setUsedAt(LocalDateTime.now());
         passwordResetOtpRepository.save(resetOtp);
         userRepository.save(user);

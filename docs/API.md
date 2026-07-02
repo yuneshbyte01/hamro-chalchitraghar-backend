@@ -50,35 +50,38 @@ JWT tokens are sent as bearer tokens:
 Authorization: Bearer <token>
 ```
 
-| Route prefix | Authentication |
-| --- | --- |
-| `/api/auth/**` | Public |
-| `/api/public/**` | Public |
+| Route prefix       | Authentication         |
+|--------------------|------------------------|
+| `/api/auth/**`     | Public                 |
+| `/api/public/**`   | Public                 |
 | `/api/customer/**` | CUSTOMER, STAFF, ADMIN |
-| `/api/staff/**` | STAFF, ADMIN |
-| `/api/admin/**` | ADMIN |
+| `/api/staff/**`    | STAFF, ADMIN           |
+| `/api/admin/**`    | ADMIN                  |
 
 ## Common Error Responses
 
-| Status | Typical message | Cause |
-| --- | --- | --- |
-| `400` | `Validation failed` | Bean Validation failure |
-| `400` | `The request body is invalid or cannot be parsed` | Malformed JSON |
-| `401` | `Authentication required` | Missing token on protected endpoint |
-| `401` | `Invalid token` or `Token expired` | JWT validation failure |
-| `403` | `Access denied` | Authenticated role is not allowed |
-| `404` | `<Resource> not found with id: <id>` | Missing entity |
-| `409` | Conflict-specific message | Seat conflict, hall conflict, or data integrity conflict |
-| `500` | `An unexpected error occurred while processing your request` | Unhandled server error |
+| Status | Typical message                                              | Cause                                                    |
+|--------|--------------------------------------------------------------|----------------------------------------------------------|
+| `400`  | `Validation failed`                                          | Bean Validation failure                                  |
+| `400`  | `The request body is invalid or cannot be parsed`            | Malformed JSON                                           |
+| `401`  | `Authentication required`                                    | Missing token on protected endpoint                      |
+| `401`  | `Invalid token` or `Token expired`                           | JWT validation failure                                   |
+| `401`  | `Account is disabled`                                        | Account is disabled for login or token use               |
+| `401`  | `Account is temporarily locked. Please try again later.`      | Account is within the failed-login lockout window        |
+| `401`  | `Token is no longer valid after password change`              | JWT was issued before `password_changed_at`              |
+| `403`  | `Access denied`                                              | Authenticated role is not allowed                        |
+| `404`  | `<Resource> not found with id: <id>`                         | Missing entity                                           |
+| `409`  | Conflict-specific message                                    | Seat conflict, hall conflict, or data integrity conflict |
+| `500`  | `An unexpected error occurred while processing your request` | Unhandled server error                                   |
 
 ## Auth Endpoints
 
 ### `POST /api/auth/register`
 
-| Field | Value |
-| --- | --- |
-| Authentication | Public |
-| Description | Registers a new customer account. Passwords are stored as BCrypt hashes. |
+| Field          | Value                                                                    |
+|----------------|--------------------------------------------------------------------------|
+| Authentication | Public                                                                   |
+| Description    | Registers a new customer account. Passwords are stored as BCrypt hashes. |
 
 Request:
 
@@ -92,10 +95,10 @@ Request:
 
 Validation:
 
-| Field | Rules |
-| --- | --- |
-| `name` | Required, not blank |
-| `email` | Required, valid email, unique |
+| Field      | Rules                                                                                                                      |
+|------------|----------------------------------------------------------------------------------------------------------------------------|
+| `name`     | Required, not blank                                                                                                        |
+| `email`    | Required, valid email, unique                                                                                              |
 | `password` | Required, at least 8 characters, at least one uppercase letter, one lowercase letter, one digit, and one special character |
 
 Response `201`:
@@ -116,10 +119,10 @@ Errors: `400` validation or duplicate email.
 
 ### `POST /api/auth/login`
 
-| Field | Value |
-| --- | --- |
-| Authentication | Public |
-| Description | Authenticates credentials and returns a JWT containing email and role claims. |
+| Field          | Value                                                                         |
+|----------------|-------------------------------------------------------------------------------|
+| Authentication | Public                                                                        |
+| Description    | Authenticates credentials and returns a JWT containing email and role claims. |
 
 Request:
 
@@ -132,10 +135,10 @@ Request:
 
 Validation:
 
-| Field | Rules |
-| --- | --- |
-| `email` | Required, valid email |
-| `password` | Required |
+| Field      | Rules                 |
+|------------|-----------------------|
+| `email`    | Required, valid email |
+| `password` | Required              |
 
 Response `200`:
 
@@ -153,14 +156,23 @@ Response `200`:
 }
 ```
 
-Errors: `401` invalid credentials. Google-only accounts return `This account uses Google Sign-In.` when password login is attempted.
+Security behavior:
+
+- Wrong password increments `failed_login_attempts`.
+- After 5 wrong password attempts, the account is locked for 15 minutes.
+- Successful login clears failed attempts and updates `last_login_at`.
+- Disabled accounts return `Account is disabled`.
+- Locked accounts return `Account is temporarily locked. Please try again later.`
+- Google-only accounts return `This account uses Google Sign-In.` when password login is attempted.
+
+Errors: `401` invalid credentials, disabled account, locked account, or Google-only account password login.
 
 ### `POST /api/auth/google`
 
-| Field | Value |
-| --- | --- |
-| Authentication | Public |
-| Description | Verifies a Google ID token with Google's official verifier, links or creates the account, and returns the same JWT response shape as local login. |
+| Field          | Value                                                                                                                                             |
+|----------------|---------------------------------------------------------------------------------------------------------------------------------------------------|
+| Authentication | Public                                                                                                                                            |
+| Description    | Verifies a Google ID token with Google's official verifier, links or creates the account, and returns the same JWT response shape as local login. |
 
 Request:
 
@@ -172,8 +184,8 @@ Request:
 
 Validation:
 
-| Field | Rules |
-| --- | --- |
+| Field     | Rules                                                                                           |
+|-----------|-------------------------------------------------------------------------------------------------|
 | `idToken` | Required, valid Google ID token, audience must match `GOOGLE_CLIENT_ID`, email must be verified |
 
 Response `200`:
@@ -198,14 +210,20 @@ Account handling:
 - Existing `GOOGLE` account logs in directly and refreshes the avatar URL when it changes.
 - New Google users are created with role `CUSTOMER`, `auth_provider=GOOGLE`, verified email, nullable password, and JWT authentication.
 
-Errors: `400` missing token, `401` invalid token, expired token, audience mismatch, or unverified Google email.
+Security behavior:
+
+- Successful Google login updates `last_login_at`.
+- Failed Google token verification does not increment password failed-login counters.
+- Disabled and locked account rules still apply after token verification and account lookup.
+
+Errors: `400` missing token, `401` invalid token, expired token, audience mismatch, unverified Google email, disabled account, or locked account.
 
 ### `POST /api/auth/refresh`
 
-| Field | Value |
-| --- | --- |
-| Authentication | Public |
-| Description | Validates an existing JWT and returns a new token. |
+| Field          | Value                                              |
+|----------------|----------------------------------------------------|
+| Authentication | Public                                             |
+| Description    | Validates an existing JWT and returns a new token. Tokens issued before the user's latest password change are rejected. |
 
 Request:
 
@@ -217,8 +235,8 @@ Request:
 
 Validation:
 
-| Field | Rules |
-| --- | --- |
+| Field   | Rules               |
+|---------|---------------------|
 | `token` | Required, not blank |
 
 Response `200`:
@@ -237,7 +255,7 @@ Response `200`:
 }
 ```
 
-Errors: `401` invalid or expired token.
+Errors: `401` invalid token, expired token, disabled account, locked account, or token issued before `password_changed_at`.
 
 ### `POST /api/auth/forgot-password`
 

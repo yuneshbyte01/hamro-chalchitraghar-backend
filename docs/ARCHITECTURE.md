@@ -125,14 +125,28 @@ sequenceDiagram
     AuthController->>AuthService: login(email, password)
     AuthService->>UserService: getUserByEmail(email)
     UserService-->>AuthService: User with BCrypt password
+    AuthService->>AuthService: reject disabled or active locked account
     AuthService->>AuthService: passwordEncoder.matches()
+    AuthService->>AuthService: increment failed attempts on wrong password
+    AuthService->>AuthService: clear attempts and update last_login_at on success
     AuthService->>JwtUtil: generateToken(user)
     JwtUtil-->>AuthService: JWT with subject=email and role claim
     AuthService-->>AuthController: LoginResponse
     AuthController-->>Client: ApiResponse<LoginResponse>
 ```
 
-`JwtAuthenticationFilter` extracts `Authorization: Bearer <token>`, validates the token, loads the user by email, and sets Spring Security authentication with `ROLE_<role>`.
+`JwtAuthenticationFilter` extracts `Authorization: Bearer <token>`, validates the token, loads the user by email, rejects disabled or locked users, rejects tokens issued before `password_changed_at`, and sets Spring Security authentication with `ROLE_<role>`.
+
+Account lockout rules:
+
+- Local password failures increment `failed_login_attempts`.
+- 5 failed attempts set `locked=true` and `locked_until` to 15 minutes in the future.
+- Active locks reject local and Google login with a clean `ApiResponse` error.
+- Expired locks are cleared on the next successful login.
+- Successful local or Google login resets failed attempts and updates `last_login_at`.
+- Google token verification failures do not increment local password failure counters.
+- `enabled=false` prevents local login, Google login, and protected endpoint access with existing tokens.
+- Registration, password change, and OTP password reset update `password_changed_at`; old JWTs are rejected after that timestamp.
 
 ## Google Authentication Flow
 
@@ -152,6 +166,8 @@ sequenceDiagram
     AuthService->>AuthService: reject invalid token or unverified email
     AuthService->>UserRepo: findByEmail(email)
     AuthService->>AuthService: link LOCAL account, update GOOGLE account, or create GOOGLE account
+    AuthService->>AuthService: reject disabled or active locked account
+    AuthService->>AuthService: update last_login_at
     AuthService->>JwtUtil: generateToken(user)
     JwtUtil-->>AuthService: JWT with subject=email and role claim
     AuthService-->>AuthController: LoginResponse

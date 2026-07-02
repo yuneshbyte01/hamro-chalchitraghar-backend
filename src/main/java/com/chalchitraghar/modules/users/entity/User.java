@@ -1,5 +1,7 @@
 package com.chalchitraghar.modules.users.entity;
 
+import java.time.LocalDateTime;
+
 import com.chalchitraghar.shared.GenericEntity;
 
 import com.chalchitraghar.modules.users.enums.AuthProvider;
@@ -76,4 +78,25 @@ public class User extends GenericEntity {
 
     @Column(length = 500)
     private String avatarUrl;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean enabled = true;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean locked = false;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private int failedLoginAttempts = 0;
+
+    @Column
+    private LocalDateTime lockedUntil;
+
+    @Column
+    private LocalDateTime lastLoginAt;
+
+    @Column
+    private LocalDateTime passwordChangedAt;
 }

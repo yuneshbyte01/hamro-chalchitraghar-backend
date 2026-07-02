@@ -60,7 +60,9 @@ public class AuthController {
      * @return login response with JWT token and user details
      */
     @PostMapping("/login")
-    @Operation(summary = "Login and get a JWT", description = "Authenticates credentials and returns a JWT with email and role claims.")
+    @Operation(
+            summary = "Login and get a JWT",
+            description = "Authenticates local credentials and returns a JWT with email and role claims. Disabled accounts, locked accounts, and Google-only accounts are rejected.")
     public ResponseEntity<ApiResponse<LoginResponse>> login(@Valid @RequestBody LoginRequest request) {
         LoginResponse response = authService.login(request);
         return ResponseEntity.ok(ApiResponse.success("Login successful", response));
@@ -93,7 +95,7 @@ public class AuthController {
                     content = @Content(mediaType = "application/json")),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "401",
-                    description = "Invalid token, expired token, audience mismatch, or unverified Google email",
+                    description = "Invalid token, expired token, audience mismatch, unverified Google email, disabled account, or locked account",
                     content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
                             {
                               "success": false,
@@ -115,7 +117,9 @@ public class AuthController {
      * @return login response with new JWT token and user details
      */
     @PostMapping("/refresh")
-    @Operation(summary = "Refresh a JWT", description = "Validates the current token and returns a new JWT.")
+    @Operation(
+            summary = "Refresh a JWT",
+            description = "Validates the current token and returns a new JWT. Tokens issued before the user's latest password change are rejected.")
     public ResponseEntity<ApiResponse<LoginResponse>> refreshToken(@Valid @RequestBody RefreshTokenRequest request) {
         LoginResponse response = authService.refreshToken(request);
         return ResponseEntity.ok(ApiResponse.success("Token refreshed successfully", response));

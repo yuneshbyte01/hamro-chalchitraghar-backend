@@ -1,6 +1,7 @@
 package com.chalchitraghar.modules.users.service.impl;
 
 import com.chalchitraghar.modules.users.service.UserService;
+import java.time.LocalDateTime;
 import java.util.List;
 
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -34,6 +35,7 @@ public class UserServiceImpl implements UserService {
                 .role(Role.CUSTOMER)
                 .authProvider(AuthProvider.LOCAL)
                 .emailVerified(false)
+                .passwordChangedAt(LocalDateTime.now())
                 .build();
         return userRepository.save(user);
     }
@@ -74,6 +76,7 @@ public class UserServiceImpl implements UserService {
             throw new IllegalArgumentException("New password must be different from current password");
         }
         user.setPassword(passwordEncoder.encode(newPassword));
+        user.setPasswordChangedAt(LocalDateTime.now());
         userRepository.save(user);
     }
 }

@@ -310,6 +310,247 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void failedLoginIncrementsAttempts() throws Exception {
+        saveCustomerWithPassword("attempts@example.com", "OldPass@123");
+
+        mockMvc.perform(post("/api/auth/login")
+                        .contentType("application/json")
+                        .content(json(Map.of(
+                                "email", "attempts@example.com",
+                                "password", "WrongPass@123"))))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.message").value("Invalid credentials"));
+
+        User user = userRepository.findByEmail("attempts@example.com").orElseThrow();
+        assertThat(user.getFailedLoginAttempts()).isEqualTo(1);
+        assertThat(user.isLocked()).isFalse();
+    }
+
+    @Test
+    void accountLocksAfterFiveFailedAttempts() throws Exception {
+        saveCustomerWithPassword("lock-after-failures@example.com", "OldPass@123");
+
+        for (int attempt = 0; attempt < 5; attempt++) {
+            mockMvc.perform(post("/api/auth/login")
+                            .contentType("application/json")
+                            .content(json(Map.of(
+                                    "email", "lock-after-failures@example.com",
+                                    "password", "WrongPass@123"))))
+                    .andExpect(status().isUnauthorized())
+                    .andExpect(jsonPath("$.message").value("Invalid credentials"));
+        }
+
+        User user = userRepository.findByEmail("lock-after-failures@example.com").orElseThrow();
+        assertThat(user.getFailedLoginAttempts()).isEqualTo(5);
+        assertThat(user.isLocked()).isTrue();
+        assertThat(user.getLockedUntil()).isAfter(LocalDateTime.now());
+    }
+
+    @Test
+    void lockedAccountCannotLogin() throws Exception {
+        User user = saveCustomerWithPassword("locked-login@example.com", "OldPass@123");
+        user.setLocked(true);
+        user.setLockedUntil(LocalDateTime.now().plusMinutes(15));
+        userRepository.save(user);
+
+        mockMvc.perform(post("/api/auth/login")
+                        .contentType("application/json")
+                        .content(json(Map.of(
+                                "email", "locked-login@example.com",
+                                "password", "OldPass@123"))))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("Account is temporarily locked. Please try again later."));
+    }
+
+    @Test
+    void accountLoginWorksAfterLockExpiry() throws Exception {
+        User user = saveCustomerWithPassword("expired-lock@example.com", "OldPass@123");
+        user.setFailedLoginAttempts(5);
+        user.setLocked(true);
+        user.setLockedUntil(LocalDateTime.now().minusMinutes(1));
+        userRepository.save(user);
+
+        mockMvc.perform(post("/api/auth/login")
+                        .contentType("application/json")
+                        .content(json(Map.of(
+                                "email", "expired-lock@example.com",
+                                "password", "OldPass@123"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.token").isNotEmpty());
+
+        User updated = userRepository.findByEmail("expired-lock@example.com").orElseThrow();
+        assertThat(updated.isLocked()).isFalse();
+        assertThat(updated.getLockedUntil()).isNull();
+        assertThat(updated.getFailedLoginAttempts()).isZero();
+    }
+
+    @Test
+    void successfulLoginResetsAttemptsAndUpdatesLastLoginAt() throws Exception {
+        User user = saveCustomerWithPassword("successful-reset@example.com", "OldPass@123");
+        user.setFailedLoginAttempts(3);
+        userRepository.save(user);
+
+        mockMvc.perform(post("/api/auth/login")
+                        .contentType("application/json")
+                        .content(json(Map.of(
+                                "email", "successful-reset@example.com",
+                                "password", "OldPass@123"))))
+                .andExpect(status().isOk());
+
+        User updated = userRepository.findByEmail("successful-reset@example.com").orElseThrow();
+        assertThat(updated.getFailedLoginAttempts()).isZero();
+        assertThat(updated.getLastLoginAt()).isNotNull();
+    }
+
+    @Test
+    void registrationSetsPasswordChangedAt() throws Exception {
+        mockMvc.perform(post("/api/auth/register")
+                        .contentType("application/json")
+                        .content(json(Map.of(
+                                "name", "Tracked Password",
+                                "email", "tracked-register@example.com",
+                                "password", STRONG_PASSWORD))))
+                .andExpect(status().isCreated());
+
+        User user = userRepository.findByEmail("tracked-register@example.com").orElseThrow();
+        assertThat(user.getPasswordChangedAt()).isNotNull();
+    }
+
+    @Test
+    void passwordChangeUpdatesPasswordChangedAt() throws Exception {
+        User user = saveCustomerWithPassword("tracked-change@example.com", "OldPass@123");
+        user.setPasswordChangedAt(LocalDateTime.now().minusDays(1));
+        userRepository.save(user);
+        String token = loginTokenWithPassword("tracked-change@example.com", "OldPass@123");
+
+        mockMvc.perform(put("/api/customer/profile/password")
+                        .header("Authorization", bearer(token))
+                        .contentType("application/json")
+                        .content(json(Map.of(
+                                "currentPassword", "OldPass@123",
+                                "newPassword", "NewStrongPass@123"))))
+                .andExpect(status().isOk());
+
+        User updated = userRepository.findByEmail("tracked-change@example.com").orElseThrow();
+        assertThat(updated.getPasswordChangedAt()).isAfter(user.getPasswordChangedAt());
+    }
+
+    @Test
+    void otpResetUpdatesPasswordChangedAt() throws Exception {
+        User user = saveCustomerWithPassword("tracked-reset@example.com", "OldPass@123");
+        user.setPasswordChangedAt(LocalDateTime.now().minusDays(1));
+        userRepository.save(user);
+        String otp = requestPasswordResetOtp("tracked-reset@example.com");
+
+        mockMvc.perform(post("/api/auth/reset-password")
+                        .contentType("application/json")
+                        .content(json(Map.of(
+                                "email", "tracked-reset@example.com",
+                                "otp", otp,
+                                "newPassword", "NewStrongPass@123"))))
+                .andExpect(status().isOk());
+
+        User updated = userRepository.findByEmail("tracked-reset@example.com").orElseThrow();
+        assertThat(updated.getPasswordChangedAt()).isAfter(user.getPasswordChangedAt());
+    }
+
+    @Test
+    void disabledAccountCannotLogin() throws Exception {
+        User user = saveCustomerWithPassword("disabled-login@example.com", "OldPass@123");
+        user.setEnabled(false);
+        userRepository.save(user);
+
+        mockMvc.perform(post("/api/auth/login")
+                        .contentType("application/json")
+                        .content(json(Map.of(
+                                "email", "disabled-login@example.com",
+                                "password", "OldPass@123"))))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("Account is disabled"));
+    }
+
+    @Test
+    void disabledAccountTokenCannotAccessProtectedEndpoint() throws Exception {
+        saveCustomerWithPassword("disabled-token@example.com", "OldPass@123");
+        String token = loginTokenWithPassword("disabled-token@example.com", "OldPass@123");
+        User user = userRepository.findByEmail("disabled-token@example.com").orElseThrow();
+        user.setEnabled(false);
+        userRepository.save(user);
+
+        mockMvc.perform(get("/api/customer/profile")
+                        .header("Authorization", bearer(token)))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("Account is disabled"));
+    }
+
+    @Test
+    void googleLoginUpdatesLastLoginAt() throws Exception {
+        saveGoogleUser("google-last-login@example.com", "google-last-login", "https://example.com/old.png");
+        when(googleTokenVerifier.verify("google-last-login-token"))
+                .thenReturn(googleUser("google-last-login", "google-last-login@example.com", true));
+
+        googleLoginToken("google-last-login-token", "google-last-login@example.com");
+
+        User user = userRepository.findByEmail("google-last-login@example.com").orElseThrow();
+        assertThat(user.getLastLoginAt()).isNotNull();
+    }
+
+    @Test
+    void lockedGoogleAccountCannotLogin() throws Exception {
+        User user = saveGoogleUser("locked-google@example.com", "locked-google", "https://example.com/avatar.png");
+        user.setLocked(true);
+        user.setLockedUntil(LocalDateTime.now().plusMinutes(15));
+        userRepository.save(user);
+        when(googleTokenVerifier.verify("locked-google-token"))
+                .thenReturn(googleUser("locked-google", "locked-google@example.com", true));
+
+        mockMvc.perform(post("/api/auth/google")
+                        .contentType("application/json")
+                        .content(json(Map.of("idToken", "locked-google-token"))))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.message").value("Account is temporarily locked. Please try again later."));
+    }
+
+    @Test
+    void disabledGoogleAccountCannotLogin() throws Exception {
+        User user = saveGoogleUser("disabled-google@example.com", "disabled-google", "https://example.com/avatar.png");
+        user.setEnabled(false);
+        userRepository.save(user);
+        when(googleTokenVerifier.verify("disabled-google-token"))
+                .thenReturn(googleUser("disabled-google", "disabled-google@example.com", true));
+
+        mockMvc.perform(post("/api/auth/google")
+                        .contentType("application/json")
+                        .content(json(Map.of("idToken", "disabled-google-token"))))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.message").value("Account is disabled"));
+    }
+
+    @Test
+    void oldJwtCannotAccessProtectedEndpointAfterPasswordChange() throws Exception {
+        saveCustomerWithPassword("old-token@example.com", "OldPass@123");
+        String oldToken = loginTokenWithPassword("old-token@example.com", "OldPass@123");
+
+        mockMvc.perform(put("/api/customer/profile/password")
+                        .header("Authorization", bearer(oldToken))
+                        .contentType("application/json")
+                        .content(json(Map.of(
+                                "currentPassword", "OldPass@123",
+                                "newPassword", "NewStrongPass@123"))))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/customer/profile")
+                        .header("Authorization", bearer(oldToken)))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("Token is no longer valid after password change"));
+    }
+
+    @Test
     void forgotPasswordWithExistingEmailReturnsGenericSuccess() throws Exception {
         saveCustomerWithPassword("forgot-existing@example.com", "OldPass@123");
 

@@ -42,6 +42,12 @@ erDiagram
         varchar google_id
         boolean email_verified
         varchar avatar_url
+        boolean enabled
+        boolean locked
+        integer failed_login_attempts
+        timestamp locked_until
+        timestamp last_login_at
+        timestamp password_changed_at
     }
 
     PASSWORD_RESET_OTPS {
@@ -158,12 +164,21 @@ Stores authentication and authorization accounts.
 | `google_id`      | `VARCHAR(255)` | Yes      | Google account subject identifier                | `googleId`       |
 | `email_verified` | `BOOLEAN`      | No       | Default `false`; true for verified Google email  | `emailVerified`  |
 | `avatar_url`     | `VARCHAR(500)` | Yes      | Google profile picture URL                       | `avatarUrl`      |
+| `enabled`        | `BOOLEAN`      | No       | Default `true`; disabled accounts cannot authenticate | `enabled`        |
+| `locked`         | `BOOLEAN`      | No       | Default `false`; true during account lockout     | `locked`         |
+| `failed_login_attempts` | `INTEGER` | No      | Default `0`; wrong local password counter        | `failedLoginAttempts` |
+| `locked_until`   | `TIMESTAMP`    | Yes      | End of temporary lockout window                  | `lockedUntil`    |
+| `last_login_at`  | `TIMESTAMP`    | Yes      | Updated after successful local or Google login   | `lastLoginAt`    |
+| `password_changed_at` | `TIMESTAMP` | Yes     | Updated after registration, profile password change, and OTP reset | `passwordChangedAt` |
 
 Authentication provider rules:
 
 - `LOCAL` users authenticate with BCrypt password login and may also be linked to Google by verified email.
 - `GOOGLE` users authenticate with Google ID tokens; their password is nullable and password login is rejected with a clean authentication error.
 - Account linking stores Google metadata without overwriting an existing local password.
+- Local password failures increment `failed_login_attempts`; 5 failures lock the account for 15 minutes.
+- Successful local or Google login clears lock state and updates `last_login_at`.
+- `password_changed_at` is used to reject JWTs issued before the latest password change.
 
 ### `password_reset_otps`
 
@@ -389,6 +404,7 @@ Seat locking queries use `PESSIMISTIC_WRITE` to prevent concurrent booking updat
 | 9     | Adds `locked_by_user_id` to seats               |
 | 10    | Creates password reset OTPs                     |
 | 11    | Adds Google auth fields to users                |
+| 12    | Adds account security fields to users           |
 
 Migration rules:
 
