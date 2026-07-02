@@ -65,6 +65,14 @@ DB_PASSWORD=your_password_here
 JWT_SECRET=replace_with_at_least_32_characters_secret
 JWT_EXPIRATION_MS=3600000
 CORS_ALLOWED_ORIGINS=http://localhost:4200
+MAIL_HOST=smtp.gmail.com
+MAIL_PORT=587
+MAIL_USERNAME=
+MAIL_PASSWORD=
+MAIL_FROM=no-reply@hamrochalachitraghar.com
+MAIL_ENABLED=false
+PASSWORD_RESET_OTP_EXPIRATION_MINUTES=10
+PASSWORD_RESET_MAX_ATTEMPTS=5
 SPRING_PROFILES_ACTIVE=dev
 ```
 
@@ -77,6 +85,16 @@ SPRING_PROFILES_ACTIVE=dev
 | `JWT_SECRET` | HS256 signing secret |
 | `JWT_EXPIRATION_MS` | Token expiration in milliseconds |
 | `CORS_ALLOWED_ORIGINS` | Comma-separated allowed origins |
+| `MAIL_HOST` | SMTP host for password reset email |
+| `MAIL_PORT` | SMTP port |
+| `MAIL_USERNAME` | SMTP username |
+| `MAIL_PASSWORD` | SMTP password or app password |
+| `MAIL_FROM` | From address for password reset email |
+| `MAIL_ENABLED` | `false` disables SMTP delivery in dev/test; `true` sends through SMTP |
+| `PASSWORD_RESET_OTP_EXPIRATION_MINUTES` | Password reset OTP validity window |
+| `PASSWORD_RESET_MAX_ATTEMPTS` | Maximum failed OTP verification attempts |
+
+For local development, `MAIL_ENABLED` defaults to `false`; forgot-password still creates the reset OTP and logs the OTP only under the `dev` profile. In production, configure SMTP credentials and keep `MAIL_ENABLED=true`.
 
 ## Running Locally
 
@@ -154,6 +172,7 @@ The `test` profile uses:
 | Hibernate DDL | `create-drop` |
 | Flyway | Disabled |
 | Security | Real JWT and Spring Security filter chain |
+| Mail | Disabled; email service can be mocked in integration tests |
 
 ## Swagger URL
 

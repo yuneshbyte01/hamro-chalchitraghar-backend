@@ -18,6 +18,7 @@ import org.springframework.test.web.servlet.MvcResult;
 
 import com.chalchitraghar.modules.bookings.repository.BookingRepository;
 import com.chalchitraghar.modules.bookings.repository.BookingSeatRepository;
+import com.chalchitraghar.modules.auth.repository.PasswordResetOtpRepository;
 import com.chalchitraghar.modules.halls.entity.Hall;
 import com.chalchitraghar.modules.halls.enums.Status;
 import com.chalchitraghar.modules.halls.repository.HallRepository;
@@ -54,6 +55,9 @@ abstract class AbstractIntegrationTest {
     protected UserRepository userRepository;
 
     @Autowired
+    protected PasswordResetOtpRepository passwordResetOtpRepository;
+
+    @Autowired
     protected MovieRepository movieRepository;
 
     @Autowired
@@ -83,6 +87,7 @@ abstract class AbstractIntegrationTest {
         seatTemplateRepository.deleteAll();
         hallRepository.deleteAll();
         movieRepository.deleteAll();
+        passwordResetOtpRepository.deleteAll();
         userRepository.deleteAll();
     }
 

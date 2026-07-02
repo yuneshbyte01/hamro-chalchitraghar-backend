@@ -194,6 +194,76 @@ Response `200`:
 
 Errors: `401` invalid or expired token.
 
+### `POST /api/auth/forgot-password`
+
+| Field | Value |
+| --- | --- |
+| Authentication | Public |
+| Description | Sends a password reset OTP if the email belongs to an account. The response never reveals whether the email exists. |
+
+Request:
+
+```json
+{
+  "email": "aarav@example.com"
+}
+```
+
+Validation:
+
+| Field | Rules |
+| --- | --- |
+| `email` | Required, valid email |
+
+Response `200`:
+
+```json
+{
+  "success": true,
+  "message": "If an account exists with this email, password reset instructions have been sent.",
+  "data": null,
+  "errors": []
+}
+```
+
+### `POST /api/auth/reset-password`
+
+| Field | Value |
+| --- | --- |
+| Authentication | Public |
+| Description | Resets a password using the one-time OTP sent to the account email. |
+
+Request:
+
+```json
+{
+  "email": "aarav@example.com",
+  "otp": "123456",
+  "newPassword": "NewStrongPass@123"
+}
+```
+
+Validation:
+
+| Field | Rules |
+| --- | --- |
+| `email` | Required, valid email |
+| `otp` | Required, 6-digit numeric OTP, latest unused OTP for the email, not expired, within attempt limit |
+| `newPassword` | Required, at least 8 characters, at least one uppercase letter, one lowercase letter, one digit, one special character, and different from current password |
+
+Response `200`:
+
+```json
+{
+  "success": true,
+  "message": "Password reset successfully",
+  "data": null,
+  "errors": []
+}
+```
+
+Errors: `400` invalid, expired, reused OTP, exceeded OTP attempts, weak password, or same password.
+
 ## Public Endpoints
 
 ### `GET /api/public/health`

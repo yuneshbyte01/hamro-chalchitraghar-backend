@@ -4,6 +4,11 @@ spring:
     driver-class-name: org.h2.Driver
     username: sa
     password:
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username:
+    password:
   jpa:
     database-platform: org.hibernate.dialect.H2Dialect
     hibernate:
@@ -18,3 +23,11 @@ jwt:
 
 cors:
   allowed-origins: http://localhost:4200
+
+app:
+  mail:
+    from: no-reply@hamrochalachitraghar.com
+    enabled: false
+  password-reset:
+    otp-expiration-minutes: 10
+    max-attempts: 5

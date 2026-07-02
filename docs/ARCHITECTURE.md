@@ -94,7 +94,7 @@ Important DTOs:
 
 | DTO | Used by |
 | --- | --- |
-| `RegistrationRequest`, `LoginRequest`, `RefreshTokenRequest` | Auth |
+| `RegistrationRequest`, `LoginRequest`, `RefreshTokenRequest`, `ForgotPasswordRequest`, `ResetPasswordRequest` | Auth |
 | `MovieRequest`, `HallRequest`, `ShowRequest` | Admin management |
 | `SeatHoldRequest`, `BookingRequest` | Customer booking workflow |
 | `MovieResponse`, `HallResponse`, `ShowResponse`, `SeatResponse`, `BookingResponse`, `UserResponse` | API responses |
@@ -133,6 +133,41 @@ sequenceDiagram
 ```
 
 `JwtAuthenticationFilter` extracts `Authorization: Bearer <token>`, validates the token, loads the user by email, and sets Spring Security authentication with `ROLE_<role>`.
+
+## Password Reset Flow
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant AuthController
+    participant ResetService as PasswordResetService
+    participant UserRepo as UserRepository
+    participant OtpRepo as PasswordResetOtpRepository
+    participant Email as EmailService
+
+    Client->>AuthController: POST /api/auth/forgot-password
+    AuthController->>ResetService: requestPasswordReset(email)
+    ResetService->>UserRepo: findByEmail(email)
+    ResetService->>OtpRepo: mark previous unused OTPs used
+    ResetService->>ResetService: generate secure 6-digit OTP
+    ResetService->>ResetService: hash OTP with SHA-256
+    ResetService->>OtpRepo: save OTP hash, expiry, attempt_count=0
+    ResetService->>Email: send plain OTP by email
+    AuthController-->>Client: Generic ApiResponse
+
+    Client->>AuthController: POST /api/auth/reset-password
+    AuthController->>ResetService: resetPassword(email, otp, newPassword)
+    ResetService->>OtpRepo: find latest unused OTP by email
+    ResetService->>ResetService: reject missing, expired, used, or max attempts
+    ResetService->>ResetService: hash submitted OTP and compare
+    ResetService->>OtpRepo: increment attempt_count on failed OTP
+    ResetService->>ResetService: reject same password
+    ResetService->>UserRepo: save BCrypt password hash
+    ResetService->>OtpRepo: set used_at
+    AuthController-->>Client: Password reset success
+```
+
+Password reset OTPs are one-time-use and expire after 10 minutes by default. The database stores only `otp_hash`; plain OTPs exist only in the email message and incoming reset request. Only the latest unused OTP for a user is accepted, and failed OTP verification increments `attempt_count` up to the configured maximum. Forgot-password responses are intentionally generic so callers cannot enumerate accounts by email.
 
 ## Authorization Flow
 

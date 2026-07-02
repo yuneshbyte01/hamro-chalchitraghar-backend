@@ -9,10 +9,13 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.chalchitraghar.modules.auth.dto.request.LoginRequest;
 import com.chalchitraghar.modules.auth.dto.response.LoginResponse;
+import com.chalchitraghar.modules.auth.dto.request.ForgotPasswordRequest;
 import com.chalchitraghar.modules.auth.dto.request.RefreshTokenRequest;
 import com.chalchitraghar.modules.auth.dto.request.RegistrationRequest;
+import com.chalchitraghar.modules.auth.dto.request.ResetPasswordRequest;
 import com.chalchitraghar.modules.auth.dto.response.RegistrationResponse;
 import com.chalchitraghar.modules.auth.service.AuthService;
+import com.chalchitraghar.modules.auth.service.PasswordResetService;
 import com.chalchitraghar.shared.response.ApiResponse;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -31,6 +34,7 @@ import lombok.RequiredArgsConstructor;
 public class AuthController {
 
     private final AuthService authService;
+    private final PasswordResetService passwordResetService;
 
     /**
      * Registers a new user account.
@@ -70,5 +74,23 @@ public class AuthController {
     public ResponseEntity<ApiResponse<LoginResponse>> refreshToken(@Valid @RequestBody RefreshTokenRequest request) {
         LoginResponse response = authService.refreshToken(request);
         return ResponseEntity.ok(ApiResponse.success("Token refreshed successfully", response));
+    }
+
+    @PostMapping("/forgot-password")
+    @Operation(
+            summary = "Request a password reset OTP",
+            description = "Always returns a generic success message. If the email belongs to an account, a reset OTP is sent.")
+    public ResponseEntity<ApiResponse<Void>> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+        passwordResetService.requestPasswordReset(request.getEmail());
+        return ResponseEntity.ok(ApiResponse.success(PasswordResetService.FORGOT_PASSWORD_MESSAGE));
+    }
+
+    @PostMapping("/reset-password")
+    @Operation(
+            summary = "Reset password with email OTP",
+            description = "Validates the latest one-time email OTP, stores the new password as a BCrypt hash, and marks the OTP used.")
+    public ResponseEntity<ApiResponse<Void>> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        passwordResetService.resetPassword(request.getEmail(), request.getOtp(), request.getNewPassword());
+        return ResponseEntity.ok(ApiResponse.success("Password reset successfully"));
     }
 }

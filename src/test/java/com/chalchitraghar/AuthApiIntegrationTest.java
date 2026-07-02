@@ -3,22 +3,35 @@ package com.chalchitraghar;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.nullValue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.time.LocalDateTime;
 import java.util.Map;
 
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
+import com.chalchitraghar.modules.auth.entity.PasswordResetOtp;
+import com.chalchitraghar.modules.auth.service.EmailService;
 import com.chalchitraghar.modules.users.entity.User;
 import com.chalchitraghar.modules.users.enums.Role;
 
 class AuthApiIntegrationTest extends AbstractIntegrationTest {
 
     private static final String STRONG_PASSWORD = "Password123!";
+    private static final String FORGOT_PASSWORD_MESSAGE =
+            "If an account exists with this email, password reset instructions have been sent.";
+
+    @MockitoBean
+    private EmailService emailService;
 
     @Test
     void registerCustomerSuccessfullyWithStrongPassword() throws Exception {
@@ -140,6 +153,226 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.message").value("Invalid or expired token"))
+                .andExpect(jsonPath("$.data").value(nullValue()))
+                .andExpect(jsonPath("$.errors").isArray());
+    }
+
+    @Test
+    void forgotPasswordWithExistingEmailReturnsGenericSuccess() throws Exception {
+        saveCustomerWithPassword("forgot-existing@example.com", "OldPass@123");
+
+        mockMvc.perform(post("/api/auth/forgot-password")
+                        .contentType("application/json")
+                        .content(json(Map.of("email", "forgot-existing@example.com"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.message").value(FORGOT_PASSWORD_MESSAGE))
+                .andExpect(jsonPath("$.data").value(nullValue()))
+                .andExpect(jsonPath("$.errors").isArray());
+
+        verify(emailService).sendPasswordResetOtpEmail(any(User.class), any(String.class));
+        assertThat(passwordResetOtpRepository.findAll()).hasSize(1);
+    }
+
+    @Test
+    void forgotPasswordWithUnknownEmailReturnsSameGenericSuccess() throws Exception {
+        mockMvc.perform(post("/api/auth/forgot-password")
+                        .contentType("application/json")
+                        .content(json(Map.of("email", "missing@example.com"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.message").value(FORGOT_PASSWORD_MESSAGE))
+                .andExpect(jsonPath("$.data").value(nullValue()))
+                .andExpect(jsonPath("$.errors").isArray());
+
+        verifyNoInteractions(emailService);
+        assertThat(passwordResetOtpRepository.findAll()).isEmpty();
+    }
+
+    @Test
+    void forgotPasswordStoresHashedOtpOnly() throws Exception {
+        saveCustomerWithPassword("hashed-otp@example.com", "OldPass@123");
+
+        String otp = requestPasswordResetOtp("hashed-otp@example.com");
+
+        PasswordResetOtp resetOtp = passwordResetOtpRepository.findAll().getFirst();
+        assertThat(resetOtp.getOtpHash()).isNotEqualTo(otp);
+        assertThat(resetOtp.getOtpHash()).isNotBlank();
+        assertThat(resetOtp.getAttemptCount()).isZero();
+        assertThat(resetOtp.getUsedAt()).isNull();
+    }
+
+    @Test
+    void resetPasswordSuccessfullyChangesPassword() throws Exception {
+        saveCustomerWithPassword("reset-success@example.com", "OldPass@123");
+        String otp = requestPasswordResetOtp("reset-success@example.com");
+
+        mockMvc.perform(post("/api/auth/reset-password")
+                        .contentType("application/json")
+                        .content(json(Map.of(
+                                "email", "reset-success@example.com",
+                                "otp", otp,
+                                "newPassword", "NewStrongPass@123"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.message").value("Password reset successfully"))
+                .andExpect(jsonPath("$.data").value(nullValue()))
+                .andExpect(jsonPath("$.errors").isArray());
+
+        PasswordResetOtp resetOtp = passwordResetOtpRepository.findAll().getFirst();
+        assertThat(resetOtp.getUsedAt()).isNotNull();
+
+        mockMvc.perform(post("/api/auth/login")
+                        .contentType("application/json")
+                        .content(json(Map.of(
+                                "email", "reset-success@example.com",
+                                "password", "OldPass@123"))))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.message").value("Invalid credentials"));
+
+        mockMvc.perform(post("/api/auth/login")
+                        .contentType("application/json")
+                        .content(json(Map.of(
+                                "email", "reset-success@example.com",
+                                "password", "NewStrongPass@123"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.token").isNotEmpty());
+    }
+
+    @Test
+    void resetPasswordWithInvalidOtpFails() throws Exception {
+        saveCustomerWithPassword("invalid-otp@example.com", "OldPass@123");
+        String otp = requestPasswordResetOtp("invalid-otp@example.com");
+        String invalidOtp = differentOtpThan(otp);
+
+        mockMvc.perform(post("/api/auth/reset-password")
+                        .contentType("application/json")
+                        .content(json(Map.of(
+                                "email", "invalid-otp@example.com",
+                                "otp", invalidOtp,
+                                "newPassword", "NewStrongPass@123"))))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("Invalid or expired password reset OTP"))
+                .andExpect(jsonPath("$.data").value(nullValue()))
+                .andExpect(jsonPath("$.errors").isArray());
+
+        assertThat(passwordResetOtpRepository.findAll().getFirst().getAttemptCount()).isEqualTo(1);
+    }
+
+    @Test
+    void resetPasswordWithExpiredOtpFails() throws Exception {
+        saveCustomerWithPassword("expired-reset@example.com", "OldPass@123");
+        String otp = requestPasswordResetOtp("expired-reset@example.com");
+        PasswordResetOtp resetOtp = passwordResetOtpRepository.findAll().getFirst();
+        resetOtp.setExpiresAt(LocalDateTime.now().minusMinutes(1));
+        passwordResetOtpRepository.save(resetOtp);
+
+        mockMvc.perform(post("/api/auth/reset-password")
+                        .contentType("application/json")
+                        .content(json(Map.of(
+                                "email", "expired-reset@example.com",
+                                "otp", otp,
+                                "newPassword", "NewStrongPass@123"))))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("Invalid or expired password reset OTP"))
+                .andExpect(jsonPath("$.data").value(nullValue()))
+                .andExpect(jsonPath("$.errors").isArray());
+    }
+
+    @Test
+    void resetPasswordWithReusedOtpFails() throws Exception {
+        saveCustomerWithPassword("reused-reset@example.com", "OldPass@123");
+        String otp = requestPasswordResetOtp("reused-reset@example.com");
+
+        mockMvc.perform(post("/api/auth/reset-password")
+                        .contentType("application/json")
+                        .content(json(Map.of(
+                                "email", "reused-reset@example.com",
+                                "otp", otp,
+                                "newPassword", "NewStrongPass@123"))))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/api/auth/reset-password")
+                        .contentType("application/json")
+                        .content(json(Map.of(
+                                "email", "reused-reset@example.com",
+                                "otp", otp,
+                                "newPassword", "AnotherStrongPass@123"))))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("Invalid or expired password reset OTP"))
+                .andExpect(jsonPath("$.data").value(nullValue()))
+                .andExpect(jsonPath("$.errors").isArray());
+    }
+
+    @Test
+    void resetPasswordFailsAfterExceededOtpAttemptLimit() throws Exception {
+        saveCustomerWithPassword("max-attempts@example.com", "OldPass@123");
+        String otp = requestPasswordResetOtp("max-attempts@example.com");
+        String invalidOtp = differentOtpThan(otp);
+
+        for (int attempt = 0; attempt < 5; attempt++) {
+            mockMvc.perform(post("/api/auth/reset-password")
+                            .contentType("application/json")
+                            .content(json(Map.of(
+                                    "email", "max-attempts@example.com",
+                                    "otp", invalidOtp,
+                                    "newPassword", "NewStrongPass@123"))))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.message").value("Invalid or expired password reset OTP"));
+        }
+
+        mockMvc.perform(post("/api/auth/reset-password")
+                        .contentType("application/json")
+                        .content(json(Map.of(
+                                "email", "max-attempts@example.com",
+                                "otp", invalidOtp,
+                                "newPassword", "NewStrongPass@123"))))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("Maximum password reset OTP attempts exceeded"))
+                .andExpect(jsonPath("$.data").value(nullValue()))
+                .andExpect(jsonPath("$.errors").isArray());
+
+        assertThat(passwordResetOtpRepository.findAll().getFirst().getAttemptCount()).isEqualTo(5);
+    }
+
+    @Test
+    void resetPasswordWithWeakPasswordFails() throws Exception {
+        saveCustomerWithPassword("weak-reset@example.com", "OldPass@123");
+        String otp = requestPasswordResetOtp("weak-reset@example.com");
+
+        mockMvc.perform(post("/api/auth/reset-password")
+                        .contentType("application/json")
+                        .content(json(Map.of(
+                                "email", "weak-reset@example.com",
+                                "otp", otp,
+                                "newPassword", "weakpassword"))))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("Validation failed"))
+                .andExpect(jsonPath("$.data").value(nullValue()))
+                .andExpect(jsonPath("$.errors").isArray())
+                .andExpect(jsonPath("$.errors[0]", containsString("newPassword:")));
+    }
+
+    @Test
+    void resetPasswordWithSameOldPasswordFails() throws Exception {
+        saveCustomerWithPassword("same-reset@example.com", "OldPass@123");
+        String otp = requestPasswordResetOtp("same-reset@example.com");
+
+        mockMvc.perform(post("/api/auth/reset-password")
+                        .contentType("application/json")
+                        .content(json(Map.of(
+                                "email", "same-reset@example.com",
+                                "otp", otp,
+                                "newPassword", "OldPass@123"))))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("New password must be different from current password"))
                 .andExpect(jsonPath("$.data").value(nullValue()))
                 .andExpect(jsonPath("$.errors").isArray());
     }
@@ -370,5 +603,21 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
                 .path("data")
                 .path("token")
                 .asText();
+    }
+
+    private String requestPasswordResetOtp(String email) throws Exception {
+        mockMvc.perform(post("/api/auth/forgot-password")
+                        .contentType("application/json")
+                        .content(json(Map.of("email", email))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value(FORGOT_PASSWORD_MESSAGE));
+
+        ArgumentCaptor<String> otp = ArgumentCaptor.forClass(String.class);
+        verify(emailService).sendPasswordResetOtpEmail(any(User.class), otp.capture());
+        return otp.getValue();
+    }
+
+    private String differentOtpThan(String otp) {
+        return "000000".equals(otp) ? "000001" : "000000";
     }
 }
