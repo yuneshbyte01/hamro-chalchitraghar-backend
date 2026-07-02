@@ -13,6 +13,7 @@ import com.chalchitraghar.modules.users.dto.request.ChangePasswordRequest;
 import com.chalchitraghar.modules.users.dto.request.ProfileUpdateRequest;
 import com.chalchitraghar.modules.users.dto.response.UserResponse;
 import com.chalchitraghar.modules.users.entity.User;
+import com.chalchitraghar.modules.users.mapper.UserMapper;
 import com.chalchitraghar.modules.users.service.UserService;
 import com.chalchitraghar.shared.exception.AuthenticationException;
 import com.chalchitraghar.shared.response.ApiResponse;
@@ -34,6 +35,7 @@ import lombok.RequiredArgsConstructor;
 public class ProfileController {
 
     private final UserService userService;
+    private final UserMapper userMapper;
 
     @GetMapping
     @Operation(
@@ -41,7 +43,9 @@ public class ProfileController {
             description = "Returns the authenticated user's profile without password details.")
     public ResponseEntity<ApiResponse<UserResponse>> getProfile() {
         User currentUser = getCurrentUser();
-        return ResponseEntity.ok(ApiResponse.success("Profile fetched successfully", toResponse(currentUser)));
+        return ResponseEntity.ok(ApiResponse.success(
+                "Profile fetched successfully",
+                userMapper.toResponseDto(currentUser)));
     }
 
     @PutMapping
@@ -51,7 +55,9 @@ public class ProfileController {
     public ResponseEntity<ApiResponse<UserResponse>> updateProfile(
             @Valid @RequestBody ProfileUpdateRequest request) {
         User updatedUser = userService.updateCurrentUserProfile(getCurrentUser(), request.getName());
-        return ResponseEntity.ok(ApiResponse.success("Profile updated successfully", toResponse(updatedUser)));
+        return ResponseEntity.ok(ApiResponse.success(
+                "Profile updated successfully",
+                userMapper.toResponseDto(updatedUser)));
     }
 
     @PutMapping("/password")
@@ -74,14 +80,5 @@ public class ProfileController {
             throw new AuthenticationException("User not authenticated");
         }
         return (User) auth.getPrincipal();
-    }
-
-    private UserResponse toResponse(User user) {
-        return new UserResponse(
-                user.getId(),
-                user.getName(),
-                user.getEmail(),
-                user.getRole().name()
-        );
     }
 }

@@ -1110,7 +1110,7 @@ Errors: `404` show not found.
 | Field | Value |
 | --- | --- |
 | Authentication | ADMIN |
-| Description | Lists all users without password hashes. |
+| Description | Lists all users using `AdminUserSummaryResponse`. Passwords, Google subject IDs, and OTP data are never returned. |
 | Request body | None |
 | Validation | ADMIN token |
 
@@ -1125,7 +1125,9 @@ Response `200`:
       "id": 1,
       "name": "Aarav Sharma",
       "email": "aarav@example.com",
-      "role": "CUSTOMER"
+      "role": "CUSTOMER",
+      "enabled": true,
+      "locked": false
     }
   ],
   "errors": []
@@ -1137,13 +1139,44 @@ Response `200`:
 | Field | Value |
 | --- | --- |
 | Authentication | ADMIN |
-| Description | Fetches one user without password hash. |
+| Description | Fetches one user using `AdminUserDetailResponse`. Passwords, Google subject IDs, internal hashes, and OTP data are never returned. |
 | Request body | None |
 | Validation | `id` numeric |
 
-Response `200`: `UserResponse`.
+Response `200`:
+
+```json
+{
+  "success": true,
+  "message": "User fetched successfully",
+  "data": {
+    "id": 1,
+    "name": "Aarav Sharma",
+    "email": "aarav@example.com",
+    "role": "CUSTOMER",
+    "authProvider": "LOCAL",
+    "emailVerified": false,
+    "enabled": true,
+    "locked": false,
+    "failedLoginAttempts": 0,
+    "lockedUntil": null,
+    "lastLoginAt": "2026-07-02T10:15:30",
+    "passwordChangedAt": "2026-07-01T09:00:00",
+    "createdAt": "2026-07-01T09:00:00",
+    "updatedAt": "2026-07-02T10:15:30"
+  },
+  "errors": []
+}
+```
 
 Errors: `404` user not found.
+
+User response separation:
+
+- `UserResponse` is used for the authenticated customer profile and contains only `id`, `name`, `email`, and `role`.
+- `AdminUserSummaryResponse` is used for admin user lists and adds `enabled` and `locked`.
+- `AdminUserDetailResponse` is used for admin user detail and adds account status, auth provider, login metadata, and audit timestamps.
+- `UserMapper` converts `User` entities to each safe response shape.
 
 ## Response DTO Summary
 
@@ -1155,3 +1188,5 @@ Errors: `404` user not found.
 | `SeatResponse` | `id`, `rowLabel`, `seatNumber`, `seatCode`, `seatType`, `price`, `positionIndex`, `seatStatus` |
 | `BookingResponse` | `bookingId`, `bookingStatus`, `showId`, `movieName`, `hallName`, `showDateTime`, `startTime`, `endTime`, `selectedSeats`, `totalPrice`, `bookingTime` |
 | `UserResponse` | `id`, `name`, `email`, `role` |
+| `AdminUserSummaryResponse` | `id`, `name`, `email`, `role`, `enabled`, `locked` |
+| `AdminUserDetailResponse` | `id`, `name`, `email`, `role`, `authProvider`, `emailVerified`, `enabled`, `locked`, `failedLoginAttempts`, `lockedUntil`, `lastLoginAt`, `passwordChangedAt`, `createdAt`, `updatedAt` |

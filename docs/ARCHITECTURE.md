@@ -97,7 +97,11 @@ Important DTOs:
 | `RegistrationRequest`, `LoginRequest`, `GoogleLoginRequest`, `RefreshTokenRequest`, `ForgotPasswordRequest`, `ResetPasswordRequest` | Auth |
 | `MovieRequest`, `HallRequest`, `ShowRequest` | Admin management |
 | `SeatHoldRequest`, `BookingRequest` | Customer booking workflow |
-| `MovieResponse`, `HallResponse`, `ShowResponse`, `SeatResponse`, `BookingResponse`, `UserResponse` | API responses |
+| `MovieResponse`, `HallResponse`, `ShowResponse`, `SeatResponse`, `BookingResponse` | API responses |
+| `UserResponse` | Authenticated customer profile response |
+| `AdminUserSummaryResponse`, `AdminUserDetailResponse` | Admin user lookup responses |
+
+User responses are intentionally split by audience. Customer profile endpoints use `UserResponse`, while admin user endpoints use `AdminUserSummaryResponse` for lists and `AdminUserDetailResponse` for detail lookup. None of these DTOs expose passwords, Google subject IDs, internal hashes, or OTP data.
 
 ## Mapper Flow
 
@@ -110,6 +114,7 @@ Mappers are Spring components and convert between entities and DTOs:
 | `ShowMapper` | Show mapping with nested movie and hall responses |
 | `SeatMapper` | Seat entity to public seat response |
 | `BookingMapper` | Booking response with selected seats and total price |
+| `UserMapper` | User profile, admin user summary, and admin user detail responses |
 
 ## Authentication Flow
 
