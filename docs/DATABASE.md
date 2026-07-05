@@ -174,11 +174,14 @@ Stores authentication and authorization accounts.
 Authentication provider rules:
 
 - `LOCAL` users authenticate with BCrypt password login and may also be linked to Google by verified email.
+- Admin-created internal users are always `LOCAL` and receive a BCrypt password hash at creation time.
 - `GOOGLE` users authenticate with Google ID tokens; their password is nullable and password login is rejected with a clean authentication error.
 - Account linking stores Google metadata without overwriting an existing local password.
 - Local password failures increment `failed_login_attempts`; 5 failures lock the account for 15 minutes.
 - Successful local or Google login clears lock state and updates `last_login_at`.
 - `password_changed_at` is used to reject JWTs issued before the latest password change.
+- Administrative role changes update only `role`; password, provider, Google metadata, login counters, lock expiry, last login, and password change timestamp are not lifecycle-update fields.
+- The application protects the last enabled `ADMIN` in service logic before disabling, locking, or changing that account to another role.
 
 ### `password_reset_otps`
 

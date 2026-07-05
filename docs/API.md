@@ -1166,6 +1166,39 @@ Response `200`:
 
 Errors: `400` invalid `sortBy`, `sortDir`, `role`, or `authProvider`; `401` unauthenticated; `403` non-admin role.
 
+#### `POST /api/admin/users`
+
+| Field | Value |
+| --- | --- |
+| Authentication | ADMIN |
+| Description | Creates an internal `LOCAL` user as `CUSTOMER`, `STAFF`, or `ADMIN`. |
+
+Request:
+
+```json
+{
+  "name": "John Doe",
+  "email": "john@example.com",
+  "password": "StrongPass@123",
+  "role": "STAFF"
+}
+```
+
+Validation:
+
+| Field | Rules |
+| --- | --- |
+| `name` | Required, not blank |
+| `email` | Required, valid email, unique |
+| `password` | Required, at least 8 characters, strong password rules |
+| `role` | Required; one of `CUSTOMER`, `STAFF`, `ADMIN` |
+
+Created user defaults: `authProvider=LOCAL`, `emailVerified=false`, `enabled=true`, `locked=false`, `failedLoginAttempts=0`, `passwordChangedAt=now`, and `lastLoginAt=null`.
+
+Response `201`: `AdminUserDetailResponse`.
+
+Errors: `400` validation failure, duplicate email, or invalid role; `401` unauthenticated; `403` non-admin role.
+
 #### `GET /api/admin/users/{id}`
 
 | Field | Value |
@@ -1202,6 +1235,39 @@ Response `200`:
 ```
 
 Errors: `404` user not found.
+
+#### `PUT /api/admin/users/{id}`
+
+| Field | Value |
+| --- | --- |
+| Authentication | ADMIN |
+| Description | Updates administrative lifecycle fields for one user. |
+
+Request:
+
+```json
+{
+  "name": "John Doe",
+  "role": "ADMIN",
+  "enabled": true,
+  "emailVerified": false
+}
+```
+
+Allowed fields are `name`, `role`, `enabled`, and `emailVerified`. Omitted fields are left unchanged.
+
+Forbidden through this endpoint: `password`, `authProvider`, `googleId`, `avatarUrl`, `failedLoginAttempts`, `lockedUntil`, `lastLoginAt`, and `passwordChangedAt`.
+
+Role management rules:
+
+- Role must be one of `CUSTOMER`, `STAFF`, or `ADMIN`.
+- Admins cannot remove their own `ADMIN` role.
+- The last enabled admin cannot be changed to another role.
+- The last enabled admin cannot be disabled.
+
+Response `200`: `AdminUserDetailResponse`.
+
+Errors: `400` invalid role, self-demotion, self-disable, or last-admin protection; `401` unauthenticated; `403` non-admin role; `404` user not found.
 
 #### `PUT /api/admin/users/{id}/enable`
 
@@ -1284,6 +1350,7 @@ Manual account state notes:
 - Manual disable is controlled by `enabled=false` and blocks login plus existing JWT authorization through the JWT filter.
 - Manual lock is controlled by `locked=true` and `lockedUntil=null`, so it does not expire automatically.
 - Auth-5 automatic lockout uses `locked=true` with a future `lockedUntil`; unlock clears both manual and automatic lock state and resets failed login attempts.
+- Internal user creation always creates `LOCAL` accounts with BCrypt password hashes and no Google metadata.
 
 User response separation:
 

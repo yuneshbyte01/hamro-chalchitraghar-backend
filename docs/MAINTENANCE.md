@@ -302,6 +302,8 @@ Manual account state endpoints are ADMIN-only:
 
 | Endpoint | State change |
 | --- | --- |
+| `POST /api/admin/users` | Creates a `LOCAL` `CUSTOMER`, `STAFF`, or `ADMIN` user with a BCrypt password |
+| `PUT /api/admin/users/{id}` | Updates `name`, `role`, `enabled`, and `emailVerified` only |
 | `PUT /api/admin/users/{id}/enable` | Sets `enabled=true` |
 | `PUT /api/admin/users/{id}/disable` | Sets `enabled=false` |
 | `PUT /api/admin/users/{id}/lock` | Sets `locked=true` and `locked_until=null` |
@@ -310,10 +312,20 @@ Manual account state endpoints are ADMIN-only:
 Operational notes:
 
 - Admins cannot disable or lock their own account.
+- Admins cannot remove their own `ADMIN` role.
+- The last enabled admin cannot be disabled, locked, or changed to another role.
 - Disabled users cannot log in and cannot keep using existing JWTs because `JwtAuthenticationFilter` reloads the user and checks `enabled` on every protected request.
 - Manual locks and Auth-5 automatic lockouts share `locked`; `locked_until=null` means manual lock, while a future `locked_until` means automatic temporary lockout.
 - Unlock clears both manual and automatic lock state.
-- Future last-active-admin protection should be added in `UserServiceImpl` beside the existing self-protection checks.
+- Lifecycle updates must not expose or accept password, auth provider, Google metadata, failed login counters, lock expiry, last login, or password change timestamps.
+- Keep last-admin protection in `UserServiceImpl`; the repository count helper is `countByRoleAndEnabledTrue(Role.ADMIN)`.
+
+LOCAL user lifecycle:
+
+- Customer self-registration creates `LOCAL` customers through the auth module.
+- Admin creation can create `CUSTOMER`, `STAFF`, or `ADMIN` local users.
+- Admin-created users start with `email_verified=false`, `enabled=true`, `locked=false`, `failed_login_attempts=0`, `last_login_at=null`, and `password_changed_at=now`.
+- Passwords are stored only as BCrypt hashes.
 
 ## Git Workflow
 
@@ -332,6 +344,8 @@ Operational notes:
 | Login | 5 failed local password attempts lock the account for 15 minutes |
 | Login | Disabled or actively locked accounts cannot authenticate |
 | Admin users | Admins cannot disable or lock their own account |
+| Admin users | Admins cannot remove their own `ADMIN` role |
+| Admin users | At least one enabled `ADMIN` must remain |
 | Admin users | Unlock clears lock expiry and failed login attempts |
 | JWT | Tokens issued before the latest password change are rejected |
 | Shows | Can be scheduled only for `NOW_SHOWING` movies |

@@ -1,15 +1,20 @@
 package com.chalchitraghar.applications.admin;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.chalchitraghar.modules.users.dto.request.AdminCreateUserRequest;
+import com.chalchitraghar.modules.users.dto.request.AdminUpdateUserRequest;
 import com.chalchitraghar.modules.users.dto.request.AdminUserSearchCriteria;
 import com.chalchitraghar.modules.users.dto.response.AdminUserDetailResponse;
 import com.chalchitraghar.modules.users.dto.response.AdminUserSummaryResponse;
@@ -26,6 +31,7 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 /**
@@ -102,6 +108,31 @@ public class AdminUserController {
         return ResponseEntity.ok(ApiResponse.success("Users fetched successfully", users));
     }
 
+    @PostMapping
+    @Operation(
+            summary = "Create internal user",
+            description = "Creates a LOCAL CUSTOMER, STAFF, or ADMIN account with a BCrypt password.")
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(
+            content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
+                    {
+                      "name": "John Doe",
+                      "email": "john@example.com",
+                      "password": "StrongPass@123",
+                      "role": "STAFF"
+                    }
+                    """)))
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "201",
+            description = "User created successfully",
+            content = @Content(mediaType = "application/json", examples = @ExampleObject(value = ADMIN_ACCOUNT_STATE_EXAMPLE)))
+    public ResponseEntity<ApiResponse<AdminUserDetailResponse>> createUser(
+            @Valid @RequestBody AdminCreateUserRequest request) {
+        User user = userService.createUser(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(
+                "User created successfully",
+                userMapper.toAdminDetailResponse(user)));
+    }
+
     @GetMapping("/{id}")
     @Operation(
             summary = "Get user by id",
@@ -136,6 +167,43 @@ public class AdminUserController {
         User user = userService.getUserById(id);
         return ResponseEntity.ok(ApiResponse.success(
                 "User fetched successfully",
+                userMapper.toAdminDetailResponse(user)));
+    }
+
+    @PutMapping("/{id}")
+    @Operation(
+            summary = "Update user lifecycle fields",
+            description = "Updates allowed admin-managed fields: name, role, enabled, and emailVerified.")
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(
+            content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
+                    {
+                      "name": "John Doe",
+                      "role": "ADMIN",
+                      "enabled": true,
+                      "emailVerified": false
+                    }
+                    """)))
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "200",
+            description = "User updated successfully",
+            content = @Content(mediaType = "application/json", examples = @ExampleObject(value = ADMIN_ACCOUNT_STATE_EXAMPLE)))
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "400",
+            description = "Invalid role or administrative safeguard violation",
+            content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
+                    {
+                      "success": false,
+                      "message": "You cannot remove your own ADMIN role",
+                      "data": null,
+                      "errors": []
+                    }
+                    """)))
+    public ResponseEntity<ApiResponse<AdminUserDetailResponse>> updateUser(
+            @PathVariable Long id,
+            @Valid @RequestBody AdminUpdateUserRequest request) {
+        User user = userService.updateUser(id, request, getCurrentUser());
+        return ResponseEntity.ok(ApiResponse.success(
+                "User updated successfully",
                 userMapper.toAdminDetailResponse(user)));
     }
 

@@ -2,9 +2,12 @@ package com.chalchitraghar.modules.users.service;
 
 import java.util.List;
 
+import com.chalchitraghar.modules.users.dto.request.AdminCreateUserRequest;
 import com.chalchitraghar.modules.users.dto.request.AdminUserSearchCriteria;
+import com.chalchitraghar.modules.users.dto.request.AdminUpdateUserRequest;
 import com.chalchitraghar.modules.users.dto.response.AdminUserSummaryResponse;
 import com.chalchitraghar.modules.users.entity.User;
+import com.chalchitraghar.modules.users.enums.Role;
 import com.chalchitraghar.shared.response.PageResponse;
 
 /**
@@ -26,6 +29,14 @@ public interface UserService {
             String sortDir);
 
     User getUserById(Long id);
+
+    User createUser(AdminCreateUserRequest request);
+
+    User updateUser(Long id, AdminUpdateUserRequest request, User currentAdmin);
+
+    User changeRole(User targetUser, Role newRole, User currentAdmin);
+
+    long countEnabledAdmins();
 
     User enableUser(Long id, User currentAdmin);
 

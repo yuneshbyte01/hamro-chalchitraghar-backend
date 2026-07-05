@@ -106,14 +106,16 @@ User responses are intentionally split by audience. Customer profile endpoints u
 
 Admin user lists use `PageResponse<AdminUserSummaryResponse>` and support bounded pagination, allowlisted sorting, case-insensitive search across `name` and `email`, and optional filters for role, auth provider, enabled, locked, and email verification state.
 
-Admin account state management is implemented in `UserService` and exposed through thin `AdminUserController` endpoints:
+Admin user lifecycle and account state management is implemented in `UserService` and exposed through thin `AdminUserController` endpoints:
 
+- `POST /api/admin/users` creates internal `LOCAL` users with BCrypt passwords and roles `CUSTOMER`, `STAFF`, or `ADMIN`.
+- `PUT /api/admin/users/{id}` updates only `name`, `role`, `enabled`, and `emailVerified`.
 - `PUT /api/admin/users/{id}/enable` sets `enabled=true`.
 - `PUT /api/admin/users/{id}/disable` sets `enabled=false` and rejects self-disable.
 - `PUT /api/admin/users/{id}/lock` sets `locked=true` and `lockedUntil=null` for a manual lock, and rejects self-lock.
 - `PUT /api/admin/users/{id}/unlock` sets `locked=false`, clears `lockedUntil`, and resets `failedLoginAttempts=0`.
 
-The service contains extension points for future last-active-admin protection. Role changes, staff/admin creation, deletion, bulk operations, and audit logging are intentionally outside this flow.
+Role updates are parsed through the `Role` enum so future roles can be handled centrally. The service rejects self-demotion from `ADMIN` and uses `UserRepository.countByRoleAndEnabledTrue(Role.ADMIN)` to prevent disabling, locking, or demoting the last enabled admin. Delete, bulk operations, impersonation, CSV import, and audit logging are intentionally outside this flow.
 
 ## Mapper Flow
 

@@ -1,6 +1,7 @@
 package com.chalchitraghar.modules.users.repository;
 
 import com.chalchitraghar.modules.users.entity.User;
+import com.chalchitraghar.modules.users.enums.Role;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import java.util.Optional;
@@ -25,4 +26,6 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
      * @return true if a user with this email exists, false otherwise
      */
     boolean existsByEmail(String email);
+
+    long countByRoleAndEnabledTrue(Role role);
 }

@@ -13,7 +13,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.chalchitraghar.shared.exception.ResourceNotFoundException;
 import com.chalchitraghar.shared.response.PageResponse;
+import com.chalchitraghar.modules.users.dto.request.AdminCreateUserRequest;
 import com.chalchitraghar.modules.users.dto.request.AdminUserSearchCriteria;
+import com.chalchitraghar.modules.users.dto.request.AdminUpdateUserRequest;
 import com.chalchitraghar.modules.users.dto.response.AdminUserSummaryResponse;
 import com.chalchitraghar.modules.users.entity.User;
 import com.chalchitraghar.modules.users.enums.AuthProvider;
@@ -114,6 +116,68 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
+    public User createUser(AdminCreateUserRequest request) {
+        if (userRepository.existsByEmail(request.getEmail())) {
+            throw new IllegalArgumentException("Email is already registered");
+        }
+        Role role = parseEnum(Role.class, request.getRole(), "role");
+        User user = User.builder()
+                .name(request.getName())
+                .email(request.getEmail())
+                .password(passwordEncoder.encode(request.getPassword()))
+                .role(role)
+                .authProvider(AuthProvider.LOCAL)
+                .emailVerified(false)
+                .enabled(true)
+                .locked(false)
+                .failedLoginAttempts(0)
+                .lockedUntil(null)
+                .lastLoginAt(null)
+                .passwordChangedAt(LocalDateTime.now())
+                .build();
+        return userRepository.save(user);
+    }
+
+    @Override
+    @Transactional
+    public User updateUser(Long id, AdminUpdateUserRequest request, User currentAdmin) {
+        User user = getUserById(id);
+        if (request.getName() != null) {
+            if (request.getName().isBlank()) {
+                throw new IllegalArgumentException("Name is required");
+            }
+            user.setName(request.getName());
+        }
+        if (request.getRole() != null) {
+            applyRoleChange(user, parseEnum(Role.class, request.getRole(), "role"), currentAdmin);
+        }
+        if (request.getEnabled() != null) {
+            if (Boolean.FALSE.equals(request.getEnabled())) {
+                ensureNotLastEnabledAdmin(user, "Cannot disable the last enabled admin");
+                ensureNotSelf(user, currentAdmin, "You cannot disable your own account");
+            }
+            user.setEnabled(request.getEnabled());
+        }
+        if (request.getEmailVerified() != null) {
+            user.setEmailVerified(request.getEmailVerified());
+        }
+        return userRepository.save(user);
+    }
+
+    @Override
+    @Transactional
+    public User changeRole(User targetUser, Role newRole, User currentAdmin) {
+        applyRoleChange(targetUser, newRole, currentAdmin);
+        return userRepository.save(targetUser);
+    }
+
+    @Override
+    public long countEnabledAdmins() {
+        return userRepository.countByRoleAndEnabledTrue(Role.ADMIN);
+    }
+
+    @Override
+    @Transactional
     public User enableUser(Long id, User currentAdmin) {
         User user = getUserById(id);
         user.setEnabled(true);
@@ -124,8 +188,8 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public User disableUser(Long id, User currentAdmin) {
         User user = getUserById(id);
+        ensureNotLastEnabledAdmin(user, "Cannot disable the last enabled admin");
         ensureNotSelf(user, currentAdmin, "You cannot disable your own account");
-        // Extension point: protect the last active admin before disabling admin accounts.
         user.setEnabled(false);
         return userRepository.save(user);
     }
@@ -134,8 +198,8 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public User lockUser(Long id, User currentAdmin) {
         User user = getUserById(id);
+        ensureNotLastEnabledAdmin(user, "Cannot lock the last enabled admin");
         ensureNotSelf(user, currentAdmin, "You cannot lock your own account");
-        // Extension point: protect the last active admin before locking admin accounts.
         user.setLocked(true);
         user.setLockedUntil(null);
         return userRepository.save(user);
@@ -214,5 +278,26 @@ public class UserServiceImpl implements UserService {
         return currentAdmin != null
                 && targetUser.getId() != null
                 && targetUser.getId().equals(currentAdmin.getId());
+    }
+
+    private void applyRoleChange(User targetUser, Role newRole, User currentAdmin) {
+        if (targetUser.getRole() == newRole) {
+            return;
+        }
+        if (targetUser.getRole() == Role.ADMIN && newRole != Role.ADMIN) {
+            ensureNotLastEnabledAdmin(targetUser, "Cannot change the last enabled admin to another role");
+            if (isSameUser(targetUser, currentAdmin)) {
+                throw new IllegalArgumentException("You cannot remove your own ADMIN role");
+            }
+        }
+        targetUser.setRole(newRole);
+    }
+
+    private void ensureNotLastEnabledAdmin(User targetUser, String message) {
+        if (targetUser.getRole() == Role.ADMIN
+                && targetUser.isEnabled()
+                && countEnabledAdmins() <= 1) {
+            throw new IllegalArgumentException(message);
+        }
     }
 }
