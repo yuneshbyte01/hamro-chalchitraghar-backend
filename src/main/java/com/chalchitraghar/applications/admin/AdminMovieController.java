@@ -1,7 +1,9 @@
 package com.chalchitraghar.applications.admin;
 
+import java.time.LocalDate;
 import java.util.List;
 
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -10,16 +12,20 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.chalchitraghar.modules.movies.dto.request.MovieRequest;
+import com.chalchitraghar.modules.movies.dto.request.MovieSearchCriteria;
 import com.chalchitraghar.modules.movies.dto.response.AdminMovieDetailResponse;
 import com.chalchitraghar.modules.movies.dto.response.AdminMovieSummaryResponse;
 import com.chalchitraghar.modules.movies.service.MovieService;
 import com.chalchitraghar.shared.response.ApiResponse;
+import com.chalchitraghar.shared.response.PageResponse;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -38,9 +44,37 @@ public class AdminMovieController {
     private final MovieService movieService;
 
     @GetMapping
-    @Operation(summary = "List movies for admin")
-    public ResponseEntity<ApiResponse<List<AdminMovieSummaryResponse>>> getAllMovies() {
-        return ResponseEntity.ok(ApiResponse.success("Movies fetched successfully", movieService.getAdminMovies()));
+    @Operation(summary = "List movies for admin", description = "Returns paginated admin movie summaries.")
+    public ResponseEntity<ApiResponse<PageResponse<AdminMovieSummaryResponse>>> getAllMovies(
+            @Parameter(description = "Zero-based page index")
+            @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "Page size")
+            @RequestParam(defaultValue = "20") int size,
+            @Parameter(description = "Sort field: id, title, genre, language, releaseDate, status, createdAt, updatedAt, durationMinutes")
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @Parameter(description = "Sort direction: asc or desc")
+            @RequestParam(defaultValue = "desc") String sortDir,
+            @Parameter(description = "Case-insensitive search term matched against title, genre, and language")
+            @RequestParam(required = false) String search,
+            @Parameter(description = "Filter by status: UPCOMING, NOW_SHOWING, ENDED")
+            @RequestParam(required = false) String status,
+            @Parameter(description = "Filter by genre")
+            @RequestParam(required = false) String genre,
+            @Parameter(description = "Filter by language")
+            @RequestParam(required = false) String language,
+            @Parameter(description = "Filter movies released on or after this date")
+            @RequestParam(required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate releaseDateFrom,
+            @Parameter(description = "Filter movies released on or before this date")
+            @RequestParam(required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate releaseDateTo) {
+        PageResponse<AdminMovieSummaryResponse> movies = movieService.getAdminMovies(
+                new MovieSearchCriteria(search, status, genre, language, releaseDateFrom, releaseDateTo),
+                page,
+                size,
+                sortBy,
+                sortDir);
+        return ResponseEntity.ok(ApiResponse.success("Movies fetched successfully", movies));
     }
 
     @GetMapping("/{id}")

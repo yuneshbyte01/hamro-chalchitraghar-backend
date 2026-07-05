@@ -109,6 +109,13 @@ User responses are intentionally split by audience. Customer profile endpoints u
 
 Movie responses are also split by audience. Public movie endpoints use summary/detail DTOs that never expose audit timestamps. Admin movie list endpoints use a compact summary DTO, while admin create, update, and detail endpoints use `AdminMovieDetailResponse` with `createdAt` and `updatedAt`. Controllers delegate to `MovieService`; they do not map movie entities directly.
 
+Movie list endpoints use `PageResponse<T>` and keep public/admin response contracts separate:
+
+- `GET /api/public/movies` returns `PageResponse<PublicMovieSummaryResponse>` sorted by `releaseDate` ascending by default.
+- `GET /api/admin/movies` returns `PageResponse<AdminMovieSummaryResponse>` sorted by `createdAt` descending by default.
+
+Both movie list endpoints support case-insensitive search across `title`, `genre`, and `language`; optional filters for `status`, `genre`, `language`, `releaseDateFrom`, and `releaseDateTo`; and an allowlisted sort field set of `id`, `title`, `genre`, `language`, `releaseDate`, `status`, `createdAt`, `updatedAt`, and `durationMinutes`.
+
 Admin user lists use `PageResponse<AdminUserSummaryResponse>` and support bounded pagination, allowlisted sorting, case-insensitive search across `name` and `email`, and optional filters for role, auth provider, enabled, locked, and email verification state.
 
 Admin user lifecycle and account state management is implemented in `UserService` and exposed through thin `AdminUserController` endpoints:
@@ -137,7 +144,7 @@ Mappers are Spring components and convert between entities and DTOs:
 
 ## Specification Queries
 
-Flexible admin user search is implemented with Spring Data JPA `Specification` through `UserSpecification`. The service validates sort fields and enum filters before building the `PageRequest`, then maps the resulting `Page<User>` to `PageResponse<AdminUserSummaryResponse>`.
+Flexible admin user search is implemented with Spring Data JPA `Specification` through `UserSpecification`. Movie list search uses the same pattern through `MovieSpecification`. Services validate sort fields, sort direction, enum filters, and date ranges before building the `PageRequest`, then map the resulting `Page<Entity>` to the appropriate `PageResponse<T>`.
 
 ## Authentication Flow
 

@@ -355,33 +355,63 @@ Response `200`:
 | Field | Value |
 | --- | --- |
 | Authentication | Public |
-| Description | Lists all movies. |
+| Description | Lists movies with pagination, search, filtering, and sorting. |
 | Request body | None |
-| Validation | None |
+| Validation | Invalid sort fields, sort direction, status, date format, or reversed release date range return `400`. |
 
-Response `200`: list of `PublicMovieSummaryResponse`.
+Query parameters:
+
+| Parameter | Default | Description |
+| --- | --- | --- |
+| `page` | `0` | Zero-based page index |
+| `size` | `20` | Number of movies per page |
+| `sortBy` | `releaseDate` | One of `id`, `title`, `genre`, `language`, `releaseDate`, `status`, `createdAt`, `updatedAt`, `durationMinutes` |
+| `sortDir` | `asc` | `asc` or `desc` |
+| `search` | none | Case-insensitive match against `title`, `genre`, or `language` |
+| `status` | none | `UPCOMING`, `NOW_SHOWING`, or `ENDED` |
+| `genre` | none | Case-insensitive exact genre filter |
+| `language` | none | Case-insensitive exact language filter |
+| `releaseDateFrom` | none | Inclusive lower release date bound, `yyyy-MM-dd` |
+| `releaseDateTo` | none | Inclusive upper release date bound, `yyyy-MM-dd` |
+
+Example filters:
+
+```http
+GET /api/public/movies?search=jatra
+GET /api/public/movies?status=NOW_SHOWING&language=Nepali
+GET /api/public/movies?releaseDateFrom=2026-01-01&releaseDateTo=2026-12-31
+```
+
+Response `200`: `PageResponse<PublicMovieSummaryResponse>`.
 
 ```json
 {
   "success": true,
   "message": "Movies fetched successfully",
-  "data": [
-    {
-      "id": 1,
-      "title": "Jatra",
-      "genre": "Comedy",
-      "durationMinutes": 125,
-      "language": "Nepali",
-      "posterUrl": "https://example.com/posters/jatra.jpg",
-      "releaseDate": "2026-08-15",
-      "status": "NOW_SHOWING"
-    }
-  ],
+  "data": {
+    "content": [
+      {
+        "id": 1,
+        "title": "Jatra",
+        "genre": "Comedy",
+        "durationMinutes": 125,
+        "language": "Nepali",
+        "posterUrl": "https://example.com/posters/jatra.jpg",
+        "releaseDate": "2026-08-15",
+        "status": "NOW_SHOWING"
+      }
+    ],
+    "page": 0,
+    "size": 20,
+    "totalElements": 1,
+    "totalPages": 1,
+    "last": true
+  },
   "errors": []
 }
 ```
 
-Public movie list responses do not expose `description`, `createdAt`, or `updatedAt`.
+Public movie list responses do not expose `description`, `createdAt`, or `updatedAt`. Current public visibility rules are unchanged: this endpoint can return any movie status unless filtered.
 
 ### `GET /api/public/movies/{id}`
 
@@ -839,11 +869,26 @@ Errors: `401` unauthenticated, `403` role not allowed, `404` booking not found.
 | Field | Value |
 | --- | --- |
 | Authentication | ADMIN |
-| Description | Lists all movies for admin. |
+| Description | Lists movies for admin with pagination, search, filtering, and sorting. |
 | Request body | None |
-| Validation | ADMIN token |
+| Validation | ADMIN token; invalid sort fields, sort direction, status, date format, or reversed release date range return `400` |
 
-Response `200`: list of `AdminMovieSummaryResponse`.
+Query parameters:
+
+| Parameter | Default | Description |
+| --- | --- | --- |
+| `page` | `0` | Zero-based page index |
+| `size` | `20` | Number of movies per page |
+| `sortBy` | `createdAt` | One of `id`, `title`, `genre`, `language`, `releaseDate`, `status`, `createdAt`, `updatedAt`, `durationMinutes` |
+| `sortDir` | `desc` | `asc` or `desc` |
+| `search` | none | Case-insensitive match against `title`, `genre`, or `language` |
+| `status` | none | `UPCOMING`, `NOW_SHOWING`, or `ENDED` |
+| `genre` | none | Case-insensitive exact genre filter |
+| `language` | none | Case-insensitive exact language filter |
+| `releaseDateFrom` | none | Inclusive lower release date bound, `yyyy-MM-dd` |
+| `releaseDateTo` | none | Inclusive upper release date bound, `yyyy-MM-dd` |
+
+Response `200`: `PageResponse<AdminMovieSummaryResponse>`.
 
 #### `GET /api/admin/movies/{id}`
 

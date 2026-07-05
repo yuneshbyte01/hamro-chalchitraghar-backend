@@ -296,6 +296,27 @@ Allowed sort fields are `id`, `name`, `email`, `role`, `enabled`, `locked`, `aut
 
 Keep user list changes inside `UserService`, `UserSpecification`, `UserMapper`, and the admin controller. Do not expose `password`, `googleId`, OTP hashes, or other internal authentication data in list or detail DTOs.
 
+## Movie List Maintenance
+
+`GET /api/public/movies` and `GET /api/admin/movies` are paginated and filterable. Both return `PageResponse<T>` inside the standard `ApiResponse<T>` wrapper.
+
+Public movie lists use `PublicMovieSummaryResponse` and must not expose `description`, `createdAt`, or `updatedAt`. Admin movie lists use `AdminMovieSummaryResponse`; admin detail, create, and update responses use `AdminMovieDetailResponse`.
+
+Supported query parameters:
+
+| Parameter | Purpose |
+| --- | --- |
+| `page`, `size` | Bound result windows; defaults are `0` and `20` |
+| `sortBy`, `sortDir` | Sort by an allowlisted field in `asc` or `desc` direction |
+| `search` | Case-insensitive match against movie `title`, `genre`, or `language` |
+| `status` | Filter by `UPCOMING`, `NOW_SHOWING`, or `ENDED` |
+| `genre`, `language` | Case-insensitive exact filters |
+| `releaseDateFrom`, `releaseDateTo` | Inclusive release date range filters in `yyyy-MM-dd` format |
+
+Allowed sort fields are `id`, `title`, `genre`, `language`, `releaseDate`, `status`, `createdAt`, `updatedAt`, and `durationMinutes`.
+
+Keep movie list changes inside `MovieService`, `MovieSpecification`, `MovieMapper`, and the public/admin movie controllers. Do not add duplicate validation, poster URL validation, status transition rules, or soft-delete behavior changes as part of list-query maintenance.
+
 ## Admin Account State Maintenance
 
 Manual account state endpoints are ADMIN-only:

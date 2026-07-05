@@ -6,6 +6,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.time.LocalDate;
+
 import org.junit.jupiter.api.Test;
 
 import com.chalchitraghar.modules.halls.entity.Hall;
@@ -24,11 +26,115 @@ class CatalogApiIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.message").value("Movies fetched successfully"))
-                .andExpect(jsonPath("$.data[0].title").value("Public Movie"))
-                .andExpect(jsonPath("$.data[0].description").doesNotExist())
-                .andExpect(jsonPath("$.data[0].createdAt").doesNotExist())
-                .andExpect(jsonPath("$.data[0].updatedAt").doesNotExist())
+                .andExpect(jsonPath("$.data.content[0].title").value("Public Movie"))
+                .andExpect(jsonPath("$.data.page").value(0))
+                .andExpect(jsonPath("$.data.size").value(20))
+                .andExpect(jsonPath("$.data.totalElements").value(1))
+                .andExpect(jsonPath("$.data.content[0].description").doesNotExist())
+                .andExpect(jsonPath("$.data.content[0].createdAt").doesNotExist())
+                .andExpect(jsonPath("$.data.content[0].updatedAt").doesNotExist())
                 .andExpect(jsonPath("$.errors").isArray());
+    }
+
+    @Test
+    void publicMovieListSupportsPageAndSize() throws Exception {
+        saveMovie("Movie One", MovieStatus.NOW_SHOWING, "Drama", "Nepali", LocalDate.of(2026, 1, 1));
+        saveMovie("Movie Two", MovieStatus.NOW_SHOWING, "Drama", "Nepali", LocalDate.of(2026, 1, 2));
+        saveMovie("Movie Three", MovieStatus.NOW_SHOWING, "Drama", "Nepali", LocalDate.of(2026, 1, 3));
+
+        mockMvc.perform(get("/api/public/movies")
+                        .param("page", "1")
+                        .param("size", "1")
+                        .param("sortBy", "releaseDate")
+                        .param("sortDir", "asc"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.content[0].title").value("Movie Two"))
+                .andExpect(jsonPath("$.data.page").value(1))
+                .andExpect(jsonPath("$.data.size").value(1))
+                .andExpect(jsonPath("$.data.totalElements").value(3))
+                .andExpect(jsonPath("$.data.totalPages").value(3))
+                .andExpect(jsonPath("$.data.last").value(false));
+    }
+
+    @Test
+    void publicMovieListSupportsSearchFiltersAndSorting() throws Exception {
+        saveMovie("Jatra Returns", MovieStatus.NOW_SHOWING, "Comedy", "Nepali", LocalDate.of(2026, 5, 10));
+        saveMovie("Silent Hills", MovieStatus.UPCOMING, "Horror", "English", LocalDate.of(2026, 7, 1));
+        saveMovie("Old Jatra", MovieStatus.ENDED, "Comedy", "Nepali", LocalDate.of(2025, 1, 1));
+
+        mockMvc.perform(get("/api/public/movies").param("search", "jatra"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.totalElements").value(2));
+
+        mockMvc.perform(get("/api/public/movies").param("search", "horror"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.totalElements").value(1))
+                .andExpect(jsonPath("$.data.content[0].title").value("Silent Hills"));
+
+        mockMvc.perform(get("/api/public/movies").param("status", "NOW_SHOWING"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.totalElements").value(1))
+                .andExpect(jsonPath("$.data.content[0].title").value("Jatra Returns"));
+
+        mockMvc.perform(get("/api/public/movies").param("genre", "Comedy"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.totalElements").value(2));
+
+        mockMvc.perform(get("/api/public/movies").param("language", "Nepali"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.totalElements").value(2));
+
+        mockMvc.perform(get("/api/public/movies")
+                        .param("releaseDateFrom", "2026-01-01")
+                        .param("releaseDateTo", "2026-12-31"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.totalElements").value(2));
+
+        mockMvc.perform(get("/api/public/movies")
+                        .param("search", "jatra")
+                        .param("status", "NOW_SHOWING")
+                        .param("language", "Nepali"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.totalElements").value(1))
+                .andExpect(jsonPath("$.data.content[0].title").value("Jatra Returns"));
+
+        mockMvc.perform(get("/api/public/movies")
+                        .param("sortBy", "releaseDate")
+                        .param("sortDir", "asc"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.content[0].title").value("Old Jatra"))
+                .andExpect(jsonPath("$.data.content[1].title").value("Jatra Returns"))
+                .andExpect(jsonPath("$.data.content[2].title").value("Silent Hills"));
+    }
+
+    @Test
+    void publicMovieListRejectsInvalidQueryParameters() throws Exception {
+        mockMvc.perform(get("/api/public/movies").param("sortBy", "password"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("Invalid sortBy. Allowed values: id, title, genre, language, releaseDate, status, createdAt, updatedAt, durationMinutes"));
+
+        mockMvc.perform(get("/api/public/movies").param("sortDir", "sideways"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("Invalid sortDir. Allowed values: asc, desc"));
+
+        mockMvc.perform(get("/api/public/movies").param("status", "PLAYING"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("Invalid status. Allowed values: UPCOMING, NOW_SHOWING, ENDED"));
+
+        mockMvc.perform(get("/api/public/movies").param("releaseDateFrom", "2026/01/01"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("Parameter 'releaseDateFrom' has invalid type"));
+
+        mockMvc.perform(get("/api/public/movies")
+                        .param("releaseDateFrom", "2026-12-31")
+                        .param("releaseDateTo", "2026-01-01"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("releaseDateFrom must be on or before releaseDateTo"));
     }
 
     @Test
@@ -57,14 +163,46 @@ class CatalogApiIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.message").value("Movies fetched successfully"))
-                .andExpect(jsonPath("$.data[0].title").value("Admin Movie List"))
-                .andExpect(jsonPath("$.data[0].genre").value("Drama"))
-                .andExpect(jsonPath("$.data[0].language").value("Nepali"))
-                .andExpect(jsonPath("$.data[0].durationMinutes").doesNotExist())
-                .andExpect(jsonPath("$.data[0].description").doesNotExist())
-                .andExpect(jsonPath("$.data[0].posterUrl").doesNotExist())
-                .andExpect(jsonPath("$.data[0].createdAt").doesNotExist())
-                .andExpect(jsonPath("$.data[0].updatedAt").doesNotExist());
+                .andExpect(jsonPath("$.data.content[0].title").value("Admin Movie List"))
+                .andExpect(jsonPath("$.data.content[0].genre").value("Drama"))
+                .andExpect(jsonPath("$.data.content[0].language").value("Nepali"))
+                .andExpect(jsonPath("$.data.content[0].durationMinutes").doesNotExist())
+                .andExpect(jsonPath("$.data.content[0].description").doesNotExist())
+                .andExpect(jsonPath("$.data.content[0].posterUrl").doesNotExist())
+                .andExpect(jsonPath("$.data.content[0].createdAt").doesNotExist())
+                .andExpect(jsonPath("$.data.content[0].updatedAt").doesNotExist())
+                .andExpect(jsonPath("$.data.content[0].password").doesNotExist())
+                .andExpect(jsonPath("$.data.page").value(0))
+                .andExpect(jsonPath("$.data.size").value(20))
+                .andExpect(jsonPath("$.data.totalElements").value(1));
+    }
+
+    @Test
+    void adminMovieListSupportsSearchStatusAndCreatedAtSorting() throws Exception {
+        String adminToken = tokenFor("admin-movie-search@example.com", Role.ADMIN);
+        saveMovie("First Admin Movie", MovieStatus.NOW_SHOWING, "Drama", "Nepali", LocalDate.of(2026, 4, 1));
+        Thread.sleep(20);
+        saveMovie("Ended Admin Movie", MovieStatus.ENDED, "Comedy", "English", LocalDate.of(2026, 3, 1));
+
+        mockMvc.perform(get("/api/admin/movies")
+                        .header("Authorization", bearer(adminToken))
+                        .param("search", "ended"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.totalElements").value(1))
+                .andExpect(jsonPath("$.data.content[0].title").value("Ended Admin Movie"));
+
+        mockMvc.perform(get("/api/admin/movies")
+                        .header("Authorization", bearer(adminToken))
+                        .param("status", "ENDED"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.totalElements").value(1))
+                .andExpect(jsonPath("$.data.content[0].status").value("ENDED"));
+
+        mockMvc.perform(get("/api/admin/movies")
+                        .header("Authorization", bearer(adminToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.content[0].title").value("Ended Admin Movie"))
+                .andExpect(jsonPath("$.data.content[1].title").value("First Admin Movie"));
     }
 
     @Test
@@ -146,6 +284,22 @@ class CatalogApiIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.message").value("Movie not found with id: 99999"))
                 .andExpect(jsonPath("$.data").value(nullValue()))
                 .andExpect(jsonPath("$.errors").isArray());
+    }
+
+    @Test
+    void dedicatedPublicMovieStatusEndpointsStillReturnLists() throws Exception {
+        saveMovie("Now Showing Dedicated", MovieStatus.NOW_SHOWING);
+        saveMovie("Upcoming Dedicated", MovieStatus.UPCOMING);
+
+        mockMvc.perform(get("/api/public/movies/now-showing"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data[0].title").value("Now Showing Dedicated"))
+                .andExpect(jsonPath("$.data[0].createdAt").doesNotExist());
+
+        mockMvc.perform(get("/api/public/movies/upcoming"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data[0].title").value("Upcoming Dedicated"))
+                .andExpect(jsonPath("$.data[0].createdAt").doesNotExist());
     }
 
     @Test
@@ -262,5 +416,18 @@ class CatalogApiIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.message").value("Hall is already booked for another show during this time period. Only one show can be scheduled per hall at a time."))
                 .andExpect(jsonPath("$.errors").isArray());
+    }
+
+    private Movie saveMovie(String title, MovieStatus status, String genre, String language, LocalDate releaseDate) {
+        return movieRepository.save(Movie.builder()
+                .title(title)
+                .genre(genre)
+                .durationMinutes(120)
+                .language(language)
+                .description("Test movie")
+                .posterUrl("https://example.com/poster.jpg")
+                .releaseDate(releaseDate)
+                .status(status)
+                .build());
     }
 }
