@@ -359,7 +359,7 @@ Response `200`:
 | Request body | None |
 | Validation | None |
 
-Response `200`:
+Response `200`: list of `PublicMovieSummaryResponse`.
 
 ```json
 {
@@ -372,17 +372,16 @@ Response `200`:
       "genre": "Comedy",
       "durationMinutes": 125,
       "language": "Nepali",
-      "description": "A Nepali comedy movie.",
       "posterUrl": "https://example.com/posters/jatra.jpg",
       "releaseDate": "2026-08-15",
-      "status": "NOW_SHOWING",
-      "createdAt": "2026-07-01T10:00:00",
-      "updatedAt": "2026-07-01T10:00:00"
+      "status": "NOW_SHOWING"
     }
   ],
   "errors": []
 }
 ```
+
+Public movie list responses do not expose `description`, `createdAt`, or `updatedAt`.
 
 ### `GET /api/public/movies/{id}`
 
@@ -393,7 +392,7 @@ Response `200`:
 | Request body | None |
 | Validation | `id` must be numeric |
 
-Response `200`: `MovieResponse` in the standard wrapper.
+Response `200`: `PublicMovieDetailResponse` in the standard wrapper. Public detail includes `description`, but does not expose `createdAt` or `updatedAt`.
 
 Errors: `400` invalid ID type, `404` movie not found.
 
@@ -406,7 +405,7 @@ Errors: `400` invalid ID type, `404` movie not found.
 | Request body | None |
 | Validation | None |
 
-Response `200`: list of `MovieResponse`.
+Response `200`: list of `PublicMovieSummaryResponse`.
 
 ### `GET /api/public/movies/upcoming`
 
@@ -417,7 +416,7 @@ Response `200`: list of `MovieResponse`.
 | Request body | None |
 | Validation | None |
 
-Response `200`: list of `MovieResponse`.
+Response `200`: list of `PublicMovieSummaryResponse`.
 
 ### `GET /api/public/halls`
 
@@ -844,7 +843,7 @@ Errors: `401` unauthenticated, `403` role not allowed, `404` booking not found.
 | Request body | None |
 | Validation | ADMIN token |
 
-Response `200`: list of `MovieResponse`.
+Response `200`: list of `AdminMovieSummaryResponse`.
 
 #### `GET /api/admin/movies/{id}`
 
@@ -855,7 +854,7 @@ Response `200`: list of `MovieResponse`.
 | Request body | None |
 | Validation | `id` numeric |
 
-Response `200`: `MovieResponse`.
+Response `200`: `AdminMovieDetailResponse`.
 
 Errors: `404` movie not found.
 
@@ -883,7 +882,7 @@ Request:
 
 Validation: `title`, `genre`, `language`, `description`, and `posterUrl` are required; `durationMinutes`, `releaseDate`, and `status` are required; status must be a valid `MovieStatus`.
 
-Response `201`: `MovieResponse`.
+Response `201`: `AdminMovieDetailResponse`.
 
 #### `PUT /api/admin/movies/{id}`
 
@@ -893,7 +892,7 @@ Response `201`: `MovieResponse`.
 | Description | Replaces movie fields from `MovieRequest`. |
 | Validation | Same body rules as create plus numeric `id` |
 
-Response `200`: `MovieResponse`.
+Response `200`: `AdminMovieDetailResponse`.
 
 Errors: `400` validation, `404` movie not found.
 
@@ -1364,7 +1363,11 @@ User response separation:
 
 | DTO | Fields |
 | --- | --- |
-| `MovieResponse` | `id`, `title`, `genre`, `durationMinutes`, `language`, `description`, `posterUrl`, `releaseDate`, `status`, `createdAt`, `updatedAt` |
+| `PublicMovieSummaryResponse` | `id`, `title`, `genre`, `durationMinutes`, `language`, `posterUrl`, `releaseDate`, `status` |
+| `PublicMovieDetailResponse` | `id`, `title`, `genre`, `durationMinutes`, `language`, `description`, `posterUrl`, `releaseDate`, `status` |
+| `AdminMovieSummaryResponse` | `id`, `title`, `genre`, `language`, `releaseDate`, `status` |
+| `AdminMovieDetailResponse` | `id`, `title`, `genre`, `durationMinutes`, `language`, `description`, `posterUrl`, `releaseDate`, `status`, `createdAt`, `updatedAt` |
+| `MovieResponse` | Legacy nested movie response currently used inside `ShowResponse`: `id`, `title`, `genre`, `durationMinutes`, `language`, `description`, `posterUrl`, `releaseDate`, `status`, `createdAt`, `updatedAt` |
 | `HallResponse` | `id`, `name`, `capacity`, `layoutRef`, `status`, `createdAt`, `updatedAt` |
 | `ShowResponse` | `id`, `movie`, `hall`, `status`, `showDate`, `showTime`, `endTime`, `createdAt`, `updatedAt` |
 | `SeatResponse` | `id`, `rowLabel`, `seatNumber`, `seatCode`, `seatType`, `price`, `positionIndex`, `seatStatus` |

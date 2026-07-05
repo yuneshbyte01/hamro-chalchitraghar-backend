@@ -8,7 +8,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.chalchitraghar.modules.movies.dto.request.MovieRequest;
-import com.chalchitraghar.modules.movies.dto.response.MovieResponse;
+import com.chalchitraghar.modules.movies.dto.response.AdminMovieDetailResponse;
+import com.chalchitraghar.modules.movies.dto.response.AdminMovieSummaryResponse;
+import com.chalchitraghar.modules.movies.dto.response.PublicMovieDetailResponse;
+import com.chalchitraghar.modules.movies.dto.response.PublicMovieSummaryResponse;
 import com.chalchitraghar.shared.exception.ResourceNotFoundException;
 import com.chalchitraghar.modules.movies.mapper.MovieMapper;
 import com.chalchitraghar.modules.movies.entity.Movie;
@@ -26,17 +29,17 @@ public class MovieServiceImpl implements MovieService {
     private final MovieMapper movieMapper;
 
     @Override
-    public MovieResponse addMovie(MovieRequest dto) {
+    public AdminMovieDetailResponse addMovie(MovieRequest dto) {
         Movie movie = movieMapper.toEntity(dto);
-        return movieMapper.toResponseDto(movieRepository.save(movie));
+        return movieMapper.toAdminDetail(movieRepository.save(movie));
     }
 
     @Override
-    public MovieResponse updateMovie(Long id, MovieRequest dto) {
+    public AdminMovieDetailResponse updateMovie(Long id, MovieRequest dto) {
         Movie movie = movieRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Movie", id));
         movieMapper.updateEntityFromDto(movie, dto);
-        return movieMapper.toResponseDto(movieRepository.save(movie));
+        return movieMapper.toAdminDetail(movieRepository.save(movie));
     }
 
     @Override
@@ -48,20 +51,37 @@ public class MovieServiceImpl implements MovieService {
     }
 
     @Override
-    public List<MovieResponse> getAllMovies() {
-        return movieRepository.findAll().stream().map(movieMapper::toResponseDto).collect(Collectors.toList());
+    @Transactional(readOnly = true)
+    public List<PublicMovieSummaryResponse> getPublicMovies() {
+        return movieRepository.findAll().stream().map(movieMapper::toPublicSummary).collect(Collectors.toList());
     }
 
     @Override
-    public MovieResponse getMovieById(Long id) {
+    @Transactional(readOnly = true)
+    public PublicMovieDetailResponse getPublicMovieById(Long id) {
         Movie movie = movieRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Movie", id));
-        return movieMapper.toResponseDto(movie);
+        return movieMapper.toPublicDetail(movie);
     }
 
     @Override
-    public List<MovieResponse> getMoviesByStatus(MovieStatus status) {
+    @Transactional(readOnly = true)
+    public List<PublicMovieSummaryResponse> getPublicMoviesByStatus(MovieStatus status) {
         return movieRepository.findAllByStatusOrderByReleaseDateAsc(status).stream()
-                .map(movieMapper::toResponseDto).toList();
+                .map(movieMapper::toPublicSummary).toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<AdminMovieSummaryResponse> getAdminMovies() {
+        return movieRepository.findAll().stream().map(movieMapper::toAdminSummary).collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public AdminMovieDetailResponse getAdminMovieById(Long id) {
+        Movie movie = movieRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Movie", id));
+        return movieMapper.toAdminDetail(movie);
     }
 }

@@ -14,7 +14,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.chalchitraghar.modules.movies.dto.request.MovieRequest;
-import com.chalchitraghar.modules.movies.dto.response.MovieResponse;
+import com.chalchitraghar.modules.movies.dto.response.AdminMovieDetailResponse;
+import com.chalchitraghar.modules.movies.dto.response.AdminMovieSummaryResponse;
 import com.chalchitraghar.modules.movies.service.MovieService;
 import com.chalchitraghar.shared.response.ApiResponse;
 
@@ -38,27 +39,27 @@ public class AdminMovieController {
 
     @GetMapping
     @Operation(summary = "List movies for admin")
-    public ResponseEntity<ApiResponse<List<MovieResponse>>> getAllMovies() {
-        return ResponseEntity.ok(ApiResponse.success("Movies fetched successfully", movieService.getAllMovies()));
+    public ResponseEntity<ApiResponse<List<AdminMovieSummaryResponse>>> getAllMovies() {
+        return ResponseEntity.ok(ApiResponse.success("Movies fetched successfully", movieService.getAdminMovies()));
     }
 
     @GetMapping("/{id}")
     @Operation(summary = "Get movie by ID for admin")
-    public ResponseEntity<ApiResponse<MovieResponse>> getMovieById(@PathVariable Long id) {
-        return ResponseEntity.ok(ApiResponse.success("Movie fetched successfully", movieService.getMovieById(id)));
+    public ResponseEntity<ApiResponse<AdminMovieDetailResponse>> getMovieById(@PathVariable Long id) {
+        return ResponseEntity.ok(ApiResponse.success("Movie fetched successfully", movieService.getAdminMovieById(id)));
     }
 
     @PostMapping
     @Operation(summary = "Create a movie")
-    public ResponseEntity<ApiResponse<MovieResponse>> createMovie(@Valid @RequestBody MovieRequest dto) {
-        MovieResponse created = movieService.addMovie(dto);
+    public ResponseEntity<ApiResponse<AdminMovieDetailResponse>> createMovie(@Valid @RequestBody MovieRequest dto) {
+        AdminMovieDetailResponse created = movieService.addMovie(dto);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success("Movie created successfully", created));
     }
 
     @PutMapping("/{id}")
     @Operation(summary = "Update a movie")
-    public ResponseEntity<ApiResponse<MovieResponse>> updateMovie(@PathVariable Long id, @Valid @RequestBody MovieRequest dto) {
+    public ResponseEntity<ApiResponse<AdminMovieDetailResponse>> updateMovie(@PathVariable Long id, @Valid @RequestBody MovieRequest dto) {
         return ResponseEntity.ok(ApiResponse.success("Movie updated successfully", movieService.updateMovie(id, dto)));
     }
 

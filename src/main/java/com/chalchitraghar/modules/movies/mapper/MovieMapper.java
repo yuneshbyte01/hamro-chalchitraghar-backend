@@ -3,7 +3,11 @@ package com.chalchitraghar.modules.movies.mapper;
 import org.springframework.stereotype.Component;
 
 import com.chalchitraghar.modules.movies.dto.request.MovieRequest;
+import com.chalchitraghar.modules.movies.dto.response.AdminMovieDetailResponse;
+import com.chalchitraghar.modules.movies.dto.response.AdminMovieSummaryResponse;
 import com.chalchitraghar.modules.movies.dto.response.MovieResponse;
+import com.chalchitraghar.modules.movies.dto.response.PublicMovieDetailResponse;
+import com.chalchitraghar.modules.movies.dto.response.PublicMovieSummaryResponse;
 import com.chalchitraghar.modules.movies.entity.Movie;
 
 /**
@@ -68,6 +72,65 @@ public class MovieMapper {
         }
 
         MovieResponse dto = new MovieResponse();
+        mapPublicDetailFields(movie, dto);
+        mapAuditFields(movie, dto);
+        return dto;
+    }
+
+    public PublicMovieSummaryResponse toPublicSummary(Movie movie) {
+        if (movie == null) {
+            return null;
+        }
+
+        PublicMovieSummaryResponse dto = new PublicMovieSummaryResponse();
+        dto.setId(movie.getId());
+        dto.setTitle(movie.getTitle());
+        dto.setGenre(movie.getGenre());
+        dto.setDurationMinutes(movie.getDurationMinutes());
+        dto.setLanguage(movie.getLanguage());
+        dto.setPosterUrl(movie.getPosterUrl());
+        dto.setReleaseDate(movie.getReleaseDate());
+        dto.setStatus(movie.getStatus());
+        return dto;
+    }
+
+    public PublicMovieDetailResponse toPublicDetail(Movie movie) {
+        if (movie == null) {
+            return null;
+        }
+
+        PublicMovieDetailResponse dto = new PublicMovieDetailResponse();
+        mapPublicDetailFields(movie, dto);
+        return dto;
+    }
+
+    public AdminMovieSummaryResponse toAdminSummary(Movie movie) {
+        if (movie == null) {
+            return null;
+        }
+
+        AdminMovieSummaryResponse dto = new AdminMovieSummaryResponse();
+        dto.setId(movie.getId());
+        dto.setTitle(movie.getTitle());
+        dto.setGenre(movie.getGenre());
+        dto.setLanguage(movie.getLanguage());
+        dto.setReleaseDate(movie.getReleaseDate());
+        dto.setStatus(movie.getStatus());
+        return dto;
+    }
+
+    public AdminMovieDetailResponse toAdminDetail(Movie movie) {
+        if (movie == null) {
+            return null;
+        }
+
+        AdminMovieDetailResponse dto = new AdminMovieDetailResponse();
+        mapPublicDetailFields(movie, dto);
+        mapAuditFields(movie, dto);
+        return dto;
+    }
+
+    private void mapPublicDetailFields(Movie movie, PublicMovieDetailResponse dto) {
         dto.setId(movie.getId());
         dto.setTitle(movie.getTitle());
         dto.setGenre(movie.getGenre());
@@ -77,8 +140,39 @@ public class MovieMapper {
         dto.setPosterUrl(movie.getPosterUrl());
         dto.setReleaseDate(movie.getReleaseDate());
         dto.setStatus(movie.getStatus());
+    }
+
+    private void mapPublicDetailFields(Movie movie, AdminMovieDetailResponse dto) {
+        dto.setId(movie.getId());
+        dto.setTitle(movie.getTitle());
+        dto.setGenre(movie.getGenre());
+        dto.setDurationMinutes(movie.getDurationMinutes());
+        dto.setLanguage(movie.getLanguage());
+        dto.setDescription(movie.getDescription());
+        dto.setPosterUrl(movie.getPosterUrl());
+        dto.setReleaseDate(movie.getReleaseDate());
+        dto.setStatus(movie.getStatus());
+    }
+
+    private void mapPublicDetailFields(Movie movie, MovieResponse dto) {
+        dto.setId(movie.getId());
+        dto.setTitle(movie.getTitle());
+        dto.setGenre(movie.getGenre());
+        dto.setDurationMinutes(movie.getDurationMinutes());
+        dto.setLanguage(movie.getLanguage());
+        dto.setDescription(movie.getDescription());
+        dto.setPosterUrl(movie.getPosterUrl());
+        dto.setReleaseDate(movie.getReleaseDate());
+        dto.setStatus(movie.getStatus());
+    }
+
+    private void mapAuditFields(Movie movie, AdminMovieDetailResponse dto) {
         dto.setCreatedAt(movie.getCreatedAt());
         dto.setUpdatedAt(movie.getUpdatedAt());
-        return dto;
+    }
+
+    private void mapAuditFields(Movie movie, MovieResponse dto) {
+        dto.setCreatedAt(movie.getCreatedAt());
+        dto.setUpdatedAt(movie.getUpdatedAt());
     }
 }

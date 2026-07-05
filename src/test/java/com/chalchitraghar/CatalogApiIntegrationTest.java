@@ -25,7 +25,64 @@ class CatalogApiIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.message").value("Movies fetched successfully"))
                 .andExpect(jsonPath("$.data[0].title").value("Public Movie"))
+                .andExpect(jsonPath("$.data[0].description").doesNotExist())
+                .andExpect(jsonPath("$.data[0].createdAt").doesNotExist())
+                .andExpect(jsonPath("$.data[0].updatedAt").doesNotExist())
                 .andExpect(jsonPath("$.errors").isArray());
+    }
+
+    @Test
+    void publicMovieDetailDoesNotExposeAuditFields() throws Exception {
+        Movie movie = saveMovie("Public Movie Detail", MovieStatus.NOW_SHOWING);
+
+        mockMvc.perform(get("/api/public/movies/{id}", movie.getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.message").value("Movie fetched successfully"))
+                .andExpect(jsonPath("$.data.title").value("Public Movie Detail"))
+                .andExpect(jsonPath("$.data.description").value("Test movie"))
+                .andExpect(jsonPath("$.data.createdAt").doesNotExist())
+                .andExpect(jsonPath("$.data.updatedAt").doesNotExist())
+                .andExpect(jsonPath("$.data.password").doesNotExist())
+                .andExpect(jsonPath("$.data.errors").doesNotExist());
+    }
+
+    @Test
+    void adminMovieListUsesSummaryContract() throws Exception {
+        String adminToken = tokenFor("admin-movie-list@example.com", Role.ADMIN);
+        saveMovie("Admin Movie List", MovieStatus.UPCOMING);
+
+        mockMvc.perform(get("/api/admin/movies")
+                        .header("Authorization", bearer(adminToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.message").value("Movies fetched successfully"))
+                .andExpect(jsonPath("$.data[0].title").value("Admin Movie List"))
+                .andExpect(jsonPath("$.data[0].genre").value("Drama"))
+                .andExpect(jsonPath("$.data[0].language").value("Nepali"))
+                .andExpect(jsonPath("$.data[0].durationMinutes").doesNotExist())
+                .andExpect(jsonPath("$.data[0].description").doesNotExist())
+                .andExpect(jsonPath("$.data[0].posterUrl").doesNotExist())
+                .andExpect(jsonPath("$.data[0].createdAt").doesNotExist())
+                .andExpect(jsonPath("$.data[0].updatedAt").doesNotExist());
+    }
+
+    @Test
+    void adminMovieDetailExposesAuditFields() throws Exception {
+        String adminToken = tokenFor("admin-movie-detail@example.com", Role.ADMIN);
+        Movie movie = saveMovie("Admin Movie Detail", MovieStatus.NOW_SHOWING);
+
+        mockMvc.perform(get("/api/admin/movies/{id}", movie.getId())
+                        .header("Authorization", bearer(adminToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.message").value("Movie fetched successfully"))
+                .andExpect(jsonPath("$.data.title").value("Admin Movie Detail"))
+                .andExpect(jsonPath("$.data.description").value("Test movie"))
+                .andExpect(jsonPath("$.data.posterUrl").value("https://example.com/poster.jpg"))
+                .andExpect(jsonPath("$.data.createdAt").exists())
+                .andExpect(jsonPath("$.data.updatedAt").exists())
+                .andExpect(jsonPath("$.data.password").doesNotExist());
     }
 
     @Test
@@ -56,6 +113,29 @@ class CatalogApiIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.message").value("Access denied"))
                 .andExpect(jsonPath("$.data").value(nullValue()))
                 .andExpect(jsonPath("$.errors").isArray());
+    }
+
+    @Test
+    void customerStaffAndUnauthenticatedUsersCannotAccessAdminMovieEndpoints() throws Exception {
+        String customerToken = tokenFor("customer-admin-movies@example.com", Role.CUSTOMER);
+        String staffToken = tokenFor("staff-admin-movies@example.com", Role.STAFF);
+
+        mockMvc.perform(get("/api/admin/movies")
+                        .header("Authorization", bearer(customerToken)))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("Access denied"));
+
+        mockMvc.perform(get("/api/admin/movies")
+                        .header("Authorization", bearer(staffToken)))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("Access denied"));
+
+        mockMvc.perform(get("/api/admin/movies"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("Authentication required"));
     }
 
     @Test

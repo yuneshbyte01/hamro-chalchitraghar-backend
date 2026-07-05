@@ -97,12 +97,17 @@ Important DTOs:
 | `RegistrationRequest`, `LoginRequest`, `GoogleLoginRequest`, `RefreshTokenRequest`, `ForgotPasswordRequest`, `ResetPasswordRequest` | Auth |
 | `MovieRequest`, `HallRequest`, `ShowRequest` | Admin management |
 | `SeatHoldRequest`, `BookingRequest` | Customer booking workflow |
-| `MovieResponse`, `HallResponse`, `ShowResponse`, `SeatResponse`, `BookingResponse` | API responses |
+| `PublicMovieSummaryResponse`, `PublicMovieDetailResponse` | Public movie browsing responses |
+| `AdminMovieSummaryResponse`, `AdminMovieDetailResponse` | Admin movie management responses |
+| `MovieResponse` | Legacy nested movie response used inside `ShowResponse` |
+| `HallResponse`, `ShowResponse`, `SeatResponse`, `BookingResponse` | API responses |
 | `UserResponse` | Authenticated customer profile response |
 | `AdminUserSummaryResponse`, `AdminUserDetailResponse` | Admin user lookup responses |
 | `PageResponse<T>` | Shared paginated list wrapper returned inside `ApiResponse<T>` |
 
 User responses are intentionally split by audience. Customer profile endpoints use `UserResponse`, while admin user endpoints use `AdminUserSummaryResponse` for lists and `AdminUserDetailResponse` for detail lookup. None of these DTOs expose passwords, Google subject IDs, internal hashes, or OTP data.
+
+Movie responses are also split by audience. Public movie endpoints use summary/detail DTOs that never expose audit timestamps. Admin movie list endpoints use a compact summary DTO, while admin create, update, and detail endpoints use `AdminMovieDetailResponse` with `createdAt` and `updatedAt`. Controllers delegate to `MovieService`; they do not map movie entities directly.
 
 Admin user lists use `PageResponse<AdminUserSummaryResponse>` and support bounded pagination, allowlisted sorting, case-insensitive search across `name` and `email`, and optional filters for role, auth provider, enabled, locked, and email verification state.
 
@@ -123,7 +128,7 @@ Mappers are Spring components and convert between entities and DTOs:
 
 | Mapper | Responsibility |
 | --- | --- |
-| `MovieMapper` | Movie request/response mapping |
+| `MovieMapper` | Movie request mapping plus public/admin summary and detail response mapping |
 | `HallMapper` | Hall request/response mapping |
 | `ShowMapper` | Show mapping with nested movie and hall responses |
 | `SeatMapper` | Seat entity to public seat response |
