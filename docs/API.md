@@ -64,6 +64,7 @@ Authorization: Bearer <token>
 |--------|--------------------------------------------------------------|----------------------------------------------------------|
 | `400`  | `Validation failed`                                          | Bean Validation failure                                  |
 | `400`  | `The request body is invalid or cannot be parsed`            | Malformed JSON                                           |
+| `400`  | `You cannot disable your own account` or `You cannot lock your own account` | Admin account state self-protection |
 | `401`  | `Authentication required`                                    | Missing token on protected endpoint                      |
 | `401`  | `Invalid token` or `Token expired`                           | JWT validation failure                                   |
 | `401`  | `Account is disabled`                                        | Account is disabled for login or token use               |
@@ -1201,6 +1202,88 @@ Response `200`:
 ```
 
 Errors: `404` user not found.
+
+#### `PUT /api/admin/users/{id}/enable`
+
+| Field | Value |
+| --- | --- |
+| Authentication | ADMIN |
+| Description | Manually enables a user account by setting `enabled=true`. |
+| Request body | None |
+| Validation | `id` numeric |
+
+Response `200`: `AdminUserDetailResponse` with `enabled=true`.
+
+Errors: `401` unauthenticated, `403` non-admin role, `404` user not found.
+
+#### `PUT /api/admin/users/{id}/disable`
+
+| Field | Value |
+| --- | --- |
+| Authentication | ADMIN |
+| Description | Manually disables a user account by setting `enabled=false`. Disabled users cannot log in, refresh tokens, or use existing JWTs for protected endpoints. |
+| Request body | None |
+| Validation | `id` numeric; target must not be the current admin |
+
+Response `200`: `AdminUserDetailResponse` with `enabled=false`.
+
+Errors: `400` admin attempted to disable self, `401` unauthenticated, `403` non-admin role, `404` user not found.
+
+#### `PUT /api/admin/users/{id}/lock`
+
+| Field | Value |
+| --- | --- |
+| Authentication | ADMIN |
+| Description | Manually locks a user account by setting `locked=true` and `lockedUntil=null`. |
+| Request body | None |
+| Validation | `id` numeric; target must not be the current admin |
+
+Response `200`: `AdminUserDetailResponse` with `locked=true` and `lockedUntil=null`.
+
+Errors: `400` admin attempted to lock self, `401` unauthenticated, `403` non-admin role, `404` user not found.
+
+#### `PUT /api/admin/users/{id}/unlock`
+
+| Field | Value |
+| --- | --- |
+| Authentication | ADMIN |
+| Description | Unlocks a user account by setting `locked=false`, clearing `lockedUntil`, and resetting `failedLoginAttempts=0`. |
+| Request body | None |
+| Validation | `id` numeric |
+
+Response `200`:
+
+```json
+{
+  "success": true,
+  "message": "User unlocked successfully",
+  "data": {
+    "id": 1,
+    "name": "Aarav Sharma",
+    "email": "aarav@example.com",
+    "role": "CUSTOMER",
+    "authProvider": "LOCAL",
+    "emailVerified": false,
+    "enabled": true,
+    "locked": false,
+    "failedLoginAttempts": 0,
+    "lockedUntil": null,
+    "lastLoginAt": "2026-07-02T10:15:30",
+    "passwordChangedAt": "2026-07-01T09:00:00",
+    "createdAt": "2026-07-01T09:00:00",
+    "updatedAt": "2026-07-02T10:15:30"
+  },
+  "errors": []
+}
+```
+
+Errors: `401` unauthenticated, `403` non-admin role, `404` user not found.
+
+Manual account state notes:
+
+- Manual disable is controlled by `enabled=false` and blocks login plus existing JWT authorization through the JWT filter.
+- Manual lock is controlled by `locked=true` and `lockedUntil=null`, so it does not expire automatically.
+- Auth-5 automatic lockout uses `locked=true` with a future `lockedUntil`; unlock clears both manual and automatic lock state and resets failed login attempts.
 
 User response separation:
 

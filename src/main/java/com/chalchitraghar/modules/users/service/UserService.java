@@ -27,6 +27,14 @@ public interface UserService {
 
     User getUserById(Long id);
 
+    User enableUser(Long id, User currentAdmin);
+
+    User disableUser(Long id, User currentAdmin);
+
+    User lockUser(Long id, User currentAdmin);
+
+    User unlockUser(Long id, User currentAdmin);
+
     User updateCurrentUserProfile(User currentUser, String name);
 
     void changeCurrentUserPassword(User currentUser, String currentPassword, String newPassword);

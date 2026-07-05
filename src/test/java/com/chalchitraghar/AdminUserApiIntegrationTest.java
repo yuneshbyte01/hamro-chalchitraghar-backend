@@ -4,10 +4,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.nullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.time.LocalDateTime;
+import java.util.Map;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.test.web.servlet.MvcResult;
@@ -410,6 +413,208 @@ class AdminUserApiIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.message").value("Access denied"));
+    }
+
+    @Test
+    void adminEnablesUser() throws Exception {
+        String adminToken = tokenFor("admin-enable@example.com", Role.ADMIN);
+        User user = saveUser("enable-target@example.com", Role.CUSTOMER);
+        user.setEnabled(false);
+        user = userRepository.save(user);
+
+        mockMvc.perform(put("/api/admin/users/{id}/enable", user.getId())
+                        .header("Authorization", bearer(adminToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.message").value("User enabled successfully"))
+                .andExpect(jsonPath("$.data.id").value(user.getId()))
+                .andExpect(jsonPath("$.data.enabled").value(true))
+                .andExpect(jsonPath("$.data.email").value("enable-target@example.com"))
+                .andExpect(jsonPath("$.data.password").doesNotExist());
+
+        assertThat(userRepository.findById(user.getId()).orElseThrow().isEnabled()).isTrue();
+    }
+
+    @Test
+    void adminDisablesUser() throws Exception {
+        String adminToken = tokenFor("admin-disable@example.com", Role.ADMIN);
+        User user = saveUser("disable-target@example.com", Role.CUSTOMER);
+
+        mockMvc.perform(put("/api/admin/users/{id}/disable", user.getId())
+                        .header("Authorization", bearer(adminToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.message").value("User disabled successfully"))
+                .andExpect(jsonPath("$.data.id").value(user.getId()))
+                .andExpect(jsonPath("$.data.enabled").value(false))
+                .andExpect(jsonPath("$.data.password").doesNotExist());
+
+        assertThat(userRepository.findById(user.getId()).orElseThrow().isEnabled()).isFalse();
+    }
+
+    @Test
+    void adminDisabledUserCannotLogin() throws Exception {
+        String adminToken = tokenFor("admin-disable-login@example.com", Role.ADMIN);
+        User user = saveUser("disabled-by-admin-login@example.com", Role.CUSTOMER);
+
+        mockMvc.perform(put("/api/admin/users/{id}/disable", user.getId())
+                        .header("Authorization", bearer(adminToken)))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/api/auth/login")
+                        .contentType("application/json")
+                        .content(json(Map.of(
+                                "email", "disabled-by-admin-login@example.com",
+                                "password", "password123"))))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("Account is disabled"));
+    }
+
+    @Test
+    void adminDisabledUsersExistingJwtCannotAccessProtectedEndpoint() throws Exception {
+        String adminToken = tokenFor("admin-disable-token@example.com", Role.ADMIN);
+        User user = saveUser("disabled-by-admin-token@example.com", Role.CUSTOMER);
+        String customerToken = loginToken("disabled-by-admin-token@example.com");
+
+        mockMvc.perform(put("/api/admin/users/{id}/disable", user.getId())
+                        .header("Authorization", bearer(adminToken)))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/customer/profile")
+                        .header("Authorization", bearer(customerToken)))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("Account is disabled"));
+    }
+
+    @Test
+    void adminLocksUser() throws Exception {
+        String adminToken = tokenFor("admin-lock@example.com", Role.ADMIN);
+        User user = saveUser("lock-target@example.com", Role.CUSTOMER);
+        user.setLockedUntil(LocalDateTime.now().plusMinutes(5));
+        user = userRepository.save(user);
+
+        mockMvc.perform(put("/api/admin/users/{id}/lock", user.getId())
+                        .header("Authorization", bearer(adminToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.message").value("User locked successfully"))
+                .andExpect(jsonPath("$.data.id").value(user.getId()))
+                .andExpect(jsonPath("$.data.locked").value(true))
+                .andExpect(jsonPath("$.data.lockedUntil").value(nullValue()));
+
+        User locked = userRepository.findById(user.getId()).orElseThrow();
+        assertThat(locked.isLocked()).isTrue();
+        assertThat(locked.getLockedUntil()).isNull();
+    }
+
+    @Test
+    void adminLockedUserCannotLogin() throws Exception {
+        String adminToken = tokenFor("admin-lock-login@example.com", Role.ADMIN);
+        User user = saveUser("locked-by-admin-login@example.com", Role.CUSTOMER);
+
+        mockMvc.perform(put("/api/admin/users/{id}/lock", user.getId())
+                        .header("Authorization", bearer(adminToken)))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/api/auth/login")
+                        .contentType("application/json")
+                        .content(json(Map.of(
+                                "email", "locked-by-admin-login@example.com",
+                                "password", "password123"))))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("Account is temporarily locked. Please try again later."));
+    }
+
+    @Test
+    void adminUnlocksUserAndClearsLockState() throws Exception {
+        String adminToken = tokenFor("admin-unlock@example.com", Role.ADMIN);
+        User user = saveUser("unlock-target@example.com", Role.CUSTOMER);
+        user.setLocked(true);
+        user.setFailedLoginAttempts(4);
+        user.setLockedUntil(LocalDateTime.now().plusMinutes(10));
+        user = userRepository.save(user);
+
+        mockMvc.perform(put("/api/admin/users/{id}/unlock", user.getId())
+                        .header("Authorization", bearer(adminToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.message").value("User unlocked successfully"))
+                .andExpect(jsonPath("$.data.id").value(user.getId()))
+                .andExpect(jsonPath("$.data.locked").value(false))
+                .andExpect(jsonPath("$.data.failedLoginAttempts").value(0))
+                .andExpect(jsonPath("$.data.lockedUntil").value(nullValue()));
+
+        User unlocked = userRepository.findById(user.getId()).orElseThrow();
+        assertThat(unlocked.isLocked()).isFalse();
+        assertThat(unlocked.getFailedLoginAttempts()).isZero();
+        assertThat(unlocked.getLockedUntil()).isNull();
+    }
+
+    @Test
+    void customerForbiddenFromAccountStateManagement() throws Exception {
+        String customerToken = tokenFor("customer-state-denied@example.com", Role.CUSTOMER);
+        User user = saveUser("customer-state-target@example.com", Role.CUSTOMER);
+
+        mockMvc.perform(put("/api/admin/users/{id}/disable", user.getId())
+                        .header("Authorization", bearer(customerToken)))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("Access denied"));
+    }
+
+    @Test
+    void staffForbiddenFromAccountStateManagement() throws Exception {
+        String staffToken = tokenFor("staff-state-denied@example.com", Role.STAFF);
+        User user = saveUser("staff-state-target@example.com", Role.CUSTOMER);
+
+        mockMvc.perform(put("/api/admin/users/{id}/lock", user.getId())
+                        .header("Authorization", bearer(staffToken)))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("Access denied"));
+    }
+
+    @Test
+    void unauthenticatedRejectedFromAccountStateManagement() throws Exception {
+        User user = saveUser("unauthenticated-state-target@example.com", Role.CUSTOMER);
+
+        mockMvc.perform(put("/api/admin/users/{id}/enable", user.getId()))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("Authentication required"));
+    }
+
+    @Test
+    void adminCannotDisableSelf() throws Exception {
+        User admin = saveUser("admin-disable-self@example.com", Role.ADMIN);
+        String adminToken = loginToken("admin-disable-self@example.com");
+
+        mockMvc.perform(put("/api/admin/users/{id}/disable", admin.getId())
+                        .header("Authorization", bearer(adminToken)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("You cannot disable your own account"))
+                .andExpect(jsonPath("$.data").value(nullValue()));
+
+        assertThat(userRepository.findById(admin.getId()).orElseThrow().isEnabled()).isTrue();
+    }
+
+    @Test
+    void adminCannotLockSelf() throws Exception {
+        User admin = saveUser("admin-lock-self@example.com", Role.ADMIN);
+        String adminToken = loginToken("admin-lock-self@example.com");
+
+        mockMvc.perform(put("/api/admin/users/{id}/lock", admin.getId())
+                        .header("Authorization", bearer(adminToken)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("You cannot lock your own account"))
+                .andExpect(jsonPath("$.data").value(nullValue()));
+
+        assertThat(userRepository.findById(admin.getId()).orElseThrow().isLocked()).isFalse();
     }
 
     private User saveNamedUser(String email, String name, Role role) {

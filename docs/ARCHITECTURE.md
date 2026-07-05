@@ -106,6 +106,15 @@ User responses are intentionally split by audience. Customer profile endpoints u
 
 Admin user lists use `PageResponse<AdminUserSummaryResponse>` and support bounded pagination, allowlisted sorting, case-insensitive search across `name` and `email`, and optional filters for role, auth provider, enabled, locked, and email verification state.
 
+Admin account state management is implemented in `UserService` and exposed through thin `AdminUserController` endpoints:
+
+- `PUT /api/admin/users/{id}/enable` sets `enabled=true`.
+- `PUT /api/admin/users/{id}/disable` sets `enabled=false` and rejects self-disable.
+- `PUT /api/admin/users/{id}/lock` sets `locked=true` and `lockedUntil=null` for a manual lock, and rejects self-lock.
+- `PUT /api/admin/users/{id}/unlock` sets `locked=false`, clears `lockedUntil`, and resets `failedLoginAttempts=0`.
+
+The service contains extension points for future last-active-admin protection. Role changes, staff/admin creation, deletion, bulk operations, and audit logging are intentionally outside this flow.
+
 ## Mapper Flow
 
 Mappers are Spring components and convert between entities and DTOs:
@@ -153,6 +162,8 @@ Account lockout rules:
 
 - Local password failures increment `failed_login_attempts`.
 - 5 failed attempts set `locked=true` and `locked_until` to 15 minutes in the future.
+- Manual admin locks set `locked=true` with `locked_until=null`; these locks remain active until an admin unlocks the account.
+- Admin unlock clears `locked`, `locked_until`, and `failed_login_attempts`, whether the lock came from automatic failed-login lockout or manual action.
 - Active locks reject local and Google login with a clean `ApiResponse` error.
 - Expired locks are cleared on the next successful login.
 - Successful local or Google login resets failed attempts and updates `last_login_at`.

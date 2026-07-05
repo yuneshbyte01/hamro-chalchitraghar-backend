@@ -269,6 +269,8 @@ Account status is tracked on `users`:
 - `enabled=false` blocks local login, Google login, and protected endpoint access with existing JWTs.
 - Wrong local passwords increment `failed_login_attempts`.
 - 5 failed local password attempts set `locked=true` and `locked_until=now+15 minutes`.
+- Manual admin locks set `locked=true` and `locked_until=null`, so they do not expire automatically.
+- Admin unlock sets `locked=false`, clears `locked_until`, and resets `failed_login_attempts=0`.
 - Active lockouts return `Account is temporarily locked. Please try again later.`
 - Successful local or Google login resets failed attempts, clears expired lock state, and updates `last_login_at`.
 - Google token verification failures do not increment local password failure counters.
@@ -294,6 +296,25 @@ Allowed sort fields are `id`, `name`, `email`, `role`, `enabled`, `locked`, `aut
 
 Keep user list changes inside `UserService`, `UserSpecification`, `UserMapper`, and the admin controller. Do not expose `password`, `googleId`, OTP hashes, or other internal authentication data in list or detail DTOs.
 
+## Admin Account State Maintenance
+
+Manual account state endpoints are ADMIN-only:
+
+| Endpoint | State change |
+| --- | --- |
+| `PUT /api/admin/users/{id}/enable` | Sets `enabled=true` |
+| `PUT /api/admin/users/{id}/disable` | Sets `enabled=false` |
+| `PUT /api/admin/users/{id}/lock` | Sets `locked=true` and `locked_until=null` |
+| `PUT /api/admin/users/{id}/unlock` | Sets `locked=false`, clears `locked_until`, resets `failed_login_attempts=0` |
+
+Operational notes:
+
+- Admins cannot disable or lock their own account.
+- Disabled users cannot log in and cannot keep using existing JWTs because `JwtAuthenticationFilter` reloads the user and checks `enabled` on every protected request.
+- Manual locks and Auth-5 automatic lockouts share `locked`; `locked_until=null` means manual lock, while a future `locked_until` means automatic temporary lockout.
+- Unlock clears both manual and automatic lock state.
+- Future last-active-admin protection should be added in `UserServiceImpl` beside the existing self-protection checks.
+
 ## Git Workflow
 
 1. Branch from the current main development branch.
@@ -310,6 +331,8 @@ Keep user list changes inside `UserService`, `UserSpecification`, `UserMapper`, 
 | Login | Passwords are checked with BCrypt |
 | Login | 5 failed local password attempts lock the account for 15 minutes |
 | Login | Disabled or actively locked accounts cannot authenticate |
+| Admin users | Admins cannot disable or lock their own account |
+| Admin users | Unlock clears lock expiry and failed login attempts |
 | JWT | Tokens issued before the latest password change are rejected |
 | Shows | Can be scheduled only for `NOW_SHOWING` movies |
 | Shows | Cannot be scheduled in `INACTIVE` halls |

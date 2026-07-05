@@ -114,6 +114,48 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
+    public User enableUser(Long id, User currentAdmin) {
+        User user = getUserById(id);
+        user.setEnabled(true);
+        return userRepository.save(user);
+    }
+
+    @Override
+    @Transactional
+    public User disableUser(Long id, User currentAdmin) {
+        User user = getUserById(id);
+        ensureNotSelf(user, currentAdmin, "You cannot disable your own account");
+        // Extension point: protect the last active admin before disabling admin accounts.
+        user.setEnabled(false);
+        return userRepository.save(user);
+    }
+
+    @Override
+    @Transactional
+    public User lockUser(Long id, User currentAdmin) {
+        User user = getUserById(id);
+        ensureNotSelf(user, currentAdmin, "You cannot lock your own account");
+        // Extension point: protect the last active admin before locking admin accounts.
+        user.setLocked(true);
+        user.setLockedUntil(null);
+        return userRepository.save(user);
+    }
+
+    @Override
+    @Transactional
+    public User unlockUser(Long id, User currentAdmin) {
+        User user = getUserById(id);
+        if (isSameUser(user, currentAdmin) && user.isLocked()) {
+            throw new IllegalArgumentException("You cannot unlock your own locked account");
+        }
+        user.setLocked(false);
+        user.setLockedUntil(null);
+        user.setFailedLoginAttempts(0);
+        return userRepository.save(user);
+    }
+
+    @Override
+    @Transactional
     public User updateCurrentUserProfile(User currentUser, String name) {
         User user = getUserById(currentUser.getId());
         user.setName(name);
@@ -160,5 +202,17 @@ public class UserServiceImpl implements UserService {
         return String.join(", ", Arrays.stream(enumType.getEnumConstants())
                 .map(Enum::name)
                 .toList());
+    }
+
+    private void ensureNotSelf(User targetUser, User currentAdmin, String message) {
+        if (isSameUser(targetUser, currentAdmin)) {
+            throw new IllegalArgumentException(message);
+        }
+    }
+
+    private boolean isSameUser(User targetUser, User currentAdmin) {
+        return currentAdmin != null
+                && targetUser.getId() != null
+                && targetUser.getId().equals(currentAdmin.getId());
     }
 }

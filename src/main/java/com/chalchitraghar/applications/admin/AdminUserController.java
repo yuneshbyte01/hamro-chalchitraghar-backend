@@ -1,8 +1,11 @@
 package com.chalchitraghar.applications.admin;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -13,6 +16,7 @@ import com.chalchitraghar.modules.users.dto.response.AdminUserSummaryResponse;
 import com.chalchitraghar.modules.users.entity.User;
 import com.chalchitraghar.modules.users.mapper.UserMapper;
 import com.chalchitraghar.modules.users.service.UserService;
+import com.chalchitraghar.shared.exception.AuthenticationException;
 import com.chalchitraghar.shared.response.ApiResponse;
 import com.chalchitraghar.shared.response.PageResponse;
 
@@ -134,4 +138,118 @@ public class AdminUserController {
                 "User fetched successfully",
                 userMapper.toAdminDetailResponse(user)));
     }
+
+    @PutMapping("/{id}/enable")
+    @Operation(
+            summary = "Enable user account",
+            description = "Sets enabled=true for the selected user and returns updated admin user details.")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "200",
+            description = "User enabled successfully",
+            content = @Content(mediaType = "application/json", examples = @ExampleObject(value = ADMIN_ACCOUNT_STATE_EXAMPLE)))
+    public ResponseEntity<ApiResponse<AdminUserDetailResponse>> enableUser(@PathVariable Long id) {
+        User user = userService.enableUser(id, getCurrentUser());
+        return ResponseEntity.ok(ApiResponse.success(
+                "User enabled successfully",
+                userMapper.toAdminDetailResponse(user)));
+    }
+
+    @PutMapping("/{id}/disable")
+    @Operation(
+            summary = "Disable user account",
+            description = "Sets enabled=false for the selected user. Admins cannot disable their own account.")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "200",
+            description = "User disabled successfully",
+            content = @Content(mediaType = "application/json", examples = @ExampleObject(value = ADMIN_ACCOUNT_STATE_EXAMPLE)))
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "400",
+            description = "Self-disable rejected",
+            content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
+                    {
+                      "success": false,
+                      "message": "You cannot disable your own account",
+                      "data": null,
+                      "errors": []
+                    }
+                    """)))
+    public ResponseEntity<ApiResponse<AdminUserDetailResponse>> disableUser(@PathVariable Long id) {
+        User user = userService.disableUser(id, getCurrentUser());
+        return ResponseEntity.ok(ApiResponse.success(
+                "User disabled successfully",
+                userMapper.toAdminDetailResponse(user)));
+    }
+
+    @PutMapping("/{id}/lock")
+    @Operation(
+            summary = "Manually lock user account",
+            description = "Sets locked=true and lockedUntil=null for a manual lock. Admins cannot lock their own account.")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "200",
+            description = "User locked successfully",
+            content = @Content(mediaType = "application/json", examples = @ExampleObject(value = ADMIN_ACCOUNT_STATE_EXAMPLE)))
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "400",
+            description = "Self-lock rejected",
+            content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
+                    {
+                      "success": false,
+                      "message": "You cannot lock your own account",
+                      "data": null,
+                      "errors": []
+                    }
+                    """)))
+    public ResponseEntity<ApiResponse<AdminUserDetailResponse>> lockUser(@PathVariable Long id) {
+        User user = userService.lockUser(id, getCurrentUser());
+        return ResponseEntity.ok(ApiResponse.success(
+                "User locked successfully",
+                userMapper.toAdminDetailResponse(user)));
+    }
+
+    @PutMapping("/{id}/unlock")
+    @Operation(
+            summary = "Unlock user account",
+            description = "Sets locked=false, clears lockedUntil, and resets failedLoginAttempts to 0.")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "200",
+            description = "User unlocked successfully",
+            content = @Content(mediaType = "application/json", examples = @ExampleObject(value = ADMIN_ACCOUNT_STATE_EXAMPLE)))
+    public ResponseEntity<ApiResponse<AdminUserDetailResponse>> unlockUser(@PathVariable Long id) {
+        User user = userService.unlockUser(id, getCurrentUser());
+        return ResponseEntity.ok(ApiResponse.success(
+                "User unlocked successfully",
+                userMapper.toAdminDetailResponse(user)));
+    }
+
+    private User getCurrentUser() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || auth.getPrincipal() == null) {
+            throw new AuthenticationException("User not authenticated");
+        }
+        return (User) auth.getPrincipal();
+    }
+
+    private static final String ADMIN_ACCOUNT_STATE_EXAMPLE = """
+            {
+              "success": true,
+              "message": "User status updated successfully",
+              "data": {
+                "id": 1,
+                "name": "Aarav Sharma",
+                "email": "aarav@example.com",
+                "role": "CUSTOMER",
+                "authProvider": "LOCAL",
+                "emailVerified": false,
+                "enabled": true,
+                "locked": false,
+                "failedLoginAttempts": 0,
+                "lockedUntil": null,
+                "lastLoginAt": "2026-07-02T10:15:30",
+                "passwordChangedAt": "2026-07-01T09:00:00",
+                "createdAt": "2026-07-01T09:00:00",
+                "updatedAt": "2026-07-02T10:15:30"
+              },
+              "errors": []
+            }
+            """;
 }
