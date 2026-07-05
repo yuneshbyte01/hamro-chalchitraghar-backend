@@ -36,7 +36,9 @@ public class MovieController {
     private final MovieService movieService;
 
     @GetMapping
-    @Operation(summary = "List public movies", description = "Returns paginated public movie summaries.")
+    @Operation(
+            summary = "List public movies",
+            description = "Returns paginated public movie summaries. ENDED movies are hidden by default, and status=ENDED is rejected.")
     public ResponseEntity<ApiResponse<PageResponse<PublicMovieSummaryResponse>>> getAllMovies(
             @Parameter(description = "Zero-based page index")
             @RequestParam(defaultValue = "0") int page,
@@ -48,7 +50,7 @@ public class MovieController {
             @RequestParam(defaultValue = "asc") String sortDir,
             @Parameter(description = "Case-insensitive search term matched against title, genre, and language")
             @RequestParam(required = false) String search,
-            @Parameter(description = "Filter by status: UPCOMING, NOW_SHOWING, ENDED")
+            @Parameter(description = "Filter by status: UPCOMING or NOW_SHOWING. ENDED is not supported for public listing.")
             @RequestParam(required = false) String status,
             @Parameter(description = "Filter by genre")
             @RequestParam(required = false) String genre,
@@ -70,7 +72,7 @@ public class MovieController {
     }
 
     @GetMapping("/{id}")
-    @Operation(summary = "Get a public movie by ID")
+    @Operation(summary = "Get a public movie by ID", description = "Returns only UPCOMING or NOW_SHOWING movies. ENDED movies are treated as not found.")
     public ResponseEntity<ApiResponse<PublicMovieDetailResponse>> getMovieById(@PathVariable Long id) {
         return ResponseEntity.ok(ApiResponse.success("Movie fetched successfully", movieService.getPublicMovieById(id)));
     }

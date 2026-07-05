@@ -217,13 +217,18 @@ Stores movie catalog metadata.
 | `created_at`       | `TIMESTAMP`    | No       | Audit field                                     | `createdAt`       |
 | `updated_at`       | `TIMESTAMP`    | No       | Audit field                                     | `updatedAt`       |
 | `title`            | `VARCHAR(255)` | No       | Not blank validation                            | `title`           |
+| `title_normalized` | `VARCHAR(255)` | No       | Unique with `release_date` for duplicate guard  | `titleNormalized` |
 | `genre`            | `VARCHAR(255)` | No       | Not blank validation                            | `genre`           |
-| `duration_minutes` | `INTEGER`      | No       | Positive-or-zero validation                     | `durationMinutes` |
+| `duration_minutes` | `INTEGER`      | No       | Must be between 1 and 600                       | `durationMinutes` |
 | `language`         | `VARCHAR(255)` | No       | Not blank validation                            | `language`        |
 | `description`      | `VARCHAR(255)` | No       | Not blank validation                            | `description`     |
-| `poster_url`       | `VARCHAR(255)` | No       | Not blank validation                            | `posterUrl`       |
+| `poster_url`       | `VARCHAR(500)` | No       | Valid `http`/`https` URL                        | `posterUrl`       |
 | `release_date`     | `DATE`         | No       | Not null validation                             | `releaseDate`     |
 | `status`           | `VARCHAR(255)` | No       | Enum string: `UPCOMING`, `NOW_SHOWING`, `ENDED` | `status`          |
+
+`title_normalized` stores `lower(trim(title))`. The unique index `uk_movies_title_normalized_release_date` enforces case-insensitive duplicate prevention for a movie title on the same release date.
+
+Movies are soft-deleted by changing `status` to `ENDED`; rows are not physically removed and there is no `deleted_at` column. Public movie APIs hide `ENDED` movies, while admin APIs can still query them. Because `shows.movie_id` references `movies.id`, ending a movie is blocked in service code when future active shows exist.
 
 ### `halls`
 
@@ -341,6 +346,7 @@ Join table between bookings and selected seats.
 | Name                                  | Table                   | Definition                             |
 |---------------------------------------|-------------------------|----------------------------------------|
 | `uk_users_email`                      | `users`                 | Unique email                           |
+| `uk_movies_title_normalized_release_date` | `movies`            | Unique normalized title and release date |
 | `uk_halls_name`                       | `halls`                 | Unique hall name                       |
 | `fk_password_reset_otps_user`         | `password_reset_otps`   | `user_id` references `users(id)`       |
 | `fk_seat_templates_hall`              | `seat_templates`        | `hall_id` references `halls(id)`       |
@@ -354,10 +360,11 @@ Join table between bookings and selected seats.
 
 ## Indexes
 
-| Index             | Table   | Columns  |
-|-------------------|---------|----------|
-| `idx_hall_name`   | `halls` | `name`   |
-| `idx_hall_status` | `halls` | `status` |
+| Index                                      | Table    | Columns                            |
+|--------------------------------------------|----------|------------------------------------|
+| `uk_movies_title_normalized_release_date`  | `movies` | `title_normalized`, `release_date` |
+| `idx_hall_name`                            | `halls`  | `name`                             |
+| `idx_hall_status`                          | `halls`  | `status`                           |
 
 ## Relationships
 
@@ -408,6 +415,7 @@ Seat locking queries use `PESSIMISTIC_WRITE` to prevent concurrent booking updat
 | 10    | Creates password reset OTPs                     |
 | 11    | Adds Google auth fields to users                |
 | 12    | Adds account security fields to users           |
+| 13    | Adds movie normalized title uniqueness and expands poster URL length |
 
 Migration rules:
 

@@ -20,6 +20,10 @@ public final class MovieSpecification {
     }
 
     public static Specification<Movie> search(MovieSearchCriteria criteria, MovieStatus status) {
+        return search(criteria, status, true);
+    }
+
+    public static Specification<Movie> search(MovieSearchCriteria criteria, MovieStatus status, boolean includeEnded) {
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
 
@@ -34,6 +38,8 @@ public final class MovieSpecification {
 
             if (status != null) {
                 predicates.add(cb.equal(root.get("status"), status));
+            } else if (!includeEnded) {
+                predicates.add(cb.notEqual(root.get("status"), MovieStatus.ENDED));
             }
             if (criteria.genre() != null && !criteria.genre().isBlank()) {
                 predicates.add(cb.equal(cb.lower(root.get("genre")), criteria.genre().trim().toLowerCase()));

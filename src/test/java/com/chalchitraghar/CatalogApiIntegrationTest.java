@@ -1,12 +1,16 @@
 package com.chalchitraghar;
 
 import static org.hamcrest.Matchers.nullValue;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
+import java.util.Map;
 
 import org.junit.jupiter.api.Test;
 
@@ -14,6 +18,8 @@ import com.chalchitraghar.modules.halls.entity.Hall;
 import com.chalchitraghar.modules.halls.enums.Status;
 import com.chalchitraghar.modules.movies.entity.Movie;
 import com.chalchitraghar.modules.movies.enums.MovieStatus;
+import com.chalchitraghar.modules.shows.entity.Show;
+import com.chalchitraghar.modules.shows.enums.ShowStatus;
 import com.chalchitraghar.modules.users.enums.Role;
 
 class CatalogApiIntegrationTest extends AbstractIntegrationTest {
@@ -34,6 +40,19 @@ class CatalogApiIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.data.content[0].createdAt").doesNotExist())
                 .andExpect(jsonPath("$.data.content[0].updatedAt").doesNotExist())
                 .andExpect(jsonPath("$.errors").isArray());
+    }
+
+    @Test
+    void publicMovieListExcludesEndedMoviesByDefault() throws Exception {
+        saveMovie("Public Current", MovieStatus.NOW_SHOWING, "Drama", "Nepali", LocalDate.now());
+        saveMovie("Public Upcoming", MovieStatus.UPCOMING, "Drama", "Nepali", LocalDate.now().plusDays(10));
+        saveMovie("Public Ended", MovieStatus.ENDED, "Drama", "Nepali", LocalDate.now().minusDays(10));
+
+        mockMvc.perform(get("/api/public/movies"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.totalElements").value(2))
+                .andExpect(jsonPath("$.data.content[0].title").value("Public Current"))
+                .andExpect(jsonPath("$.data.content[1].title").value("Public Upcoming"));
     }
 
     @Test
@@ -64,7 +83,7 @@ class CatalogApiIntegrationTest extends AbstractIntegrationTest {
 
         mockMvc.perform(get("/api/public/movies").param("search", "jatra"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.totalElements").value(2));
+                .andExpect(jsonPath("$.data.totalElements").value(1));
 
         mockMvc.perform(get("/api/public/movies").param("search", "horror"))
                 .andExpect(status().isOk())
@@ -78,11 +97,11 @@ class CatalogApiIntegrationTest extends AbstractIntegrationTest {
 
         mockMvc.perform(get("/api/public/movies").param("genre", "Comedy"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.totalElements").value(2));
+                .andExpect(jsonPath("$.data.totalElements").value(1));
 
         mockMvc.perform(get("/api/public/movies").param("language", "Nepali"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.totalElements").value(2));
+                .andExpect(jsonPath("$.data.totalElements").value(1));
 
         mockMvc.perform(get("/api/public/movies")
                         .param("releaseDateFrom", "2026-01-01")
@@ -102,9 +121,8 @@ class CatalogApiIntegrationTest extends AbstractIntegrationTest {
                         .param("sortBy", "releaseDate")
                         .param("sortDir", "asc"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.content[0].title").value("Old Jatra"))
-                .andExpect(jsonPath("$.data.content[1].title").value("Jatra Returns"))
-                .andExpect(jsonPath("$.data.content[2].title").value("Silent Hills"));
+                .andExpect(jsonPath("$.data.content[0].title").value("Jatra Returns"))
+                .andExpect(jsonPath("$.data.content[1].title").value("Silent Hills"));
     }
 
     @Test
@@ -123,6 +141,11 @@ class CatalogApiIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.message").value("Invalid status. Allowed values: UPCOMING, NOW_SHOWING, ENDED"));
+
+        mockMvc.perform(get("/api/public/movies").param("status", "ENDED"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("Public movie listing does not support status ENDED"));
 
         mockMvc.perform(get("/api/public/movies").param("releaseDateFrom", "2026/01/01"))
                 .andExpect(status().isBadRequest())
@@ -151,6 +174,16 @@ class CatalogApiIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.data.updatedAt").doesNotExist())
                 .andExpect(jsonPath("$.data.password").doesNotExist())
                 .andExpect(jsonPath("$.data.errors").doesNotExist());
+    }
+
+    @Test
+    void publicMovieDetailForEndedMovieReturnsNotFound() throws Exception {
+        Movie movie = saveMovie("Hidden Public Detail", MovieStatus.ENDED, "Drama", "Nepali", LocalDate.now().minusDays(10));
+
+        mockMvc.perform(get("/api/public/movies/{id}", movie.getId()))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("Movie not found with id: " + movie.getId()));
     }
 
     @Test
@@ -206,6 +239,25 @@ class CatalogApiIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void adminCanListAndFetchEndedMovies() throws Exception {
+        String adminToken = tokenFor("admin-ended-visibility@example.com", Role.ADMIN);
+        Movie ended = saveMovie("Admin Visible Ended", MovieStatus.ENDED, "Drama", "Nepali", LocalDate.now().minusDays(10));
+
+        mockMvc.perform(get("/api/admin/movies")
+                        .header("Authorization", bearer(adminToken))
+                        .param("status", "ENDED"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.totalElements").value(1))
+                .andExpect(jsonPath("$.data.content[0].title").value("Admin Visible Ended"));
+
+        mockMvc.perform(get("/api/admin/movies/{id}", ended.getId())
+                        .header("Authorization", bearer(adminToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.title").value("Admin Visible Ended"))
+                .andExpect(jsonPath("$.data.status").value("ENDED"));
+    }
+
+    @Test
     void adminMovieDetailExposesAuditFields() throws Exception {
         String adminToken = tokenFor("admin-movie-detail@example.com", Role.ADMIN);
         Movie movie = saveMovie("Admin Movie Detail", MovieStatus.NOW_SHOWING);
@@ -236,6 +288,415 @@ class CatalogApiIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.message").value("Movie created successfully"))
                 .andExpect(jsonPath("$.data.title").value("Admin Movie"))
                 .andExpect(jsonPath("$.errors").isArray());
+    }
+
+    @Test
+    void duplicateMovieTitleAndReleaseDateReturnsConflict() throws Exception {
+        String adminToken = tokenFor("admin-duplicate-movie@example.com", Role.ADMIN);
+        saveMovie("Duplicate Movie", MovieStatus.NOW_SHOWING, "Drama", "Nepali", LocalDate.now());
+
+        mockMvc.perform(post("/api/admin/movies")
+                        .header("Authorization", bearer(adminToken))
+                        .contentType("application/json")
+                        .content(json(movieRequest(
+                                "duplicate movie",
+                                MovieStatus.NOW_SHOWING,
+                                120,
+                                "https://example.com/poster.jpg",
+                                LocalDate.now()))))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("Movie already exists with the same title and release date"));
+    }
+
+    @Test
+    void sameTitleWithDifferentReleaseDateIsAllowed() throws Exception {
+        String adminToken = tokenFor("admin-same-title-movie@example.com", Role.ADMIN);
+
+        mockMvc.perform(post("/api/admin/movies")
+                        .header("Authorization", bearer(adminToken))
+                        .contentType("application/json")
+                        .content(json(movieRequest(
+                                "Same Title",
+                                MovieStatus.NOW_SHOWING,
+                                120,
+                                "https://example.com/poster-one.jpg",
+                                LocalDate.now()))))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(post("/api/admin/movies")
+                        .header("Authorization", bearer(adminToken))
+                        .contentType("application/json")
+                        .content(json(movieRequest(
+                                "Same Title",
+                                MovieStatus.ENDED,
+                                120,
+                                "https://example.com/poster-two.jpg",
+                                LocalDate.now().minusDays(1)))))
+                .andExpect(status().isCreated());
+    }
+
+    @Test
+    void moviePosterUrlValidationAllowsHttpAndHttpsOnly() throws Exception {
+        String adminToken = tokenFor("admin-poster-validation@example.com", Role.ADMIN);
+
+        mockMvc.perform(post("/api/admin/movies")
+                        .header("Authorization", bearer(adminToken))
+                        .contentType("application/json")
+                        .content(json(movieRequest(
+                                "HTTPS Poster",
+                                MovieStatus.NOW_SHOWING,
+                                120,
+                                "https://example.com/poster.jpg",
+                                LocalDate.now()))))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(post("/api/admin/movies")
+                        .header("Authorization", bearer(adminToken))
+                        .contentType("application/json")
+                        .content(json(movieRequest(
+                                "HTTP Poster",
+                                MovieStatus.NOW_SHOWING,
+                                120,
+                                "http://example.com/poster.jpg",
+                                LocalDate.now()))))
+                .andExpect(status().isCreated());
+
+        assertInvalidMovieRequest(adminToken, movieRequest(
+                "FTP Poster",
+                MovieStatus.NOW_SHOWING,
+                120,
+                "ftp://example.com/poster.jpg",
+                LocalDate.now()));
+        assertInvalidMovieRequest(adminToken, movieRequest(
+                "JavaScript Poster",
+                MovieStatus.NOW_SHOWING,
+                120,
+                "javascript:alert(1)",
+                LocalDate.now()));
+        assertInvalidMovieRequest(adminToken, movieRequest(
+                "Malformed Poster",
+                MovieStatus.NOW_SHOWING,
+                120,
+                "https://exa mple.com/poster.jpg",
+                LocalDate.now()));
+        assertInvalidMovieRequest(adminToken, movieRequest(
+                "Long Poster",
+                MovieStatus.NOW_SHOWING,
+                120,
+                "https://example.com/" + "a".repeat(490),
+                LocalDate.now()));
+    }
+
+    @Test
+    void movieDurationValidationEnforcesBounds() throws Exception {
+        String adminToken = tokenFor("admin-duration-validation@example.com", Role.ADMIN);
+
+        assertInvalidMovieRequest(adminToken, movieRequest(
+                "Zero Duration",
+                MovieStatus.NOW_SHOWING,
+                0,
+                "https://example.com/poster.jpg",
+                LocalDate.now()));
+        assertInvalidMovieRequest(adminToken, movieRequest(
+                "Negative Duration",
+                MovieStatus.NOW_SHOWING,
+                -1,
+                "https://example.com/poster.jpg",
+                LocalDate.now()));
+        assertInvalidMovieRequest(adminToken, movieRequest(
+                "Too Long Duration",
+                MovieStatus.NOW_SHOWING,
+                601,
+                "https://example.com/poster.jpg",
+                LocalDate.now()));
+
+        mockMvc.perform(post("/api/admin/movies")
+                        .header("Authorization", bearer(adminToken))
+                        .contentType("application/json")
+                        .content(json(movieRequest(
+                                "Valid Duration",
+                                MovieStatus.NOW_SHOWING,
+                                600,
+                                "https://example.com/poster.jpg",
+                                LocalDate.now()))))
+                .andExpect(status().isCreated());
+    }
+
+    @Test
+    void movieReleaseDateMustMatchStatus() throws Exception {
+        String adminToken = tokenFor("admin-release-validation@example.com", Role.ADMIN);
+
+        mockMvc.perform(post("/api/admin/movies")
+                        .header("Authorization", bearer(adminToken))
+                        .contentType("application/json")
+                        .content(json(movieRequest(
+                                "Upcoming Future",
+                                MovieStatus.UPCOMING,
+                                120,
+                                "https://example.com/poster.jpg",
+                                LocalDate.now().plusDays(10)))))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(post("/api/admin/movies")
+                        .header("Authorization", bearer(adminToken))
+                        .contentType("application/json")
+                        .content(json(movieRequest(
+                                "Upcoming Past",
+                                MovieStatus.UPCOMING,
+                                120,
+                                "https://example.com/poster.jpg",
+                                LocalDate.now().minusDays(1)))))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value("UPCOMING movies must have a release date today or in the future"));
+
+        mockMvc.perform(post("/api/admin/movies")
+                        .header("Authorization", bearer(adminToken))
+                        .contentType("application/json")
+                        .content(json(movieRequest(
+                                "Now Showing Today",
+                                MovieStatus.NOW_SHOWING,
+                                120,
+                                "https://example.com/poster.jpg",
+                                LocalDate.now()))))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(post("/api/admin/movies")
+                        .header("Authorization", bearer(adminToken))
+                        .contentType("application/json")
+                        .content(json(movieRequest(
+                                "Now Showing Future",
+                                MovieStatus.NOW_SHOWING,
+                                120,
+                                "https://example.com/poster.jpg",
+                                LocalDate.now().plusDays(1)))))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value("NOW_SHOWING movies must have a release date today or in the past"));
+
+        mockMvc.perform(post("/api/admin/movies")
+                        .header("Authorization", bearer(adminToken))
+                        .contentType("application/json")
+                        .content(json(movieRequest(
+                                "Ended Future",
+                                MovieStatus.ENDED,
+                                120,
+                                "https://example.com/poster.jpg",
+                                LocalDate.now().plusDays(1)))))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value("ENDED movies must have a release date today or in the past"));
+    }
+
+    @Test
+    void movieStatusTransitionsFollowLifecycle() throws Exception {
+        String adminToken = tokenFor("admin-movie-transitions@example.com", Role.ADMIN);
+
+        Movie upcomingToNowShowing = saveMovie(
+                "Upcoming To Now Showing",
+                MovieStatus.UPCOMING,
+                "Drama",
+                "Nepali",
+                LocalDate.now().plusDays(5));
+        mockMvc.perform(put("/api/admin/movies/{id}", upcomingToNowShowing.getId())
+                        .header("Authorization", bearer(adminToken))
+                        .contentType("application/json")
+                        .content(json(movieRequest(
+                                "Upcoming To Now Showing",
+                                MovieStatus.NOW_SHOWING,
+                                120,
+                                "https://example.com/poster.jpg",
+                                LocalDate.now()))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.status").value("NOW_SHOWING"));
+
+        Movie nowShowingToEnded = saveMovie(
+                "Now Showing To Ended",
+                MovieStatus.NOW_SHOWING,
+                "Drama",
+                "Nepali",
+                LocalDate.now().minusDays(1));
+        mockMvc.perform(put("/api/admin/movies/{id}", nowShowingToEnded.getId())
+                        .header("Authorization", bearer(adminToken))
+                        .contentType("application/json")
+                        .content(json(movieRequest(
+                                "Now Showing To Ended",
+                                MovieStatus.ENDED,
+                                120,
+                                "https://example.com/poster.jpg",
+                                LocalDate.now().minusDays(1)))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.status").value("ENDED"));
+
+        Movie upcomingToEnded = saveMovie(
+                "Upcoming To Ended",
+                MovieStatus.UPCOMING,
+                "Drama",
+                "Nepali",
+                LocalDate.now().plusDays(5));
+        mockMvc.perform(put("/api/admin/movies/{id}", upcomingToEnded.getId())
+                        .header("Authorization", bearer(adminToken))
+                        .contentType("application/json")
+                        .content(json(movieRequest(
+                                "Upcoming To Ended",
+                                MovieStatus.ENDED,
+                                120,
+                                "https://example.com/poster.jpg",
+                                LocalDate.now().minusDays(1)))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.status").value("ENDED"));
+
+        Movie endedToNowShowing = saveMovie(
+                "Ended To Now Showing",
+                MovieStatus.ENDED,
+                "Drama",
+                "Nepali",
+                LocalDate.now().minusDays(1));
+        mockMvc.perform(put("/api/admin/movies/{id}", endedToNowShowing.getId())
+                        .header("Authorization", bearer(adminToken))
+                        .contentType("application/json")
+                        .content(json(movieRequest(
+                                "Ended To Now Showing",
+                                MovieStatus.NOW_SHOWING,
+                                120,
+                                "https://example.com/poster.jpg",
+                                LocalDate.now().minusDays(1)))))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value("Invalid movie status transition from ENDED to NOW_SHOWING"));
+
+        Movie endedToUpcoming = saveMovie(
+                "Ended To Upcoming",
+                MovieStatus.ENDED,
+                "Drama",
+                "Nepali",
+                LocalDate.now().minusDays(1));
+        mockMvc.perform(put("/api/admin/movies/{id}", endedToUpcoming.getId())
+                        .header("Authorization", bearer(adminToken))
+                        .contentType("application/json")
+                        .content(json(movieRequest(
+                                "Ended To Upcoming",
+                                MovieStatus.UPCOMING,
+                                120,
+                                "https://example.com/poster.jpg",
+                                LocalDate.now().plusDays(1)))))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value("Invalid movie status transition from ENDED to UPCOMING"));
+
+        Movie nowShowingToUpcoming = saveMovie(
+                "Now Showing To Upcoming",
+                MovieStatus.NOW_SHOWING,
+                "Drama",
+                "Nepali",
+                LocalDate.now().minusDays(1));
+        mockMvc.perform(put("/api/admin/movies/{id}", nowShowingToUpcoming.getId())
+                        .header("Authorization", bearer(adminToken))
+                        .contentType("application/json")
+                        .content(json(movieRequest(
+                                "Now Showing To Upcoming",
+                                MovieStatus.UPCOMING,
+                                120,
+                                "https://example.com/poster.jpg",
+                                LocalDate.now().plusDays(1)))))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value("Invalid movie status transition from NOW_SHOWING to UPCOMING"));
+    }
+
+    @Test
+    void deleteMovieWithoutFutureActiveShowsSetsStatusEnded() throws Exception {
+        String adminToken = tokenFor("admin-delete-movie@example.com", Role.ADMIN);
+        Movie movie = saveMovie("Delete Allowed Movie", MovieStatus.NOW_SHOWING, "Drama", "Nepali", LocalDate.now());
+
+        mockMvc.perform(delete("/api/admin/movies/{id}", movie.getId())
+                        .header("Authorization", bearer(adminToken)))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(get("/api/admin/movies/{id}", movie.getId())
+                        .header("Authorization", bearer(adminToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.status").value("ENDED"));
+    }
+
+    @Test
+    void deleteMovieWithFutureScheduledShowReturnsConflict() throws Exception {
+        String adminToken = tokenFor("admin-delete-future-show@example.com", Role.ADMIN);
+        Movie movie = saveMovie("Delete Blocked Movie", MovieStatus.NOW_SHOWING, "Drama", "Nepali", LocalDate.now());
+        Hall hall = saveHall("Delete Block Hall", Status.ACTIVE);
+        saveShow(movie, hall, LocalDate.now().plusDays(2), ShowStatus.SCHEDULED);
+
+        mockMvc.perform(delete("/api/admin/movies/{id}", movie.getId())
+                        .header("Authorization", bearer(adminToken)))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value("Cannot end movie while future active shows exist"));
+    }
+
+    @Test
+    void deleteMovieAllowsPastCompletedAndCancelledShows() throws Exception {
+        String adminToken = tokenFor("admin-delete-nonactive-show@example.com", Role.ADMIN);
+
+        Movie completedMovie = saveMovie("Delete Completed Movie", MovieStatus.NOW_SHOWING, "Drama", "Nepali", LocalDate.now());
+        Hall completedHall = saveHall("Completed Show Hall", Status.ACTIVE);
+        saveShow(completedMovie, completedHall, LocalDate.now().minusDays(2), ShowStatus.COMPLETED);
+
+        mockMvc.perform(delete("/api/admin/movies/{id}", completedMovie.getId())
+                        .header("Authorization", bearer(adminToken)))
+                .andExpect(status().isNoContent());
+
+        Movie cancelledMovie = saveMovie("Delete Cancelled Movie", MovieStatus.NOW_SHOWING, "Drama", "Nepali", LocalDate.now());
+        Hall cancelledHall = saveHall("Cancelled Show Hall", Status.ACTIVE);
+        saveShow(cancelledMovie, cancelledHall, LocalDate.now().plusDays(2), ShowStatus.CANCELLED);
+
+        mockMvc.perform(delete("/api/admin/movies/{id}", cancelledMovie.getId())
+                        .header("Authorization", bearer(adminToken)))
+                .andExpect(status().isNoContent());
+    }
+
+    @Test
+    void updateMovieToEndedRespectsFutureActiveShows() throws Exception {
+        String adminToken = tokenFor("admin-update-ended-shows@example.com", Role.ADMIN);
+        Movie blockedMovie = saveMovie("Update End Blocked", MovieStatus.NOW_SHOWING, "Drama", "Nepali", LocalDate.now());
+        Hall hall = saveHall("Update End Block Hall", Status.ACTIVE);
+        saveShow(blockedMovie, hall, LocalDate.now().plusDays(2), ShowStatus.SCHEDULED);
+
+        mockMvc.perform(put("/api/admin/movies/{id}", blockedMovie.getId())
+                        .header("Authorization", bearer(adminToken))
+                        .contentType("application/json")
+                        .content(json(movieRequest(
+                                "Update End Blocked",
+                                MovieStatus.ENDED,
+                                120,
+                                "https://example.com/poster.jpg",
+                                LocalDate.now()))))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value("Cannot end movie while future active shows exist"));
+
+        Movie allowedMovie = saveMovie("Update End Allowed", MovieStatus.NOW_SHOWING, "Drama", "Nepali", LocalDate.now());
+        mockMvc.perform(put("/api/admin/movies/{id}", allowedMovie.getId())
+                        .header("Authorization", bearer(adminToken))
+                        .contentType("application/json")
+                        .content(json(movieRequest(
+                                "Update End Allowed",
+                                MovieStatus.ENDED,
+                                120,
+                                "https://example.com/poster.jpg",
+                                LocalDate.now()))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.status").value("ENDED"));
+    }
+
+    @Test
+    void nonAdminsAndUnauthenticatedUsersCannotDeleteMovie() throws Exception {
+        Movie movie = saveMovie("Delete Auth Movie", MovieStatus.NOW_SHOWING, "Drama", "Nepali", LocalDate.now());
+        String customerToken = tokenFor("customer-delete-movie@example.com", Role.CUSTOMER);
+        String staffToken = tokenFor("staff-delete-movie@example.com", Role.STAFF);
+
+        mockMvc.perform(delete("/api/admin/movies/{id}", movie.getId())
+                        .header("Authorization", bearer(customerToken)))
+                .andExpect(status().isForbidden());
+
+        mockMvc.perform(delete("/api/admin/movies/{id}", movie.getId())
+                        .header("Authorization", bearer(staffToken)))
+                .andExpect(status().isForbidden());
+
+        mockMvc.perform(delete("/api/admin/movies/{id}", movie.getId()))
+                .andExpect(status().isUnauthorized());
     }
 
     @Test
@@ -429,5 +890,45 @@ class CatalogApiIntegrationTest extends AbstractIntegrationTest {
                 .releaseDate(releaseDate)
                 .status(status)
                 .build());
+    }
+
+    private Map<String, Object> movieRequest(
+            String title,
+            MovieStatus status,
+            int durationMinutes,
+            String posterUrl,
+            LocalDate releaseDate) {
+        return Map.of(
+                "title", title,
+                "genre", "Drama",
+                "durationMinutes", durationMinutes,
+                "language", "Nepali",
+                "description", "Test movie",
+                "posterUrl", posterUrl,
+                "releaseDate", releaseDate.toString(),
+                "status", status.name()
+        );
+    }
+
+    private void assertInvalidMovieRequest(String adminToken, Map<String, Object> request) throws Exception {
+        mockMvc.perform(post("/api/admin/movies")
+                        .header("Authorization", bearer(adminToken))
+                        .contentType("application/json")
+                        .content(json(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("Validation failed"));
+    }
+
+    private Show saveShow(Movie movie, Hall hall, LocalDate showDate, ShowStatus status) {
+        Show show = showRepository.save(Show.builder()
+                .movie(movie)
+                .hall(hall)
+                .showDate(showDate)
+                .showTime(LocalTime.of(10, 0))
+                .endTime(LocalTime.of(12, 0))
+                .build());
+        show.setStatus(status);
+        return showRepository.save(show);
     }
 }

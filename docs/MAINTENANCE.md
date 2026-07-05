@@ -60,8 +60,8 @@ Example controller pattern:
 
 ```java
 @PostMapping
-public ResponseEntity<ApiResponse<MovieResponse>> createMovie(@Valid @RequestBody MovieRequest dto) {
-    MovieResponse created = movieService.addMovie(dto);
+public ResponseEntity<ApiResponse<AdminMovieDetailResponse>> createMovie(@Valid @RequestBody MovieRequest dto) {
+    AdminMovieDetailResponse created = movieService.addMovie(dto);
     return ResponseEntity.status(HttpStatus.CREATED)
             .body(ApiResponse.success("Movie created successfully", created));
 }
@@ -302,6 +302,13 @@ Keep user list changes inside `UserService`, `UserSpecification`, `UserMapper`, 
 
 Public movie lists use `PublicMovieSummaryResponse` and must not expose `description`, `createdAt`, or `updatedAt`. Admin movie lists use `AdminMovieSummaryResponse`; admin detail, create, and update responses use `AdminMovieDetailResponse`.
 
+Public movie visibility is intentionally narrower than admin visibility:
+
+- Public lists return only `UPCOMING` and `NOW_SHOWING` movies by default.
+- Public `status=ENDED` filters are rejected with `400`.
+- Public detail treats `ENDED` movies as not found.
+- Admin list/detail endpoints can see all statuses, including `ENDED`.
+
 Supported query parameters:
 
 | Parameter | Purpose |
@@ -315,7 +322,20 @@ Supported query parameters:
 
 Allowed sort fields are `id`, `title`, `genre`, `language`, `releaseDate`, `status`, `createdAt`, `updatedAt`, and `durationMinutes`.
 
-Keep movie list changes inside `MovieService`, `MovieSpecification`, `MovieMapper`, and the public/admin movie controllers. Do not add duplicate validation, poster URL validation, status transition rules, or soft-delete behavior changes as part of list-query maintenance.
+Movie create and update validation rules:
+
+- Duplicate movies are rejected when normalized title (`lower(trim(title))`) and `releaseDate` match an existing movie.
+- The database enforces the same duplicate rule with `uk_movies_title_normalized_release_date`.
+- `durationMinutes` must be between 1 and 600.
+- `posterUrl` must be an absolute `http` or `https` URL and at most 500 characters.
+- `UPCOMING` requires `releaseDate` today or later.
+- `NOW_SHOWING` and `ENDED` require `releaseDate` today or earlier.
+- Allowed status transitions are `UPCOMING -> NOW_SHOWING`, `NOW_SHOWING -> ENDED`, and `UPCOMING -> ENDED`.
+- Ending or deleting a movie is rejected with `409` when future active shows exist.
+- Future active shows are `SCHEDULED` or `RUNNING` shows whose show window has not fully passed.
+- Movie delete is a soft delete: it sets `status=ENDED`; it does not remove the row.
+
+Keep movie list and lifecycle changes inside `MovieService`, `MovieSpecification`, `MovieMapper`, `ShowRepository`, and the public/admin movie controllers. Do not physically delete movies, auto-cancel shows, add `deletedAt`, change image storage, or add audit logging as part of movie visibility or soft-delete maintenance.
 
 ## Admin Account State Maintenance
 

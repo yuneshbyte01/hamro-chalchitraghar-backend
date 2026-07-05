@@ -23,6 +23,8 @@ public interface MovieRepository extends JpaRepository<Movie, Long>, JpaSpecific
      * @return optional movie matching the criteria
      */
     Optional<Movie> findByTitleAndReleaseDate(String title, LocalDate releaseDate);
+
+    Optional<Movie> findByTitleIgnoreCaseAndReleaseDate(String title, LocalDate releaseDate);
     
     /**
      * Finds all movies with the specified status, ordered by release date ascending.

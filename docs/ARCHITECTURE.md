@@ -116,6 +116,10 @@ Movie list endpoints use `PageResponse<T>` and keep public/admin response contra
 
 Both movie list endpoints support case-insensitive search across `title`, `genre`, and `language`; optional filters for `status`, `genre`, `language`, `releaseDateFrom`, and `releaseDateTo`; and an allowlisted sort field set of `id`, `title`, `genre`, `language`, `releaseDate`, `status`, `createdAt`, `updatedAt`, and `durationMinutes`.
 
+Movie create and update rules live in `MovieService`. The service rejects duplicate movies by case-insensitive `title` plus `releaseDate`, validates release date consistency for `UPCOMING`, `NOW_SHOWING`, and `ENDED`, and enforces the lifecycle `UPCOMING -> NOW_SHOWING -> ENDED` with the direct shortcut `UPCOMING -> ENDED`. The database also enforces duplicate protection through `movies.title_normalized` plus `release_date`.
+
+Movie visibility is audience-specific. Public movie lists and detail endpoints expose only `UPCOMING` and `NOW_SHOWING`; `status=ENDED` is rejected on public lists and ended movie detail is returned as not found. Admin movie endpoints can list and fetch all statuses. Ending a movie, either through update or delete, is blocked when future active `SCHEDULED` or `RUNNING` shows still reference it. The service enforces this through `ShowRepository`; controllers do not duplicate dependency checks.
+
 Admin user lists use `PageResponse<AdminUserSummaryResponse>` and support bounded pagination, allowlisted sorting, case-insensitive search across `name` and `email`, and optional filters for role, auth provider, enabled, locked, and email verification state.
 
 Admin user lifecycle and account state management is implemented in `UserService` and exposed through thin `AdminUserController` endpoints:

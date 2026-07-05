@@ -1,13 +1,15 @@
 package com.chalchitraghar.modules.movies.dto.request;
 
-import com.chalchitraghar.modules.halls.enums.Status;
 import java.time.LocalDate;
 
 import com.chalchitraghar.modules.movies.enums.MovieStatus;
+import com.chalchitraghar.modules.movies.validation.ValidPosterUrl;
 
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.PositiveOrZero;
+import jakarta.validation.constraints.Size;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -30,7 +32,8 @@ public class MovieRequest {
     private String genre;
 
     @NotNull(message = "Duration is required")
-    @PositiveOrZero(message = "Duration must be at least 1 minute")
+    @Min(value = 1, message = "Duration must be at least 1 minute")
+    @Max(value = 600, message = "Duration must not exceed 600 minutes")
     @Schema(example = "125")
     private Integer durationMinutes;
 
@@ -43,6 +46,8 @@ public class MovieRequest {
     private String description;
     
     @NotBlank(message = "Poster URL is required")
+    @Size(max = 500, message = "Poster URL must not exceed 500 characters")
+    @ValidPosterUrl
     @Schema(example = "https://example.com/posters/jatra.jpg")
     private String posterUrl;
     

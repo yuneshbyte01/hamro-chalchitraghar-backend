@@ -368,7 +368,7 @@ Query parameters:
 | `sortBy` | `releaseDate` | One of `id`, `title`, `genre`, `language`, `releaseDate`, `status`, `createdAt`, `updatedAt`, `durationMinutes` |
 | `sortDir` | `asc` | `asc` or `desc` |
 | `search` | none | Case-insensitive match against `title`, `genre`, or `language` |
-| `status` | none | `UPCOMING`, `NOW_SHOWING`, or `ENDED` |
+| `status` | none | `UPCOMING` or `NOW_SHOWING`; `ENDED` is rejected for public listing |
 | `genre` | none | Case-insensitive exact genre filter |
 | `language` | none | Case-insensitive exact language filter |
 | `releaseDateFrom` | none | Inclusive lower release date bound, `yyyy-MM-dd` |
@@ -411,7 +411,7 @@ Response `200`: `PageResponse<PublicMovieSummaryResponse>`.
 }
 ```
 
-Public movie list responses do not expose `description`, `createdAt`, or `updatedAt`. Current public visibility rules are unchanged: this endpoint can return any movie status unless filtered.
+Public movie list responses do not expose `description`, `createdAt`, or `updatedAt`. Public lists hide `ENDED` movies by default. Requests with `status=ENDED` return `400` with `Public movie listing does not support status ENDED`.
 
 ### `GET /api/public/movies/{id}`
 
@@ -422,9 +422,9 @@ Public movie list responses do not expose `description`, `createdAt`, or `update
 | Request body | None |
 | Validation | `id` must be numeric |
 
-Response `200`: `PublicMovieDetailResponse` in the standard wrapper. Public detail includes `description`, but does not expose `createdAt` or `updatedAt`.
+Response `200`: `PublicMovieDetailResponse` in the standard wrapper. Public detail includes `description`, but does not expose `createdAt` or `updatedAt`. Public detail returns only `UPCOMING` or `NOW_SHOWING` movies.
 
-Errors: `400` invalid ID type, `404` movie not found.
+Errors: `400` invalid ID type, `404` movie not found or movie is `ENDED`.
 
 ### `GET /api/public/movies/now-showing`
 
@@ -869,7 +869,7 @@ Errors: `401` unauthenticated, `403` role not allowed, `404` booking not found.
 | Field | Value |
 | --- | --- |
 | Authentication | ADMIN |
-| Description | Lists movies for admin with pagination, search, filtering, and sorting. |
+| Description | Lists movies for admin with pagination, search, filtering, and sorting. Admin lists include all statuses, including `ENDED`. |
 | Request body | None |
 | Validation | ADMIN token; invalid sort fields, sort direction, status, date format, or reversed release date range return `400` |
 
@@ -927,7 +927,17 @@ Request:
 
 Validation: `title`, `genre`, `language`, `description`, and `posterUrl` are required; `durationMinutes`, `releaseDate`, and `status` are required; status must be a valid `MovieStatus`.
 
+Additional movie rules:
+
+- Duplicate movies are rejected when `title` matches case-insensitively for the same `releaseDate`.
+- `durationMinutes` must be between `1` and `600`.
+- `posterUrl` must be a valid `http://` or `https://` URL and at most 500 characters.
+- `UPCOMING` movies must have `releaseDate` today or in the future.
+- `NOW_SHOWING` and `ENDED` movies must have `releaseDate` today or in the past.
+
 Response `201`: `AdminMovieDetailResponse`.
+
+Errors: `400` validation, `409` duplicate movie or release date/status conflict.
 
 #### `PUT /api/admin/movies/{id}`
 
@@ -939,20 +949,30 @@ Response `201`: `AdminMovieDetailResponse`.
 
 Response `200`: `AdminMovieDetailResponse`.
 
-Errors: `400` validation, `404` movie not found.
+Status lifecycle:
+
+- `UPCOMING -> NOW_SHOWING`
+- `NOW_SHOWING -> ENDED`
+- `UPCOMING -> ENDED`
+
+Rejected transitions include `ENDED -> NOW_SHOWING`, `ENDED -> UPCOMING`, and `NOW_SHOWING -> UPCOMING`.
+
+Errors: `400` validation, `404` movie not found, `409` duplicate movie, invalid status transition, release date/status conflict, or future active shows when ending the movie.
 
 #### `DELETE /api/admin/movies/{id}`
 
 | Field | Value |
 | --- | --- |
 | Authentication | ADMIN |
-| Description | Soft-deletes a movie by setting status to `ENDED`. |
+| Description | Soft-deletes a movie by setting status to `ENDED`. Movie rows are not physically deleted. |
 | Request body | None |
 | Validation | `id` numeric |
 
 Response `204`: empty body.
 
-Errors: `404` movie not found.
+Dependency rule: delete is rejected when the movie has future active shows. Future active shows are `SCHEDULED` or `RUNNING` shows whose show window has not fully passed.
+
+Errors: `404` movie not found, `409` future active shows exist.
 
 ### Halls
 

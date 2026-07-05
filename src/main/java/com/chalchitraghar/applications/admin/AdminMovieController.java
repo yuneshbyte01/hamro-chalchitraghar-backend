@@ -26,6 +26,8 @@ import com.chalchitraghar.shared.response.PageResponse;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -84,7 +86,19 @@ public class AdminMovieController {
     }
 
     @PostMapping
-    @Operation(summary = "Create a movie")
+    @Operation(
+            summary = "Create a movie",
+            description = "Creates a movie after validating duplicate title/release date, duration, poster URL, release date consistency, and status.")
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(
+            content = @Content(mediaType = "application/json", examples = @ExampleObject(value = MOVIE_REQUEST_EXAMPLE)))
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "400",
+            description = "Validation failure",
+            content = @Content(mediaType = "application/json", examples = @ExampleObject(value = VALIDATION_ERROR_EXAMPLE)))
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "409",
+            description = "Duplicate movie or release date/status business rule conflict",
+            content = @Content(mediaType = "application/json", examples = @ExampleObject(value = MOVIE_CONFLICT_EXAMPLE)))
     public ResponseEntity<ApiResponse<AdminMovieDetailResponse>> createMovie(@Valid @RequestBody MovieRequest dto) {
         AdminMovieDetailResponse created = movieService.addMovie(dto);
         return ResponseEntity.status(HttpStatus.CREATED)
@@ -92,15 +106,73 @@ public class AdminMovieController {
     }
 
     @PutMapping("/{id}")
-    @Operation(summary = "Update a movie")
+    @Operation(
+            summary = "Update a movie",
+            description = "Updates a movie after validating duplicate title/release date, status transition, duration, poster URL, and release date consistency.")
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(
+            content = @Content(mediaType = "application/json", examples = @ExampleObject(value = MOVIE_REQUEST_EXAMPLE)))
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "400",
+            description = "Validation failure",
+            content = @Content(mediaType = "application/json", examples = @ExampleObject(value = VALIDATION_ERROR_EXAMPLE)))
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "409",
+            description = "Duplicate movie, invalid status transition, or release date/status business rule conflict",
+            content = @Content(mediaType = "application/json", examples = @ExampleObject(value = MOVIE_CONFLICT_EXAMPLE)))
     public ResponseEntity<ApiResponse<AdminMovieDetailResponse>> updateMovie(@PathVariable Long id, @Valid @RequestBody MovieRequest dto) {
         return ResponseEntity.ok(ApiResponse.success("Movie updated successfully", movieService.updateMovie(id, dto)));
     }
 
     @DeleteMapping("/{id}")
-    @Operation(summary = "Soft-delete a movie", description = "Marks the movie as ENDED.")
+    @Operation(
+            summary = "Soft-delete a movie",
+            description = "Marks the movie as ENDED when no future active SCHEDULED or RUNNING shows exist. Movie rows are not physically deleted.")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "409",
+            description = "Movie has future active shows",
+            content = @Content(mediaType = "application/json", examples = @ExampleObject(value = FUTURE_SHOW_CONFLICT_EXAMPLE)))
     public ResponseEntity<Void> deleteMovie(@PathVariable Long id) {
         movieService.deleteMovie(id);
         return ResponseEntity.noContent().build();
     }
+
+    private static final String MOVIE_REQUEST_EXAMPLE = """
+            {
+              "title": "Jatra",
+              "genre": "Comedy",
+              "durationMinutes": 125,
+              "language": "Nepali",
+              "description": "A Nepali comedy movie about an unexpected chain of events.",
+              "posterUrl": "https://example.com/posters/jatra.jpg",
+              "releaseDate": "2026-07-05",
+              "status": "NOW_SHOWING"
+            }
+            """;
+
+    private static final String VALIDATION_ERROR_EXAMPLE = """
+            {
+              "success": false,
+              "message": "Validation failed",
+              "data": null,
+              "errors": ["durationMinutes: Duration must be at least 1 minute"]
+            }
+            """;
+
+    private static final String MOVIE_CONFLICT_EXAMPLE = """
+            {
+              "success": false,
+              "message": "Movie already exists with the same title and release date",
+              "data": null,
+              "errors": []
+            }
+            """;
+
+    private static final String FUTURE_SHOW_CONFLICT_EXAMPLE = """
+            {
+              "success": false,
+              "message": "Cannot end movie while future active shows exist",
+              "data": null,
+              "errors": []
+            }
+            """;
 }
