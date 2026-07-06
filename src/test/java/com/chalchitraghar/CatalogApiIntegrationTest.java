@@ -792,13 +792,18 @@ class CatalogApiIntegrationTest extends AbstractIntegrationTest {
 
         mockMvc.perform(get("/api/public/halls"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.length()").value(1))
-                .andExpect(jsonPath("$.data[0].id").value(activeHall.getId()))
-                .andExpect(jsonPath("$.data[0].name").value("Public Active Hall"))
-                .andExpect(jsonPath("$.data[0].capacity").value(188))
-                .andExpect(jsonPath("$.data[0].layoutRef").doesNotExist())
-                .andExpect(jsonPath("$.data[0].createdAt").doesNotExist())
-                .andExpect(jsonPath("$.data[0].updatedAt").doesNotExist());
+                .andExpect(jsonPath("$.data.content.length()").value(1))
+                .andExpect(jsonPath("$.data.content[0].id").value(activeHall.getId()))
+                .andExpect(jsonPath("$.data.content[0].name").value("Public Active Hall"))
+                .andExpect(jsonPath("$.data.content[0].capacity").value(188))
+                .andExpect(jsonPath("$.data.content[0].layoutRef").doesNotExist())
+                .andExpect(jsonPath("$.data.content[0].createdAt").doesNotExist())
+                .andExpect(jsonPath("$.data.content[0].updatedAt").doesNotExist())
+                .andExpect(jsonPath("$.data.page").value(0))
+                .andExpect(jsonPath("$.data.size").value(20))
+                .andExpect(jsonPath("$.data.totalElements").value(1))
+                .andExpect(jsonPath("$.data.totalPages").value(1))
+                .andExpect(jsonPath("$.data.last").value(true));
 
         mockMvc.perform(get("/api/public/halls/active"))
                 .andExpect(status().isOk())
@@ -825,6 +830,52 @@ class CatalogApiIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void publicHallListSupportsPagingSearchAndSorting() throws Exception {
+        saveHall("Alpha Hall", Status.ACTIVE);
+        saveHall("Beta Hall", Status.ACTIVE);
+        saveHall("Gamma Hall", Status.ACTIVE);
+        saveHall("Inactive Search Hall", Status.INACTIVE);
+
+        mockMvc.perform(get("/api/public/halls")
+                        .param("page", "1")
+                        .param("size", "1")
+                        .param("sortBy", "name")
+                        .param("sortDir", "asc"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.content.length()").value(1))
+                .andExpect(jsonPath("$.data.content[0].name").value("Beta Hall"))
+                .andExpect(jsonPath("$.data.page").value(1))
+                .andExpect(jsonPath("$.data.size").value(1))
+                .andExpect(jsonPath("$.data.totalElements").value(3))
+                .andExpect(jsonPath("$.data.totalPages").value(3))
+                .andExpect(jsonPath("$.data.last").value(false));
+
+        mockMvc.perform(get("/api/public/halls")
+                        .param("search", "gamma"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.content.length()").value(1))
+                .andExpect(jsonPath("$.data.content[0].name").value("Gamma Hall"));
+
+        mockMvc.perform(get("/api/public/halls")
+                        .param("search", "inactive"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.totalElements").value(0));
+    }
+
+    @Test
+    void publicHallListRejectsInvalidSorting() throws Exception {
+        mockMvc.perform(get("/api/public/halls").param("sortBy", "password"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("Invalid sortBy. Allowed values: id, name, capacity, layoutRef, status, createdAt, updatedAt"));
+
+        mockMvc.perform(get("/api/public/halls").param("sortDir", "sideways"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("Invalid sortDir. Allowed values: asc, desc"));
+    }
+
+    @Test
     void adminHallEndpointsExposeAdminContractsAndAllStatuses() throws Exception {
         String adminToken = tokenFor("admin-hall-contract@example.com", Role.ADMIN);
         Hall activeHall = saveHall("Admin Active Hall", Status.ACTIVE);
@@ -833,12 +884,17 @@ class CatalogApiIntegrationTest extends AbstractIntegrationTest {
         mockMvc.perform(get("/api/admin/halls")
                         .header("Authorization", bearer(adminToken)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.length()").value(2))
-                .andExpect(jsonPath("$.data[*].status", hasItems("ACTIVE", "INACTIVE")))
-                .andExpect(jsonPath("$.data[0].layoutRef").value("standard"))
-                .andExpect(jsonPath("$.data[0].status").exists())
-                .andExpect(jsonPath("$.data[0].createdAt").doesNotExist())
-                .andExpect(jsonPath("$.data[0].updatedAt").doesNotExist());
+                .andExpect(jsonPath("$.data.content.length()").value(2))
+                .andExpect(jsonPath("$.data.content[*].status", hasItems("ACTIVE", "INACTIVE")))
+                .andExpect(jsonPath("$.data.content[0].layoutRef").value("standard"))
+                .andExpect(jsonPath("$.data.content[0].status").exists())
+                .andExpect(jsonPath("$.data.content[0].createdAt").doesNotExist())
+                .andExpect(jsonPath("$.data.content[0].updatedAt").doesNotExist())
+                .andExpect(jsonPath("$.data.page").value(0))
+                .andExpect(jsonPath("$.data.size").value(20))
+                .andExpect(jsonPath("$.data.totalElements").value(2))
+                .andExpect(jsonPath("$.data.totalPages").value(1))
+                .andExpect(jsonPath("$.data.last").value(true));
 
         mockMvc.perform(get("/api/admin/halls/active")
                         .header("Authorization", bearer(adminToken)))
@@ -855,6 +911,99 @@ class CatalogApiIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.data.status").value("INACTIVE"))
                 .andExpect(jsonPath("$.data.createdAt").exists())
                 .andExpect(jsonPath("$.data.updatedAt").exists());
+    }
+
+    @Test
+    void adminHallListSupportsPagingSearchFiltersAndSorting() throws Exception {
+        String adminToken = tokenFor("admin-hall-search@example.com", Role.ADMIN);
+        Hall alpha = saveHall("Alpha Admin Hall", Status.ACTIVE);
+        Thread.sleep(5);
+        Hall beta = saveHall("Beta Admin Hall", Status.ACTIVE);
+        Hall inactive = hallRepository.save(Hall.builder()
+                .name("Inactive Luxe Hall")
+                .capacity(188)
+                .layoutRef("luxe-layout")
+                .status(Status.INACTIVE)
+                .build());
+        inactive.setStatus(Status.INACTIVE);
+        hallRepository.save(inactive);
+
+        mockMvc.perform(get("/api/admin/halls")
+                        .header("Authorization", bearer(adminToken))
+                        .param("page", "1")
+                        .param("size", "1")
+                        .param("sortBy", "name")
+                        .param("sortDir", "asc"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.content.length()").value(1))
+                .andExpect(jsonPath("$.data.content[0].name").value("Beta Admin Hall"))
+                .andExpect(jsonPath("$.data.page").value(1))
+                .andExpect(jsonPath("$.data.size").value(1))
+                .andExpect(jsonPath("$.data.totalElements").value(3))
+                .andExpect(jsonPath("$.data.totalPages").value(3));
+
+        mockMvc.perform(get("/api/admin/halls")
+                        .header("Authorization", bearer(adminToken))
+                        .param("search", "alpha"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.content.length()").value(1))
+                .andExpect(jsonPath("$.data.content[0].id").value(alpha.getId()));
+
+        mockMvc.perform(get("/api/admin/halls")
+                        .header("Authorization", bearer(adminToken))
+                        .param("search", "luxe"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.content.length()").value(1))
+                .andExpect(jsonPath("$.data.content[0].id").value(inactive.getId()));
+
+        mockMvc.perform(get("/api/admin/halls")
+                        .header("Authorization", bearer(adminToken))
+                        .param("status", "ACTIVE"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.totalElements").value(2))
+                .andExpect(jsonPath("$.data.content[*].status", hasItems("ACTIVE")));
+
+        mockMvc.perform(get("/api/admin/halls")
+                        .header("Authorization", bearer(adminToken))
+                        .param("status", "INACTIVE"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.totalElements").value(1))
+                .andExpect(jsonPath("$.data.content[0].status").value("INACTIVE"));
+
+        mockMvc.perform(get("/api/admin/halls")
+                        .header("Authorization", bearer(adminToken))
+                        .param("sortBy", "createdAt")
+                        .param("sortDir", "desc"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.content[0].id").value(inactive.getId()))
+                .andExpect(jsonPath("$.data.content[2].id").value(alpha.getId()))
+                .andExpect(jsonPath("$.data.content[*].id", hasItems(alpha.getId().intValue(), beta.getId().intValue(), inactive.getId().intValue())));
+    }
+
+    @Test
+    void adminHallListRejectsInvalidFiltersAndSorting() throws Exception {
+        String adminToken = tokenFor("admin-hall-invalid@example.com", Role.ADMIN);
+
+        mockMvc.perform(get("/api/admin/halls")
+                        .header("Authorization", bearer(adminToken))
+                        .param("status", "BROKEN"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("Invalid status. Allowed values: ACTIVE, INACTIVE"));
+
+        mockMvc.perform(get("/api/admin/halls")
+                        .header("Authorization", bearer(adminToken))
+                        .param("sortBy", "password"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("Invalid sortBy. Allowed values: id, name, capacity, layoutRef, status, createdAt, updatedAt"));
+
+        mockMvc.perform(get("/api/admin/halls")
+                        .header("Authorization", bearer(adminToken))
+                        .param("sortDir", "sideways"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("Invalid sortDir. Allowed values: asc, desc"));
     }
 
     @Test

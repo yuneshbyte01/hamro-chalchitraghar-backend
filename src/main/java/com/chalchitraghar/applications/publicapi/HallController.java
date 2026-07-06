@@ -6,13 +6,17 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.chalchitraghar.modules.halls.dto.request.HallSearchCriteria;
 import com.chalchitraghar.modules.halls.dto.response.PublicHallDetailResponse;
 import com.chalchitraghar.modules.halls.dto.response.PublicHallSummaryResponse;
 import com.chalchitraghar.modules.halls.service.HallService;
 import com.chalchitraghar.shared.response.ApiResponse;
+import com.chalchitraghar.shared.response.PageResponse;
 
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.Operation;
@@ -31,11 +35,29 @@ public class HallController {
     private final HallService hallService;
 
     @GetMapping
-    @Operation(summary = "List active public halls", description = "Returns only ACTIVE halls using the public hall summary contract.")
+    @Operation(
+            summary = "List active public halls",
+            description = "Returns paginated ACTIVE halls. Search matches hall name case-insensitively.")
     @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Active public halls fetched",
             content = @Content(schema = @Schema(implementation = PublicHallSummaryResponse.class)))
-    public ResponseEntity<ApiResponse<List<PublicHallSummaryResponse>>> getAllHalls() {
-        return ResponseEntity.ok(ApiResponse.success("Halls fetched successfully", hallService.getPublicHalls()));
+    public ResponseEntity<ApiResponse<PageResponse<PublicHallSummaryResponse>>> getAllHalls(
+            @Parameter(description = "Zero-based page index")
+            @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "Page size")
+            @RequestParam(defaultValue = "20") int size,
+            @Parameter(description = "Sort field: id, name, capacity, layoutRef, status, createdAt, updatedAt")
+            @RequestParam(defaultValue = "name") String sortBy,
+            @Parameter(description = "Sort direction: asc or desc")
+            @RequestParam(defaultValue = "asc") String sortDir,
+            @Parameter(description = "Case-insensitive search term matched against hall name")
+            @RequestParam(required = false) String search) {
+        PageResponse<PublicHallSummaryResponse> halls = hallService.getPublicHalls(
+                new HallSearchCriteria(search, null),
+                page,
+                size,
+                sortBy,
+                sortDir);
+        return ResponseEntity.ok(ApiResponse.success("Halls fetched successfully", halls));
     }
 
     @GetMapping("/{id}")

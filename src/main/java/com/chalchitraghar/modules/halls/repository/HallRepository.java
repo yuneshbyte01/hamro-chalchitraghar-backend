@@ -4,13 +4,14 @@ import java.util.List;
 
 import com.chalchitraghar.modules.halls.enums.Status;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
 import com.chalchitraghar.modules.halls.entity.Hall;
 
 /**
  * Repository interface for Hall entity persistence operations.
  */
-public interface HallRepository extends JpaRepository<Hall, Long> {
+public interface HallRepository extends JpaRepository<Hall, Long>, JpaSpecificationExecutor<Hall> {
 
     /**
      * Checks if a hall with the given name already exists.

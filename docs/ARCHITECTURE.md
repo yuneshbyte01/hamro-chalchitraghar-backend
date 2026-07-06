@@ -124,6 +124,13 @@ Movie visibility is audience-specific. Public movie lists and detail endpoints e
 
 Hall responses are split by audience. Public hall list endpoints use `PublicHallSummaryResponse` and public hall detail uses `PublicHallDetailResponse`; neither public DTO exposes `layoutRef`, `createdAt`, or `updatedAt`. Public hall endpoints expose only `ACTIVE` halls, so inactive hall detail lookup returns not found. Admin hall list endpoints use `AdminHallSummaryResponse`, while admin create, update, and detail endpoints use `AdminHallDetailResponse` with audit timestamps. Admin endpoints can see both `ACTIVE` and `INACTIVE` halls.
 
+Hall list endpoints use `PageResponse<T>` and keep public/admin response contracts separate:
+
+- `GET /api/public/halls` returns `PageResponse<PublicHallSummaryResponse>` sorted by `name` ascending by default and always filters to `ACTIVE`.
+- `GET /api/admin/halls` returns `PageResponse<AdminHallSummaryResponse>` sorted by `createdAt` descending by default and can filter by `ACTIVE` or `INACTIVE`.
+
+Public hall search matches `name`. Admin hall search matches `name` and `layoutRef`. Both hall list endpoints use the same allowlisted sort fields: `id`, `name`, `capacity`, `layoutRef`, `status`, `createdAt`, and `updatedAt`.
+
 Admin user lists use `PageResponse<AdminUserSummaryResponse>` and support bounded pagination, allowlisted sorting, case-insensitive search across `name` and `email`, and optional filters for role, auth provider, enabled, locked, and email verification state.
 
 Admin user lifecycle and account state management is implemented in `UserService` and exposed through thin `AdminUserController` endpoints:
@@ -152,7 +159,7 @@ Mappers are Spring components and convert between entities and DTOs:
 
 ## Specification Queries
 
-Flexible admin user search is implemented with Spring Data JPA `Specification` through `UserSpecification`. Movie list search uses the same pattern through `MovieSpecification`. Services validate sort fields, sort direction, enum filters, and date ranges before building the `PageRequest`, then map the resulting `Page<Entity>` to the appropriate `PageResponse<T>`.
+Flexible admin user search is implemented with Spring Data JPA `Specification` through `UserSpecification`. Movie list search uses the same pattern through `MovieSpecification`, and hall list search uses `HallSpecification`. Services validate sort fields, sort direction, enum filters, and date ranges before building the `PageRequest`, then map the resulting `Page<Entity>` to the appropriate `PageResponse<T>`.
 
 ## Authentication Flow
 

@@ -3,10 +3,12 @@ package com.chalchitraghar.modules.halls.service;
 import java.util.List;
 
 import com.chalchitraghar.modules.halls.dto.request.HallRequest;
+import com.chalchitraghar.modules.halls.dto.request.HallSearchCriteria;
 import com.chalchitraghar.modules.halls.dto.response.AdminHallDetailResponse;
 import com.chalchitraghar.modules.halls.dto.response.AdminHallSummaryResponse;
 import com.chalchitraghar.modules.halls.dto.response.PublicHallDetailResponse;
 import com.chalchitraghar.modules.halls.dto.response.PublicHallSummaryResponse;
+import com.chalchitraghar.shared.response.PageResponse;
 
 /**
  * Service for hall management operations.
@@ -19,13 +21,23 @@ public interface HallService {
 
     void deleteHall(Long id);
 
-    List<PublicHallSummaryResponse> getPublicHalls();
+    PageResponse<PublicHallSummaryResponse> getPublicHalls(
+            HallSearchCriteria criteria,
+            int page,
+            int size,
+            String sortBy,
+            String sortDir);
 
     PublicHallDetailResponse getPublicHallById(Long id);
 
     List<PublicHallSummaryResponse> getPublicActiveHalls();
 
-    List<AdminHallSummaryResponse> getAdminHalls();
+    PageResponse<AdminHallSummaryResponse> getAdminHalls(
+            HallSearchCriteria criteria,
+            int page,
+            int size,
+            String sortBy,
+            String sortDir);
 
     AdminHallDetailResponse getAdminHallById(Long id);
 

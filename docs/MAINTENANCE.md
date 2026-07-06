@@ -296,6 +296,31 @@ Allowed sort fields are `id`, `name`, `email`, `role`, `enabled`, `locked`, `aut
 
 Keep user list changes inside `UserService`, `UserSpecification`, `UserMapper`, and the admin controller. Do not expose `password`, `googleId`, OTP hashes, or other internal authentication data in list or detail DTOs.
 
+## Hall List Maintenance
+
+`GET /api/public/halls` and `GET /api/admin/halls` are paginated and searchable. Both return `PageResponse<T>` inside the standard `ApiResponse<T>` wrapper.
+
+Public hall lists use `PublicHallSummaryResponse` and must not expose `layoutRef`, `createdAt`, or `updatedAt`. Admin hall lists use `AdminHallSummaryResponse`; admin detail, create, and update responses use `AdminHallDetailResponse`.
+
+Public hall visibility is intentionally narrower than admin visibility:
+
+- Public lists return only `ACTIVE` halls.
+- Public detail treats `INACTIVE` halls as not found.
+- Admin list/detail endpoints can see both `ACTIVE` and `INACTIVE` halls.
+
+Supported query parameters:
+
+| Parameter | Public | Admin |
+| --- | --- | --- |
+| `page`, `size` | Bound result windows; defaults are `0` and `20` | Bound result windows; defaults are `0` and `20` |
+| `sortBy`, `sortDir` | Default `name,asc` | Default `createdAt,desc` |
+| `search` | Case-insensitive match against hall `name` | Case-insensitive match against hall `name` or `layoutRef` |
+| `status` | Not supported because public halls are `ACTIVE` only | Filter by `ACTIVE` or `INACTIVE` |
+
+Allowed sort fields are `id`, `name`, `capacity`, `layoutRef`, `status`, `createdAt`, and `updatedAt`.
+
+Keep hall list changes inside `HallService`, `HallSpecification`, `HallMapper`, and the public/admin hall controllers. Do not add capacity validation, duplicate-name improvements, status transition rules, show dependency checks, or seat layout generation changes as part of hall list maintenance.
+
 ## Movie List Maintenance
 
 `GET /api/public/movies` and `GET /api/admin/movies` are paginated and filterable. Both return `PageResponse<T>` inside the standard `ApiResponse<T>` wrapper.

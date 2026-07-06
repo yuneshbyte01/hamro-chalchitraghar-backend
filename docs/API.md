@@ -455,7 +455,9 @@ Response `200`: list of `PublicMovieSummaryResponse`.
 | Authentication | Public |
 | Description | Lists active halls using the public summary DTO. INACTIVE halls are hidden. |
 | Request body | None |
-| Validation | None |
+| Query parameters | `page` default `0`; `size` default `20`; `sortBy` default `name`; `sortDir` default `asc`; optional `search` |
+| Search | Case-insensitive match against hall `name` |
+| Sorting | `sortBy` must be one of `id`, `name`, `capacity`, `layoutRef`, `status`, `createdAt`, `updatedAt`; `sortDir` must be `asc` or `desc` |
 
 Response `200`:
 
@@ -463,18 +465,27 @@ Response `200`:
 {
   "success": true,
   "message": "Halls fetched successfully",
-  "data": [
-    {
-      "id": 1,
-      "name": "Hall A",
-      "capacity": 188
-    }
-  ],
+  "data": {
+    "content": [
+      {
+        "id": 1,
+        "name": "Hall A",
+        "capacity": 188
+      }
+    ],
+    "page": 0,
+    "size": 20,
+    "totalElements": 1,
+    "totalPages": 1,
+    "last": true
+  },
   "errors": []
 }
 ```
 
-Response DTO: `PublicHallSummaryResponse`.
+Response DTO: `PageResponse<PublicHallSummaryResponse>`.
+
+Errors: `400` invalid pagination or sorting parameter.
 
 ### `GET /api/public/halls/{id}`
 
@@ -979,11 +990,16 @@ Errors: `404` movie not found, `409` future active shows exist.
 | Field | Value |
 | --- | --- |
 | Authentication | ADMIN |
-| Description | Lists all halls for admin. |
+| Description | Lists all halls for admin using the admin summary DTO. |
 | Request body | None |
-| Validation | ADMIN token |
+| Query parameters | `page` default `0`; `size` default `20`; `sortBy` default `createdAt`; `sortDir` default `desc`; optional `search`; optional `status` |
+| Search | Case-insensitive match against hall `name` or `layoutRef` |
+| Filters | `status=ACTIVE` or `status=INACTIVE` |
+| Sorting | `sortBy` must be one of `id`, `name`, `capacity`, `layoutRef`, `status`, `createdAt`, `updatedAt`; `sortDir` must be `asc` or `desc` |
 
-Response `200`: list of `AdminHallSummaryResponse`. Admin list responses include `layoutRef` and `status`, but not audit timestamps.
+Response `200`: `PageResponse<AdminHallSummaryResponse>`. Admin list responses include `layoutRef` and `status`, but not audit timestamps.
+
+Errors: `400` invalid pagination, sorting, or status parameter.
 
 #### `GET /api/admin/halls/{id}`
 

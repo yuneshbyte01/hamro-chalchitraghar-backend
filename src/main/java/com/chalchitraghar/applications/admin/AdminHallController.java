@@ -11,14 +11,18 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.chalchitraghar.modules.halls.dto.request.HallRequest;
+import com.chalchitraghar.modules.halls.dto.request.HallSearchCriteria;
 import com.chalchitraghar.modules.halls.dto.response.AdminHallDetailResponse;
 import com.chalchitraghar.modules.halls.dto.response.AdminHallSummaryResponse;
 import com.chalchitraghar.modules.halls.service.HallService;
 import com.chalchitraghar.shared.response.ApiResponse;
+import com.chalchitraghar.shared.response.PageResponse;
 
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.Operation;
@@ -40,11 +44,31 @@ public class AdminHallController {
     private final HallService hallService;
 
     @GetMapping
-    @Operation(summary = "List halls for admin", description = "Returns ACTIVE and INACTIVE halls using the admin summary contract.")
+    @Operation(
+            summary = "List halls for admin",
+            description = "Returns paginated admin hall summaries. Search matches name and layoutRef case-insensitively.")
     @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Admin halls fetched",
             content = @Content(schema = @Schema(implementation = AdminHallSummaryResponse.class)))
-    public ResponseEntity<ApiResponse<List<AdminHallSummaryResponse>>> getAllHalls() {
-        return ResponseEntity.ok(ApiResponse.success("Halls fetched successfully", hallService.getAdminHalls()));
+    public ResponseEntity<ApiResponse<PageResponse<AdminHallSummaryResponse>>> getAllHalls(
+            @Parameter(description = "Zero-based page index")
+            @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "Page size")
+            @RequestParam(defaultValue = "20") int size,
+            @Parameter(description = "Sort field: id, name, capacity, layoutRef, status, createdAt, updatedAt")
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @Parameter(description = "Sort direction: asc or desc")
+            @RequestParam(defaultValue = "desc") String sortDir,
+            @Parameter(description = "Case-insensitive search term matched against hall name and layoutRef")
+            @RequestParam(required = false) String search,
+            @Parameter(description = "Filter by status: ACTIVE, INACTIVE")
+            @RequestParam(required = false) String status) {
+        PageResponse<AdminHallSummaryResponse> halls = hallService.getAdminHalls(
+                new HallSearchCriteria(search, status),
+                page,
+                size,
+                sortBy,
+                sortDir);
+        return ResponseEntity.ok(ApiResponse.success("Halls fetched successfully", halls));
     }
 
     @GetMapping("/{id}")
