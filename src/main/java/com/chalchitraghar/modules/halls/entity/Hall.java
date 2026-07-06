@@ -10,9 +10,12 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
+import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.PositiveOrZero;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -45,7 +48,8 @@ public class Hall extends GenericEntity {
      * Maximum seating capacity of the hall.
      */
     @Column(nullable = false)
-    @PositiveOrZero(message = "Capacity must be at least 1")
+    @Positive(message = "Capacity must be at least 1")
+    @Max(value = 1000, message = "Capacity must not exceed 1000")
     private Integer capacity;
 
     /**
@@ -53,10 +57,12 @@ public class Hall extends GenericEntity {
      */
     @Column(nullable = false)
     @NotBlank(message = "Layout reference is required")
+    @Size(max = 100, message = "Layout reference must not exceed 100 characters")
+    @Pattern(regexp = "^[A-Za-z0-9_-]+$", message = "Layout reference may contain only letters, numbers, hyphen, and underscore")
     private String layoutRef;
 
     /**
-     * Operational status of the hall. Automatically set to ACTIVE on creation.
+     * Operational status of the hall.
      */
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)
@@ -65,12 +71,10 @@ public class Hall extends GenericEntity {
 
     /**
      * Lifecycle callback invoked before entity persistence.
-     * Sets default status to ACTIVE.
      */
     @PrePersist
     @Override
     protected void onCreate() {
         super.onCreate();
-        this.status = Status.ACTIVE;
     }
 }

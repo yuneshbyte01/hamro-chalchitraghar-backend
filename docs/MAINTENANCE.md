@@ -124,7 +124,7 @@ Use validation annotations on request DTOs:
 5. Use explicit `@JoinColumn` for relationships.
 6. Add validation annotations matching the domain rules.
 
-Entity defaults can be set with `@PrePersist`, as seen in `Hall`, `Show`, `Seat`, and `Booking`.
+Entity defaults can be set with `@PrePersist`, as seen in `Show`, `Seat`, and `Booking`. Hall status is supplied by the admin request and is not forced during persistence.
 
 ## Add a Repository
 
@@ -319,7 +319,17 @@ Supported query parameters:
 
 Allowed sort fields are `id`, `name`, `capacity`, `layoutRef`, `status`, `createdAt`, and `updatedAt`.
 
-Keep hall list changes inside `HallService`, `HallSpecification`, `HallMapper`, and the public/admin hall controllers. Do not add capacity validation, duplicate-name improvements, status transition rules, show dependency checks, or seat layout generation changes as part of hall list maintenance.
+Hall create and update validation rules:
+
+- Hall names are trimmed and must be unique case-insensitively.
+- Duplicate hall names return `409`.
+- Capacity must be between `1` and `1000`.
+- `layoutRef` is trimmed, required, at most `100` characters, and may contain only letters, numbers, hyphen, and underscore.
+- New halls may be created as `ACTIVE` or `INACTIVE`.
+- Allowed status changes are `ACTIVE -> INACTIVE` and `INACTIVE -> ACTIVE`.
+- The database enforces normalized hall name uniqueness with `uk_halls_name_normalized` on `lower(trim(name))`.
+
+Keep hall list and lifecycle changes inside `HallService`, `HallSpecification`, `HallMapper`, and the public/admin hall controllers. Do not add show dependency checks, seat layout dependency rules, seat layout generation changes, audit logging, or hall deletion behavior changes as part of hall validation maintenance.
 
 ## Movie List Maintenance
 

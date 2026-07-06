@@ -239,9 +239,9 @@ Stores cinema halls.
 | `id`         | `BIGSERIAL`    | No       | Primary key                                                     | `id`         |
 | `created_at` | `TIMESTAMP`    | No       | Audit field                                                     | `createdAt`  |
 | `updated_at` | `TIMESTAMP`    | No       | Audit field                                                     | `updatedAt`  |
-| `name`       | `VARCHAR(255)` | No       | Unique `uk_halls_name`, indexed by `idx_hall_name`              | `name`       |
-| `capacity`   | `INTEGER`      | No       | Positive-or-zero validation                                     | `capacity`   |
-| `layout_ref` | `VARCHAR(255)` | No       | Not blank validation                                            | `layoutRef`  |
+| `name`       | `VARCHAR(255)` | No       | Unique `uk_halls_name`; normalized unique index `uk_halls_name_normalized`; indexed by `idx_hall_name` | `name`       |
+| `capacity`   | `INTEGER`      | No       | Service/API validation: `1` to `1000`                           | `capacity`   |
+| `layout_ref` | `VARCHAR(255)` | No       | Required; max `100`; letters, numbers, hyphen, underscore       | `layoutRef`  |
 | `status`     | `VARCHAR(255)` | No       | Enum string: `ACTIVE`, `INACTIVE`; indexed by `idx_hall_status` | `status`     |
 
 ### `seat_templates`
@@ -348,6 +348,7 @@ Join table between bookings and selected seats.
 | `uk_users_email`                      | `users`                 | Unique email                           |
 | `uk_movies_title_normalized_release_date` | `movies`            | Unique normalized title and release date |
 | `uk_halls_name`                       | `halls`                 | Unique hall name                       |
+| `uk_halls_name_normalized`            | `halls`                 | Unique `lower(trim(name))` hall name   |
 | `fk_password_reset_otps_user`         | `password_reset_otps`   | `user_id` references `users(id)`       |
 | `fk_seat_templates_hall`              | `seat_templates`        | `hall_id` references `halls(id)`       |
 | `fk_shows_movie`                      | `shows`                 | `movie_id` references `movies(id)`     |
@@ -416,6 +417,7 @@ Seat locking queries use `PESSIMISTIC_WRITE` to prevent concurrent booking updat
 | 11    | Adds Google auth fields to users                |
 | 12    | Adds account security fields to users           |
 | 13    | Adds movie normalized title uniqueness and expands poster URL length |
+| 14    | Adds normalized hall name uniqueness            |
 
 Migration rules:
 

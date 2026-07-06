@@ -21,6 +21,7 @@ import com.chalchitraghar.modules.halls.mapper.HallMapper;
 import com.chalchitraghar.modules.halls.repository.HallRepository;
 import com.chalchitraghar.modules.halls.service.HallService;
 import com.chalchitraghar.modules.halls.specification.HallSpecification;
+import com.chalchitraghar.shared.exception.HallConflictException;
 import com.chalchitraghar.shared.exception.ResourceNotFoundException;
 import com.chalchitraghar.shared.response.PageResponse;
 
@@ -46,9 +47,8 @@ public class HallServiceImpl implements HallService {
 
     @Override
     public AdminHallDetailResponse addHall(HallRequest dto) {
-        if (hallRepository.existsByName(dto.getName())) {
-            throw new IllegalArgumentException("Hall with this name already exists");
-        }
+        normalize(dto);
+        ensureUniqueName(dto.getName(), null);
         Hall hall = hallMapper.toEntity(dto);
         return hallMapper.toAdminDetail(hallRepository.save(hall));
     }
@@ -57,6 +57,9 @@ public class HallServiceImpl implements HallService {
     public AdminHallDetailResponse updateHall(Long id, HallRequest dto) {
         Hall hall = hallRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Hall", id));
+        normalize(dto);
+        ensureUniqueName(dto.getName(), id);
+        validateStatusTransition(hall.getStatus(), dto.getStatus());
         hallMapper.updateEntityFromDto(hall, dto);
         return hallMapper.toAdminDetail(hallRepository.save(hall));
     }
@@ -197,5 +200,35 @@ public class HallServiceImpl implements HallService {
         return String.join(", ", Arrays.stream(enumType.getEnumConstants())
                 .map(Enum::name)
                 .toList());
+    }
+
+    private void normalize(HallRequest dto) {
+        dto.setName(trim(dto.getName()));
+        dto.setLayoutRef(trim(dto.getLayoutRef()));
+    }
+
+    private String trim(String value) {
+        return value == null ? null : value.trim();
+    }
+
+    private void ensureUniqueName(String name, Long currentHallId) {
+        boolean exists = currentHallId == null
+                ? hallRepository.existsByNameIgnoreCase(name)
+                : hallRepository.existsByNameIgnoreCaseAndIdNot(name, currentHallId);
+        if (exists) {
+            throw new HallConflictException("Hall with this name already exists");
+        }
+    }
+
+    private void validateStatusTransition(Status currentStatus, Status nextStatus) {
+        if (currentStatus == nextStatus) {
+            return;
+        }
+        boolean allowed = (currentStatus == Status.ACTIVE && nextStatus == Status.INACTIVE)
+                || (currentStatus == Status.INACTIVE && nextStatus == Status.ACTIVE);
+        if (!allowed) {
+            throw new HallConflictException(
+                    "Invalid hall status transition from " + currentStatus + " to " + nextStatus);
+        }
     }
 }

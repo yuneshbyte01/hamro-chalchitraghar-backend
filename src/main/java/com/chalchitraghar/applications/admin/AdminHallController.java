@@ -88,9 +88,10 @@ public class AdminHallController {
     }
 
     @PostMapping
-    @Operation(summary = "Create a hall")
+    @Operation(summary = "Create a hall", description = "Creates a hall after validating unique name, capacity, layout reference, and status.")
     @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "Hall created",
             content = @Content(schema = @Schema(implementation = AdminHallDetailResponse.class)))
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "409", description = "Duplicate hall name")
     public ResponseEntity<ApiResponse<AdminHallDetailResponse>> createHall(@Valid @RequestBody HallRequest dto) {
         AdminHallDetailResponse hall = hallService.addHall(dto);
         return ResponseEntity.status(HttpStatus.CREATED)
@@ -98,9 +99,10 @@ public class AdminHallController {
     }
 
     @PutMapping("/{id}")
-    @Operation(summary = "Update a hall")
+    @Operation(summary = "Update a hall", description = "Updates a hall after validating unique name, capacity, layout reference, and ACTIVE/INACTIVE lifecycle.")
     @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Hall updated",
             content = @Content(schema = @Schema(implementation = AdminHallDetailResponse.class)))
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "409", description = "Duplicate hall name or invalid hall lifecycle transition")
     public ResponseEntity<ApiResponse<AdminHallDetailResponse>> updateHall(@PathVariable Long id, @Valid @RequestBody HallRequest dto) {
         return ResponseEntity.ok(ApiResponse.success("Hall updated successfully", hallService.updateHall(id, dto)));
     }

@@ -1045,9 +1045,16 @@ Request:
 
 Validation: `name`, `capacity`, `layoutRef`, and `status` are required; `name` must be unique; status must be `ACTIVE` or `INACTIVE`.
 
+Detailed validation:
+
+- `name` is trimmed and must be unique case-insensitively.
+- `capacity` must be between `1` and `1000`.
+- `layoutRef` is trimmed, required, at most `100` characters, and may contain only letters, numbers, hyphen, and underscore.
+- `status` may be `ACTIVE` or `INACTIVE`; the requested initial status is respected.
+
 Response `201`: `AdminHallDetailResponse`.
 
-Errors: `400` duplicate hall name or validation failure.
+Errors: `400` validation failure, `409` duplicate hall name.
 
 #### `PUT /api/admin/halls/{id}`
 
@@ -1059,7 +1066,9 @@ Errors: `400` duplicate hall name or validation failure.
 
 Response `200`: `AdminHallDetailResponse`.
 
-Errors: `404` hall not found.
+Lifecycle rule: status may move `ACTIVE -> INACTIVE` or `INACTIVE -> ACTIVE`.
+
+Errors: `400` validation failure, `404` hall not found, `409` duplicate hall name or invalid lifecycle transition.
 
 #### `DELETE /api/admin/halls/{id}`
 

@@ -183,10 +183,14 @@ abstract class AbstractIntegrationTest {
     }
 
     protected Map<String, Object> hallRequest(String name, Status status) {
+        return hallRequest(name, 188, "standard", status);
+    }
+
+    protected Map<String, Object> hallRequest(String name, Integer capacity, String layoutRef, Status status) {
         return Map.of(
                 "name", name,
-                "capacity", 188,
-                "layoutRef", "standard",
+                "capacity", capacity,
+                "layoutRef", layoutRef,
                 "status", status.name()
         );
     }

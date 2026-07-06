@@ -13,13 +13,9 @@ import com.chalchitraghar.modules.halls.entity.Hall;
  */
 public interface HallRepository extends JpaRepository<Hall, Long>, JpaSpecificationExecutor<Hall> {
 
-    /**
-     * Checks if a hall with the given name already exists.
-     *
-     * @param name the hall name to check
-     * @return true if a hall with this name exists, false otherwise
-     */
-    boolean existsByName(String name);
+    boolean existsByNameIgnoreCase(String name);
+
+    boolean existsByNameIgnoreCaseAndIdNot(String name, Long id);
 
     /**
      * Finds all halls with the specified status.

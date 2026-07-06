@@ -131,6 +131,8 @@ Hall list endpoints use `PageResponse<T>` and keep public/admin response contrac
 
 Public hall search matches `name`. Admin hall search matches `name` and `layoutRef`. Both hall list endpoints use the same allowlisted sort fields: `id`, `name`, `capacity`, `layoutRef`, `status`, `createdAt`, and `updatedAt`.
 
+Hall create and update rules live in `HallService`. The service trims `name` and `layoutRef`, rejects duplicate hall names case-insensitively, validates status changes through the `ACTIVE <-> INACTIVE` lifecycle, and returns duplicate-name conflicts as `409`. Request validation enforces capacity from `1` to `1000` and requires `layoutRef` to be at most `100` characters using only letters, numbers, hyphen, and underscore. The database reinforces duplicate protection through a normalized unique index on `lower(trim(name))`.
+
 Admin user lists use `PageResponse<AdminUserSummaryResponse>` and support bounded pagination, allowlisted sorting, case-insensitive search across `name` and `email`, and optional filters for role, auth provider, enabled, locked, and email verification state.
 
 Admin user lifecycle and account state management is implemented in `UserService` and exposed through thin `AdminUserController` endpoints:

@@ -14,6 +14,7 @@ import java.time.LocalTime;
 import java.util.Map;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.test.web.servlet.MvcResult;
 
 import com.chalchitraghar.modules.halls.entity.Hall;
 import com.chalchitraghar.modules.halls.enums.Status;
@@ -1035,10 +1036,145 @@ class CatalogApiIntegrationTest extends AbstractIntegrationTest {
                         .header("Authorization", bearer(adminToken))
                         .contentType("application/json")
                         .content(json(hallRequest("Duplicate Hall", Status.ACTIVE))))
-                .andExpect(status().isBadRequest())
+                .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("Hall with this name already exists"))
                 .andExpect(jsonPath("$.data").value(nullValue()))
                 .andExpect(jsonPath("$.errors").isArray());
+    }
+
+    @Test
+    void duplicateHallNameValidationIsCaseInsensitiveAndAppliesOnUpdate() throws Exception {
+        String adminToken = tokenFor("admin-hall-duplicates@example.com", Role.ADMIN);
+        Hall existing = saveHall("Unique Hall", Status.ACTIVE);
+        Hall other = saveHall("Other Hall", Status.ACTIVE);
+
+        mockMvc.perform(post("/api/admin/halls")
+                        .header("Authorization", bearer(adminToken))
+                        .contentType("application/json")
+                        .content(json(hallRequest("unique hall", Status.ACTIVE))))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value("Hall with this name already exists"));
+
+        mockMvc.perform(put("/api/admin/halls/{id}", other.getId())
+                        .header("Authorization", bearer(adminToken))
+                        .contentType("application/json")
+                        .content(json(hallRequest("UNIQUE HALL", Status.ACTIVE))))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value("Hall with this name already exists"));
+
+        mockMvc.perform(put("/api/admin/halls/{id}", existing.getId())
+                        .header("Authorization", bearer(adminToken))
+                        .contentType("application/json")
+                        .content(json(hallRequest(" unique hall ", Status.ACTIVE))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.id").value(existing.getId()))
+                .andExpect(jsonPath("$.data.name").value("unique hall"));
+    }
+
+    @Test
+    void hallCapacityValidationRejectsInvalidValuesAndAcceptsValidCapacity() throws Exception {
+        String adminToken = tokenFor("admin-hall-capacity@example.com", Role.ADMIN);
+
+        mockMvc.perform(post("/api/admin/halls")
+                        .header("Authorization", bearer(adminToken))
+                        .contentType("application/json")
+                        .content(json(hallRequest("Zero Capacity Hall", 0, "standard", Status.ACTIVE))))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Validation failed"));
+
+        mockMvc.perform(post("/api/admin/halls")
+                        .header("Authorization", bearer(adminToken))
+                        .contentType("application/json")
+                        .content(json(hallRequest("Negative Capacity Hall", -1, "standard", Status.ACTIVE))))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Validation failed"));
+
+        mockMvc.perform(post("/api/admin/halls")
+                        .header("Authorization", bearer(adminToken))
+                        .contentType("application/json")
+                        .content(json(hallRequest("Huge Capacity Hall", 1001, "standard", Status.ACTIVE))))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Validation failed"));
+
+        mockMvc.perform(post("/api/admin/halls")
+                        .header("Authorization", bearer(adminToken))
+                        .contentType("application/json")
+                        .content(json(hallRequest("Valid Capacity Hall", 1000, "standard", Status.ACTIVE))))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.data.capacity").value(1000));
+    }
+
+    @Test
+    void hallLayoutRefValidationRejectsInvalidValuesAndAcceptsValidLayoutRef() throws Exception {
+        String adminToken = tokenFor("admin-hall-layout-validation@example.com", Role.ADMIN);
+
+        mockMvc.perform(post("/api/admin/halls")
+                        .header("Authorization", bearer(adminToken))
+                        .contentType("application/json")
+                        .content(json(hallRequest("Blank Layout Hall", 188, "   ", Status.ACTIVE))))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Validation failed"));
+
+        mockMvc.perform(post("/api/admin/halls")
+                        .header("Authorization", bearer(adminToken))
+                        .contentType("application/json")
+                        .content(json(hallRequest("Invalid Layout Hall", 188, "layout/1", Status.ACTIVE))))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Validation failed"));
+
+        mockMvc.perform(post("/api/admin/halls")
+                        .header("Authorization", bearer(adminToken))
+                        .contentType("application/json")
+                        .content(json(hallRequest("Long Layout Hall", 188, "a".repeat(101), Status.ACTIVE))))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Validation failed"));
+
+        mockMvc.perform(post("/api/admin/halls")
+                        .header("Authorization", bearer(adminToken))
+                        .contentType("application/json")
+                        .content(json(hallRequest("Valid Layout Hall", 188, "layout-1_A", Status.ACTIVE))))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.data.layoutRef").value("layout-1_A"));
+    }
+
+    @Test
+    void hallStatusLifecycleAllowsCreateAndToggleBetweenActiveAndInactive() throws Exception {
+        String adminToken = tokenFor("admin-hall-status@example.com", Role.ADMIN);
+
+        mockMvc.perform(post("/api/admin/halls")
+                        .header("Authorization", bearer(adminToken))
+                        .contentType("application/json")
+                        .content(json(hallRequest("Created Active Hall", 188, "standard", Status.ACTIVE))))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.data.status").value("ACTIVE"));
+
+        MvcResult inactiveResult = mockMvc.perform(post("/api/admin/halls")
+                        .header("Authorization", bearer(adminToken))
+                        .contentType("application/json")
+                        .content(json(hallRequest("Created Inactive Hall", 188, "standard", Status.INACTIVE))))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.data.status").value("INACTIVE"))
+                .andReturn();
+
+        Long inactiveHallId = objectMapper.readTree(inactiveResult.getResponse().getContentAsString())
+                .path("data")
+                .path("id")
+                .asLong();
+
+        mockMvc.perform(put("/api/admin/halls/{id}", inactiveHallId)
+                        .header("Authorization", bearer(adminToken))
+                        .contentType("application/json")
+                        .content(json(hallRequest("Created Inactive Hall", 188, "standard", Status.ACTIVE))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.status").value("ACTIVE"));
+
+        mockMvc.perform(put("/api/admin/halls/{id}", inactiveHallId)
+                        .header("Authorization", bearer(adminToken))
+                        .contentType("application/json")
+                        .content(json(hallRequest("Created Inactive Hall", 188, "standard", Status.INACTIVE))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.status").value("INACTIVE"));
     }
 
     @Test
