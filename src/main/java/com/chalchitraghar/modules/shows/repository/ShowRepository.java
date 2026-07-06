@@ -61,6 +61,23 @@ public interface ShowRepository extends JpaRepository<Show, Long> {
             @Param("currentTime") LocalTime currentTime
     );
 
+    @Query("""
+        SELECT COUNT(s) > 0
+        FROM Show s
+        WHERE s.hall.id = :hallId
+          AND s.status IN :statuses
+          AND (
+              s.showDate > :currentDate
+              OR (s.showDate = :currentDate AND s.endTime > :currentTime)
+          )
+    """)
+    boolean existsFutureActiveShowForHall(
+            @Param("hallId") Long hallId,
+            @Param("statuses") List<ShowStatus> statuses,
+            @Param("currentDate") LocalDate currentDate,
+            @Param("currentTime") LocalTime currentTime
+    );
+
     /**
      * Finds all shows for a specific hall.
      *

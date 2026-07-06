@@ -1,15 +1,16 @@
 package com.chalchitraghar.modules.halls.service.impl;
 
-import com.chalchitraghar.modules.halls.service.SeatLayoutService;
-import com.chalchitraghar.modules.seats.entity.Seat;
 import org.springframework.stereotype.Service;
 
-import com.chalchitraghar.shared.exception.ResourceNotFoundException;
 import com.chalchitraghar.modules.halls.entity.Hall;
 import com.chalchitraghar.modules.halls.entity.SeatTemplate;
-import com.chalchitraghar.modules.seats.enums.SeatType;
+import com.chalchitraghar.modules.halls.enums.Status;
 import com.chalchitraghar.modules.halls.repository.HallRepository;
 import com.chalchitraghar.modules.halls.repository.SeatTemplateRepository;
+import com.chalchitraghar.modules.halls.service.SeatLayoutService;
+import com.chalchitraghar.modules.seats.enums.SeatType;
+import com.chalchitraghar.shared.exception.HallConflictException;
+import com.chalchitraghar.shared.exception.ResourceNotFoundException;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -18,17 +19,25 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class SeatLayoutServiceImpl implements SeatLayoutService {
 
+    private static final int FIXED_LAYOUT_CAPACITY = 188;
+
     private final SeatTemplateRepository seatTemplateRepository;
     private final HallRepository hallRepository;
 
     @Override
     @Transactional
     public void generateSeatTemplates(Long hallId) {
-        if (seatTemplateRepository.existsByHallId(hallId)) {
-            throw new IllegalArgumentException("Seat layout already exists for this hall");
-        }
         Hall hall = hallRepository.findById(hallId)
                 .orElseThrow(() -> new ResourceNotFoundException("Hall", hallId));
+        if (hall.getStatus() != Status.ACTIVE) {
+            throw new HallConflictException("Cannot generate seat layout for an inactive hall");
+        }
+        if (seatTemplateRepository.existsByHallId(hallId)) {
+            throw new HallConflictException("Seat layout already exists for this hall");
+        }
+        if (!Integer.valueOf(FIXED_LAYOUT_CAPACITY).equals(hall.getCapacity())) {
+            throw new HallConflictException("Seat layout generation currently requires hall capacity to be 188");
+        }
         int index = 0;
         for (int seat = 1; seat <= 8; seat++) {
             seatTemplateRepository.save(buildSeat(hall, "A", seat, SeatType.PREMIUM, index++));

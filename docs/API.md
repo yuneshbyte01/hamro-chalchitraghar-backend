@@ -1068,7 +1068,13 @@ Response `200`: `AdminHallDetailResponse`.
 
 Lifecycle rule: status may move `ACTIVE -> INACTIVE` or `INACTIVE -> ACTIVE`.
 
-Errors: `400` validation failure, `404` hall not found, `409` duplicate hall name or invalid lifecycle transition.
+Dependency rules:
+
+- Inactivation through update is rejected when the hall has future active shows.
+- Future active shows are `SCHEDULED` or `RUNNING` shows whose show window has not fully passed.
+- Once seat templates exist for a hall, `capacity` and `layoutRef` cannot be changed. `name` and `status` may still be updated subject to other rules.
+
+Errors: `400` validation failure, `404` hall not found, `409` duplicate hall name, invalid lifecycle transition, future active shows, or locked seat layout fields.
 
 #### `DELETE /api/admin/halls/{id}`
 
@@ -1081,16 +1087,18 @@ Errors: `400` validation failure, `404` hall not found, `409` duplicate hall nam
 
 Response `204`: empty body.
 
-Errors: `404` hall not found.
+Dependency rule: delete is a soft inactivation and is rejected when the hall has future active shows.
+
+Errors: `404` hall not found, `409` future active shows exist.
 
 #### `POST /api/admin/halls/{hallId}/seat-layout`
 
 | Field | Value |
 | --- | --- |
 | Authentication | ADMIN |
-| Description | Generates seat templates for the hall. The current generator creates 188 templates. |
+| Description | Generates seat templates for an active hall. The current generator creates 188 templates. |
 | Request body | None |
-| Validation | `hallId` numeric; layout must not already exist |
+| Validation | `hallId` numeric; hall must be `ACTIVE`; layout must not already exist; hall capacity must be `188` |
 
 Response `200`:
 
@@ -1103,7 +1111,7 @@ Response `200`:
 }
 ```
 
-Errors: `400` layout already exists, `404` hall not found.
+Errors: `404` hall not found, `409` inactive hall, layout already exists, or capacity does not match the fixed 188-seat generator.
 
 ### Shows
 

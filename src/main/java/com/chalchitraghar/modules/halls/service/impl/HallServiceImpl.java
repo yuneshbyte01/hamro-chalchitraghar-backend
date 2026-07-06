@@ -1,5 +1,7 @@
 package com.chalchitraghar.modules.halls.service.impl;
 
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.Arrays;
 import java.util.List;
 
@@ -19,8 +21,11 @@ import com.chalchitraghar.modules.halls.entity.Hall;
 import com.chalchitraghar.modules.halls.enums.Status;
 import com.chalchitraghar.modules.halls.mapper.HallMapper;
 import com.chalchitraghar.modules.halls.repository.HallRepository;
+import com.chalchitraghar.modules.halls.repository.SeatTemplateRepository;
 import com.chalchitraghar.modules.halls.service.HallService;
 import com.chalchitraghar.modules.halls.specification.HallSpecification;
+import com.chalchitraghar.modules.shows.enums.ShowStatus;
+import com.chalchitraghar.modules.shows.repository.ShowRepository;
 import com.chalchitraghar.shared.exception.HallConflictException;
 import com.chalchitraghar.shared.exception.ResourceNotFoundException;
 import com.chalchitraghar.shared.response.PageResponse;
@@ -43,6 +48,8 @@ public class HallServiceImpl implements HallService {
     );
 
     private final HallRepository hallRepository;
+    private final SeatTemplateRepository seatTemplateRepository;
+    private final ShowRepository showRepository;
     private final HallMapper hallMapper;
 
     @Override
@@ -60,6 +67,10 @@ public class HallServiceImpl implements HallService {
         normalize(dto);
         ensureUniqueName(dto.getName(), id);
         validateStatusTransition(hall.getStatus(), dto.getStatus());
+        ensureLayoutDependenciesAllowUpdate(hall, dto);
+        if (hall.getStatus() == Status.ACTIVE && dto.getStatus() == Status.INACTIVE) {
+            ensureNoFutureActiveShows(hall.getId());
+        }
         hallMapper.updateEntityFromDto(hall, dto);
         return hallMapper.toAdminDetail(hallRepository.save(hall));
     }
@@ -68,6 +79,9 @@ public class HallServiceImpl implements HallService {
     public void deleteHall(Long id) {
         Hall hall = hallRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Hall", id));
+        if (hall.getStatus() == Status.ACTIVE) {
+            ensureNoFutureActiveShows(hall.getId());
+        }
         hall.setStatus(Status.INACTIVE);
         hallRepository.save(hall);
     }
@@ -229,6 +243,29 @@ public class HallServiceImpl implements HallService {
         if (!allowed) {
             throw new HallConflictException(
                     "Invalid hall status transition from " + currentStatus + " to " + nextStatus);
+        }
+    }
+
+    private void ensureLayoutDependenciesAllowUpdate(Hall hall, HallRequest dto) {
+        if (!seatTemplateRepository.existsByHallId(hall.getId())) {
+            return;
+        }
+        if (!hall.getCapacity().equals(dto.getCapacity())) {
+            throw new HallConflictException("Cannot change hall capacity after seat layout has been generated");
+        }
+        if (!hall.getLayoutRef().equals(dto.getLayoutRef())) {
+            throw new HallConflictException("Cannot change hall layout reference after seat layout has been generated");
+        }
+    }
+
+    private void ensureNoFutureActiveShows(Long hallId) {
+        boolean hasFutureActiveShows = showRepository.existsFutureActiveShowForHall(
+                hallId,
+                List.of(ShowStatus.SCHEDULED, ShowStatus.RUNNING),
+                LocalDate.now(),
+                LocalTime.now());
+        if (hasFutureActiveShows) {
+            throw new HallConflictException("Cannot inactivate hall while future active shows exist");
         }
     }
 }

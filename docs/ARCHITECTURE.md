@@ -133,6 +133,8 @@ Public hall search matches `name`. Admin hall search matches `name` and `layoutR
 
 Hall create and update rules live in `HallService`. The service trims `name` and `layoutRef`, rejects duplicate hall names case-insensitively, validates status changes through the `ACTIVE <-> INACTIVE` lifecycle, and returns duplicate-name conflicts as `409`. Request validation enforces capacity from `1` to `1000` and requires `layoutRef` to be at most `100` characters using only letters, numbers, hyphen, and underscore. The database reinforces duplicate protection through a normalized unique index on `lower(trim(name))`.
 
+Hall inactivation is safe by default. Admin delete remains a soft delete that sets `status=INACTIVE`, and update can also inactivate a hall, but both paths are blocked when future active `SCHEDULED` or `RUNNING` shows still reference the hall. Once seat templates exist, `capacity` and `layoutRef` are immutable so generated show seats remain consistent with the original layout; `name` and `status` can still change subject to lifecycle and dependency rules. Seat layout generation stays fixed at 188 templates and requires an existing `ACTIVE` hall with `capacity=188` and no previous templates.
+
 Admin user lists use `PageResponse<AdminUserSummaryResponse>` and support bounded pagination, allowlisted sorting, case-insensitive search across `name` and `email`, and optional filters for role, auth provider, enabled, locked, and email verification state.
 
 Admin user lifecycle and account state management is implemented in `UserService` and exposed through thin `AdminUserController` endpoints:

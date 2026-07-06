@@ -99,16 +99,28 @@ public class AdminHallController {
     }
 
     @PutMapping("/{id}")
-    @Operation(summary = "Update a hall", description = "Updates a hall after validating unique name, capacity, layout reference, and ACTIVE/INACTIVE lifecycle.")
+    @Operation(
+            summary = "Update a hall",
+            description = """
+                    Updates a hall after validating unique name, capacity, layout reference, and ACTIVE/INACTIVE lifecycle.
+                    Inactivating an ACTIVE hall is rejected when future active SCHEDULED or RUNNING shows exist.
+                    Once seat templates exist, capacity and layoutRef cannot be changed.""")
     @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Hall updated",
             content = @Content(schema = @Schema(implementation = AdminHallDetailResponse.class)))
-    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "409", description = "Duplicate hall name or invalid hall lifecycle transition")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "409",
+            description = "Duplicate hall name, invalid lifecycle transition, future active shows exist, or seat template dependency blocks capacity/layoutRef changes")
     public ResponseEntity<ApiResponse<AdminHallDetailResponse>> updateHall(@PathVariable Long id, @Valid @RequestBody HallRequest dto) {
         return ResponseEntity.ok(ApiResponse.success("Hall updated successfully", hallService.updateHall(id, dto)));
     }
 
     @DeleteMapping("/{id}")
-    @Operation(summary = "Soft-delete a hall", description = "Marks the hall as INACTIVE.")
+    @Operation(
+            summary = "Soft-delete a hall",
+            description = "Marks the hall as INACTIVE when no future active SCHEDULED or RUNNING shows exist. Hall rows are not physically deleted.")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "204", description = "Hall marked inactive")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Hall not found")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "409", description = "Hall has future active shows")
     public ResponseEntity<Void> deleteHall(@PathVariable Long id) {
         hallService.deleteHall(id);
         return ResponseEntity.noContent().build();

@@ -1178,6 +1178,165 @@ class CatalogApiIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void hallInactivationChecksFutureActiveShowsAndUpdatesPublicVisibility() throws Exception {
+        String adminToken = tokenFor("admin-hall-inactivation@example.com", Role.ADMIN);
+        Movie movie = saveMovie("Hall Dependency Movie", MovieStatus.NOW_SHOWING);
+        Hall blockedHall = saveHall("Blocked Future Hall", Status.ACTIVE);
+        Hall freeHall = saveHall("Free Hall", Status.ACTIVE);
+        saveShow(movie, blockedHall, LocalDate.now().plusDays(2), ShowStatus.SCHEDULED);
+
+        mockMvc.perform(delete("/api/admin/halls/{id}", blockedHall.getId())
+                        .header("Authorization", bearer(adminToken)))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value("Cannot inactivate hall while future active shows exist"));
+
+        mockMvc.perform(put("/api/admin/halls/{id}", blockedHall.getId())
+                        .header("Authorization", bearer(adminToken))
+                        .contentType("application/json")
+                        .content(json(hallRequest("Blocked Future Hall", 188, "standard", Status.INACTIVE))))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value("Cannot inactivate hall while future active shows exist"));
+
+        mockMvc.perform(put("/api/admin/halls/{id}", freeHall.getId())
+                        .header("Authorization", bearer(adminToken))
+                        .contentType("application/json")
+                        .content(json(hallRequest("Free Hall", 188, "standard", Status.INACTIVE))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.status").value("INACTIVE"));
+
+        mockMvc.perform(get("/api/public/halls/{id}", freeHall.getId()))
+                .andExpect(status().isNotFound());
+
+        mockMvc.perform(get("/api/public/halls").param("search", "Free Hall"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.totalElements").value(0));
+
+        mockMvc.perform(put("/api/admin/halls/{id}", freeHall.getId())
+                        .header("Authorization", bearer(adminToken))
+                        .contentType("application/json")
+                        .content(json(hallRequest("Free Hall", 188, "standard", Status.ACTIVE))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.status").value("ACTIVE"));
+    }
+
+    @Test
+    void hallDeleteInactivatesWhenNoFutureShowsExist() throws Exception {
+        String adminToken = tokenFor("admin-hall-delete-free@example.com", Role.ADMIN);
+        Hall hall = saveHall("Delete Free Hall", Status.ACTIVE);
+
+        mockMvc.perform(delete("/api/admin/halls/{id}", hall.getId())
+                        .header("Authorization", bearer(adminToken)))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(get("/api/admin/halls/{id}", hall.getId())
+                        .header("Authorization", bearer(adminToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.status").value("INACTIVE"));
+    }
+
+    @Test
+    void hallLayoutFieldsCannotChangeAfterSeatTemplatesExistButNameCanChange() throws Exception {
+        String adminToken = tokenFor("admin-hall-layout-dependency@example.com", Role.ADMIN);
+        Hall hall = saveHall("Template Locked Hall", Status.ACTIVE);
+        postSeatLayout(hall.getId(), adminToken);
+
+        mockMvc.perform(put("/api/admin/halls/{id}", hall.getId())
+                        .header("Authorization", bearer(adminToken))
+                        .contentType("application/json")
+                        .content(json(hallRequest("Template Locked Hall", 200, "standard", Status.ACTIVE))))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value("Cannot change hall capacity after seat layout has been generated"));
+
+        mockMvc.perform(put("/api/admin/halls/{id}", hall.getId())
+                        .header("Authorization", bearer(adminToken))
+                        .contentType("application/json")
+                        .content(json(hallRequest("Template Locked Hall", 188, "changed_layout", Status.ACTIVE))))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value("Cannot change hall layout reference after seat layout has been generated"));
+
+        mockMvc.perform(put("/api/admin/halls/{id}", hall.getId())
+                        .header("Authorization", bearer(adminToken))
+                        .contentType("application/json")
+                        .content(json(hallRequest("Renamed Template Hall", 188, "standard", Status.ACTIVE))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.name").value("Renamed Template Hall"));
+    }
+
+    @Test
+    void seatLayoutGenerationRequiresActiveHallCapacity188AndNoExistingLayout() throws Exception {
+        String adminToken = tokenFor("admin-seat-layout-rules@example.com", Role.ADMIN);
+        Hall inactiveHall = saveHall("Inactive Layout Hall", Status.INACTIVE);
+        Hall wrongCapacityHall = hallRepository.save(Hall.builder()
+                .name("Wrong Capacity Layout Hall")
+                .capacity(120)
+                .layoutRef("standard")
+                .status(Status.ACTIVE)
+                .build());
+        Hall validHall = saveHall("Valid Layout Rule Hall", Status.ACTIVE);
+
+        mockMvc.perform(post("/api/admin/halls/{hallId}/seat-layout", inactiveHall.getId())
+                        .header("Authorization", bearer(adminToken)))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value("Cannot generate seat layout for an inactive hall"));
+
+        mockMvc.perform(post("/api/admin/halls/{hallId}/seat-layout", wrongCapacityHall.getId())
+                        .header("Authorization", bearer(adminToken)))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value("Seat layout generation currently requires hall capacity to be 188"));
+
+        mockMvc.perform(post("/api/admin/halls/{hallId}/seat-layout", validHall.getId())
+                        .header("Authorization", bearer(adminToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("Seat layout generated successfully"));
+
+        mockMvc.perform(post("/api/admin/halls/{hallId}/seat-layout", validHall.getId())
+                        .header("Authorization", bearer(adminToken)))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value("Seat layout already exists for this hall"));
+    }
+
+    @Test
+    void nonAdminsCannotDeleteOrInactivateHall() throws Exception {
+        Hall hall = saveHall("Delete Authorization Hall", Status.ACTIVE);
+        String customerToken = tokenFor("customer-delete-hall-denied@example.com", Role.CUSTOMER);
+        String staffToken = tokenFor("staff-delete-hall-denied@example.com", Role.STAFF);
+
+        mockMvc.perform(delete("/api/admin/halls/{id}", hall.getId())
+                        .header("Authorization", bearer(customerToken)))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.message").value("Access denied"));
+
+        mockMvc.perform(delete("/api/admin/halls/{id}", hall.getId())
+                        .header("Authorization", bearer(staffToken)))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.message").value("Access denied"));
+
+        mockMvc.perform(delete("/api/admin/halls/{id}", hall.getId()))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.message").value("Authentication required"));
+
+        mockMvc.perform(put("/api/admin/halls/{id}", hall.getId())
+                        .header("Authorization", bearer(customerToken))
+                        .contentType("application/json")
+                        .content(json(hallRequest("Delete Authorization Hall", 188, "standard", Status.INACTIVE))))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.message").value("Access denied"));
+
+        mockMvc.perform(put("/api/admin/halls/{id}", hall.getId())
+                        .header("Authorization", bearer(staffToken))
+                        .contentType("application/json")
+                        .content(json(hallRequest("Delete Authorization Hall", 188, "standard", Status.INACTIVE))))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.message").value("Access denied"));
+
+        mockMvc.perform(put("/api/admin/halls/{id}", hall.getId())
+                        .contentType("application/json")
+                        .content(json(hallRequest("Delete Authorization Hall", 188, "standard", Status.INACTIVE))))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.message").value("Authentication required"));
+    }
+
+    @Test
     void adminCanGenerateSeatLayout() throws Exception {
         String adminToken = tokenFor("admin-seat-layout@example.com", Role.ADMIN);
         Hall hall = saveHall("Layout Hall", Status.ACTIVE);

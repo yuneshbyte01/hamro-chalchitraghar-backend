@@ -328,8 +328,13 @@ Hall create and update validation rules:
 - New halls may be created as `ACTIVE` or `INACTIVE`.
 - Allowed status changes are `ACTIVE -> INACTIVE` and `INACTIVE -> ACTIVE`.
 - The database enforces normalized hall name uniqueness with `uk_halls_name_normalized` on `lower(trim(name))`.
+- Hall delete is a soft inactivation; rows are not physically removed.
+- Inactivation by delete or update is rejected with `409` when future active `SCHEDULED` or `RUNNING` shows exist for the hall.
+- Once seat templates exist, `capacity` and `layoutRef` cannot change. Keep name-only edits and reactivation available.
+- Seat layout generation is allowed only for `ACTIVE` halls without existing templates.
+- The current generator is fixed at 188 seats, so generation requires `capacity=188` until dynamic layout generation is implemented.
 
-Keep hall list and lifecycle changes inside `HallService`, `HallSpecification`, `HallMapper`, and the public/admin hall controllers. Do not add show dependency checks, seat layout dependency rules, seat layout generation changes, audit logging, or hall deletion behavior changes as part of hall validation maintenance.
+Keep hall list, lifecycle, show dependency, and seat template dependency changes inside `HallService`, `SeatLayoutService`, `HallSpecification`, `HallMapper`, and the required repository dependency methods. Do not physically delete halls, auto-cancel shows, add `deletedAt`, add audit logging, or redesign the seat layout generator as part of hall maintenance.
 
 ## Movie List Maintenance
 

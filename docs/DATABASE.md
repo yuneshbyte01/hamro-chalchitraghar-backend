@@ -244,6 +244,8 @@ Stores cinema halls.
 | `layout_ref` | `VARCHAR(255)` | No       | Required; max `100`; letters, numbers, hyphen, underscore       | `layoutRef`  |
 | `status`     | `VARCHAR(255)` | No       | Enum string: `ACTIVE`, `INACTIVE`; indexed by `idx_hall_status` | `status`     |
 
+Hall rows are not physically deleted. Admin delete marks the hall `INACTIVE`; public hall APIs hide inactive halls. Inactivation is blocked in service code when future active shows reference the hall. Once seat templates exist for a hall, `capacity` and `layout_ref` are treated as immutable because generated show seats depend on the original template.
+
 ### `seat_templates`
 
 Stores reusable hall seat layouts. A show uses these templates to generate concrete `seats`.
@@ -266,6 +268,8 @@ The current seat layout generator creates 188 templates per hall:
 |---------------|-------|------------|
 | `A1` to `A8`  | 8     | `PREMIUM`  |
 | `B1` to `J20` | 180   | `PLATINUM` |
+
+Seat template generation currently requires the hall to be `ACTIVE`, to have no existing templates, and to have `capacity = 188`.
 
 ### `shows`
 
