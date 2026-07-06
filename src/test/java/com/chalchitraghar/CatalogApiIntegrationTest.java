@@ -1,6 +1,7 @@
 package com.chalchitraghar;
 
 import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.Matchers.hasItems;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -782,6 +783,98 @@ class CatalogApiIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.message").value("Active halls fetched successfully"))
                 .andExpect(jsonPath("$.data[0].name").value("Hall One"))
                 .andExpect(jsonPath("$.errors").isArray());
+    }
+
+    @Test
+    void publicHallEndpointsExposeOnlyActivePublicContracts() throws Exception {
+        Hall activeHall = saveHall("Public Active Hall", Status.ACTIVE);
+        Hall inactiveHall = saveHall("Public Inactive Hall", Status.INACTIVE);
+
+        mockMvc.perform(get("/api/public/halls"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.length()").value(1))
+                .andExpect(jsonPath("$.data[0].id").value(activeHall.getId()))
+                .andExpect(jsonPath("$.data[0].name").value("Public Active Hall"))
+                .andExpect(jsonPath("$.data[0].capacity").value(188))
+                .andExpect(jsonPath("$.data[0].layoutRef").doesNotExist())
+                .andExpect(jsonPath("$.data[0].createdAt").doesNotExist())
+                .andExpect(jsonPath("$.data[0].updatedAt").doesNotExist());
+
+        mockMvc.perform(get("/api/public/halls/active"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.length()").value(1))
+                .andExpect(jsonPath("$.data[0].id").value(activeHall.getId()))
+                .andExpect(jsonPath("$.data[0].name").value("Public Active Hall"))
+                .andExpect(jsonPath("$.data[0].layoutRef").doesNotExist())
+                .andExpect(jsonPath("$.data[0].createdAt").doesNotExist())
+                .andExpect(jsonPath("$.data[0].updatedAt").doesNotExist());
+
+        mockMvc.perform(get("/api/public/halls/{id}", activeHall.getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.id").value(activeHall.getId()))
+                .andExpect(jsonPath("$.data.name").value("Public Active Hall"))
+                .andExpect(jsonPath("$.data.status").value("ACTIVE"))
+                .andExpect(jsonPath("$.data.layoutRef").doesNotExist())
+                .andExpect(jsonPath("$.data.createdAt").doesNotExist())
+                .andExpect(jsonPath("$.data.updatedAt").doesNotExist());
+
+        mockMvc.perform(get("/api/public/halls/{id}", inactiveHall.getId()))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("Hall not found with id: " + inactiveHall.getId()));
+    }
+
+    @Test
+    void adminHallEndpointsExposeAdminContractsAndAllStatuses() throws Exception {
+        String adminToken = tokenFor("admin-hall-contract@example.com", Role.ADMIN);
+        Hall activeHall = saveHall("Admin Active Hall", Status.ACTIVE);
+        Hall inactiveHall = saveHall("Admin Inactive Hall", Status.INACTIVE);
+
+        mockMvc.perform(get("/api/admin/halls")
+                        .header("Authorization", bearer(adminToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.length()").value(2))
+                .andExpect(jsonPath("$.data[*].status", hasItems("ACTIVE", "INACTIVE")))
+                .andExpect(jsonPath("$.data[0].layoutRef").value("standard"))
+                .andExpect(jsonPath("$.data[0].status").exists())
+                .andExpect(jsonPath("$.data[0].createdAt").doesNotExist())
+                .andExpect(jsonPath("$.data[0].updatedAt").doesNotExist());
+
+        mockMvc.perform(get("/api/admin/halls/active")
+                        .header("Authorization", bearer(adminToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.length()").value(1))
+                .andExpect(jsonPath("$.data[0].id").value(activeHall.getId()))
+                .andExpect(jsonPath("$.data[0].status").value("ACTIVE"));
+
+        mockMvc.perform(get("/api/admin/halls/{id}", inactiveHall.getId())
+                        .header("Authorization", bearer(adminToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.id").value(inactiveHall.getId()))
+                .andExpect(jsonPath("$.data.layoutRef").value("standard"))
+                .andExpect(jsonPath("$.data.status").value("INACTIVE"))
+                .andExpect(jsonPath("$.data.createdAt").exists())
+                .andExpect(jsonPath("$.data.updatedAt").exists());
+    }
+
+    @Test
+    void nonAdminsCannotUseAdminHallEndpoints() throws Exception {
+        String customerToken = tokenFor("customer-hall-denied@example.com", Role.CUSTOMER);
+        String staffToken = tokenFor("staff-hall-denied@example.com", Role.STAFF);
+
+        mockMvc.perform(get("/api/admin/halls")
+                        .header("Authorization", bearer(customerToken)))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.message").value("Access denied"));
+
+        mockMvc.perform(get("/api/admin/halls")
+                        .header("Authorization", bearer(staffToken)))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.message").value("Access denied"));
+
+        mockMvc.perform(get("/api/admin/halls"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.message").value("Authentication required"));
     }
 
     @Test

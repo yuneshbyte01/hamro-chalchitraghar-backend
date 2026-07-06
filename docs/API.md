@@ -453,7 +453,7 @@ Response `200`: list of `PublicMovieSummaryResponse`.
 | Field | Value |
 | --- | --- |
 | Authentication | Public |
-| Description | Lists all halls. |
+| Description | Lists active halls using the public summary DTO. INACTIVE halls are hidden. |
 | Request body | None |
 | Validation | None |
 
@@ -467,40 +467,38 @@ Response `200`:
     {
       "id": 1,
       "name": "Hall A",
-      "capacity": 188,
-      "layoutRef": "standard",
-      "status": "ACTIVE",
-      "createdAt": "2026-07-01T10:00:00",
-      "updatedAt": "2026-07-01T10:00:00"
+      "capacity": 188
     }
   ],
   "errors": []
 }
 ```
 
+Response DTO: `PublicHallSummaryResponse`.
+
 ### `GET /api/public/halls/{id}`
 
 | Field | Value |
 | --- | --- |
 | Authentication | Public |
-| Description | Fetches one hall by ID. |
+| Description | Fetches one ACTIVE hall by ID. INACTIVE halls return `404`. |
 | Request body | None |
 | Validation | `id` must be numeric |
 
-Response `200`: `HallResponse`.
+Response `200`: `PublicHallDetailResponse`.
 
-Errors: `400` invalid ID type, `404` hall not found.
+Errors: `400` invalid ID type, `404` hall not found or hall is inactive.
 
 ### `GET /api/public/halls/active`
 
 | Field | Value |
 | --- | --- |
 | Authentication | Public |
-| Description | Lists halls where `status` is `ACTIVE`. |
+| Description | Lists halls where `status` is `ACTIVE` using the public summary DTO. |
 | Request body | None |
 | Validation | None |
 
-Response `200`: list of `HallResponse`.
+Response `200`: list of `PublicHallSummaryResponse`.
 
 ### `GET /api/public/shows`
 
@@ -985,7 +983,7 @@ Errors: `404` movie not found, `409` future active shows exist.
 | Request body | None |
 | Validation | ADMIN token |
 
-Response `200`: list of `HallResponse`.
+Response `200`: list of `AdminHallSummaryResponse`. Admin list responses include `layoutRef` and `status`, but not audit timestamps.
 
 #### `GET /api/admin/halls/{id}`
 
@@ -996,7 +994,7 @@ Response `200`: list of `HallResponse`.
 | Request body | None |
 | Validation | `id` numeric |
 
-Response `200`: `HallResponse`.
+Response `200`: `AdminHallDetailResponse`.
 
 Errors: `404` hall not found.
 
@@ -1009,7 +1007,7 @@ Errors: `404` hall not found.
 | Request body | None |
 | Validation | ADMIN token |
 
-Response `200`: list of `HallResponse`.
+Response `200`: list of `AdminHallSummaryResponse`.
 
 #### `POST /api/admin/halls`
 
@@ -1031,7 +1029,7 @@ Request:
 
 Validation: `name`, `capacity`, `layoutRef`, and `status` are required; `name` must be unique; status must be `ACTIVE` or `INACTIVE`.
 
-Response `201`: `HallResponse`.
+Response `201`: `AdminHallDetailResponse`.
 
 Errors: `400` duplicate hall name or validation failure.
 
@@ -1043,7 +1041,7 @@ Errors: `400` duplicate hall name or validation failure.
 | Description | Replaces hall fields from `HallRequest`. |
 | Validation | Same body rules as create plus numeric `id` |
 
-Response `200`: `HallResponse`.
+Response `200`: `AdminHallDetailResponse`.
 
 Errors: `404` hall not found.
 
@@ -1433,7 +1431,10 @@ User response separation:
 | `AdminMovieSummaryResponse` | `id`, `title`, `genre`, `language`, `releaseDate`, `status` |
 | `AdminMovieDetailResponse` | `id`, `title`, `genre`, `durationMinutes`, `language`, `description`, `posterUrl`, `releaseDate`, `status`, `createdAt`, `updatedAt` |
 | `MovieResponse` | Legacy nested movie response currently used inside `ShowResponse`: `id`, `title`, `genre`, `durationMinutes`, `language`, `description`, `posterUrl`, `releaseDate`, `status`, `createdAt`, `updatedAt` |
-| `HallResponse` | `id`, `name`, `capacity`, `layoutRef`, `status`, `createdAt`, `updatedAt` |
+| `PublicHallSummaryResponse` | `id`, `name`, `capacity` |
+| `PublicHallDetailResponse` | `id`, `name`, `capacity`, `status` |
+| `AdminHallSummaryResponse` | `id`, `name`, `capacity`, `layoutRef`, `status` |
+| `AdminHallDetailResponse` | `id`, `name`, `capacity`, `layoutRef`, `status`, `createdAt`, `updatedAt` |
 | `ShowResponse` | `id`, `movie`, `hall`, `status`, `showDate`, `showTime`, `endTime`, `createdAt`, `updatedAt` |
 | `SeatResponse` | `id`, `rowLabel`, `seatNumber`, `seatCode`, `seatType`, `price`, `positionIndex`, `seatStatus` |
 | `BookingResponse` | `bookingId`, `bookingStatus`, `showId`, `movieName`, `hallName`, `showDateTime`, `startTime`, `endTime`, `selectedSeats`, `totalPrice`, `bookingTime` |

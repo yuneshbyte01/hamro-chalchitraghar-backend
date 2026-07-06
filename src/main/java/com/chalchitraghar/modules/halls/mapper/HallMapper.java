@@ -3,7 +3,10 @@ package com.chalchitraghar.modules.halls.mapper;
 import org.springframework.stereotype.Component;
 
 import com.chalchitraghar.modules.halls.dto.request.HallRequest;
-import com.chalchitraghar.modules.halls.dto.response.HallResponse;
+import com.chalchitraghar.modules.halls.dto.response.AdminHallDetailResponse;
+import com.chalchitraghar.modules.halls.dto.response.AdminHallSummaryResponse;
+import com.chalchitraghar.modules.halls.dto.response.PublicHallDetailResponse;
+import com.chalchitraghar.modules.halls.dto.response.PublicHallSummaryResponse;
 import com.chalchitraghar.modules.halls.entity.Hall;
 
 /**
@@ -48,18 +51,51 @@ public class HallMapper {
         hall.setStatus(dto.getStatus());
     }
 
-    /**
-     * Converts a Hall entity to a HallResponse DTO.
-     *
-     * @param hall the entity to convert
-     * @return the response DTO, or null if hall is null
-     */
-    public HallResponse toResponseDto(Hall hall) {
+    public PublicHallSummaryResponse toPublicSummary(Hall hall) {
         if (hall == null) {
             return null;
         }
 
-        HallResponse dto = new HallResponse();
+        PublicHallSummaryResponse dto = new PublicHallSummaryResponse();
+        dto.setId(hall.getId());
+        dto.setName(hall.getName());
+        dto.setCapacity(hall.getCapacity());
+        return dto;
+    }
+
+    public PublicHallDetailResponse toPublicDetail(Hall hall) {
+        if (hall == null) {
+            return null;
+        }
+
+        PublicHallDetailResponse dto = new PublicHallDetailResponse();
+        dto.setId(hall.getId());
+        dto.setName(hall.getName());
+        dto.setCapacity(hall.getCapacity());
+        dto.setStatus(hall.getStatus());
+        return dto;
+    }
+
+    public AdminHallSummaryResponse toAdminSummary(Hall hall) {
+        if (hall == null) {
+            return null;
+        }
+
+        AdminHallSummaryResponse dto = new AdminHallSummaryResponse();
+        dto.setId(hall.getId());
+        dto.setName(hall.getName());
+        dto.setCapacity(hall.getCapacity());
+        dto.setLayoutRef(hall.getLayoutRef());
+        dto.setStatus(hall.getStatus());
+        return dto;
+    }
+
+    public AdminHallDetailResponse toAdminDetail(Hall hall) {
+        if (hall == null) {
+            return null;
+        }
+
+        AdminHallDetailResponse dto = new AdminHallDetailResponse();
         dto.setId(hall.getId());
         dto.setName(hall.getName());
         dto.setCapacity(hall.getCapacity());

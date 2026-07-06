@@ -1,7 +1,7 @@
 package com.chalchitraghar.modules.shows.dto.response;
 
 import com.chalchitraghar.modules.movies.dto.response.MovieResponse;
-import com.chalchitraghar.modules.halls.dto.response.HallResponse;
+import com.chalchitraghar.modules.halls.dto.response.PublicHallDetailResponse;
 import com.chalchitraghar.modules.shows.enums.ShowStatus;
 
 import java.time.LocalDate;
@@ -22,7 +22,7 @@ public class ShowResponse {
     
     private Long id;
     private MovieResponse movie;
-    private HallResponse hall;
+    private PublicHallDetailResponse hall;
     private ShowStatus status;
     private LocalDate showDate;
     private LocalTime showTime;

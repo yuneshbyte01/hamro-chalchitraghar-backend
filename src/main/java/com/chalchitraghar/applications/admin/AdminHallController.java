@@ -14,10 +14,13 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.chalchitraghar.modules.halls.dto.request.HallRequest;
-import com.chalchitraghar.modules.halls.dto.response.HallResponse;
+import com.chalchitraghar.modules.halls.dto.response.AdminHallDetailResponse;
+import com.chalchitraghar.modules.halls.dto.response.AdminHallSummaryResponse;
 import com.chalchitraghar.modules.halls.service.HallService;
 import com.chalchitraghar.shared.response.ApiResponse;
 
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -37,34 +40,44 @@ public class AdminHallController {
     private final HallService hallService;
 
     @GetMapping
-    @Operation(summary = "List halls for admin")
-    public ResponseEntity<ApiResponse<List<HallResponse>>> getAllHalls() {
-        return ResponseEntity.ok(ApiResponse.success("Halls fetched successfully", hallService.getAllHalls()));
+    @Operation(summary = "List halls for admin", description = "Returns ACTIVE and INACTIVE halls using the admin summary contract.")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Admin halls fetched",
+            content = @Content(schema = @Schema(implementation = AdminHallSummaryResponse.class)))
+    public ResponseEntity<ApiResponse<List<AdminHallSummaryResponse>>> getAllHalls() {
+        return ResponseEntity.ok(ApiResponse.success("Halls fetched successfully", hallService.getAdminHalls()));
     }
 
     @GetMapping("/{id}")
     @Operation(summary = "Get hall by ID for admin")
-    public ResponseEntity<ApiResponse<HallResponse>> getHallById(@PathVariable Long id) {
-        return ResponseEntity.ok(ApiResponse.success("Hall fetched successfully", hallService.getHallById(id)));
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Admin hall fetched",
+            content = @Content(schema = @Schema(implementation = AdminHallDetailResponse.class)))
+    public ResponseEntity<ApiResponse<AdminHallDetailResponse>> getHallById(@PathVariable Long id) {
+        return ResponseEntity.ok(ApiResponse.success("Hall fetched successfully", hallService.getAdminHallById(id)));
     }
 
     @GetMapping("/active")
     @Operation(summary = "List active halls for admin")
-    public ResponseEntity<ApiResponse<List<HallResponse>>> getActiveHalls() {
-        return ResponseEntity.ok(ApiResponse.success("Active halls fetched successfully", hallService.getActiveHalls()));
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Active admin halls fetched",
+            content = @Content(schema = @Schema(implementation = AdminHallSummaryResponse.class)))
+    public ResponseEntity<ApiResponse<List<AdminHallSummaryResponse>>> getActiveHalls() {
+        return ResponseEntity.ok(ApiResponse.success("Active halls fetched successfully", hallService.getAdminActiveHalls()));
     }
 
     @PostMapping
     @Operation(summary = "Create a hall")
-    public ResponseEntity<ApiResponse<HallResponse>> createHall(@Valid @RequestBody HallRequest dto) {
-        HallResponse hall = hallService.addHall(dto);
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "Hall created",
+            content = @Content(schema = @Schema(implementation = AdminHallDetailResponse.class)))
+    public ResponseEntity<ApiResponse<AdminHallDetailResponse>> createHall(@Valid @RequestBody HallRequest dto) {
+        AdminHallDetailResponse hall = hallService.addHall(dto);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success("Hall created successfully", hall));
     }
 
     @PutMapping("/{id}")
     @Operation(summary = "Update a hall")
-    public ResponseEntity<ApiResponse<HallResponse>> updateHall(@PathVariable Long id, @Valid @RequestBody HallRequest dto) {
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Hall updated",
+            content = @Content(schema = @Schema(implementation = AdminHallDetailResponse.class)))
+    public ResponseEntity<ApiResponse<AdminHallDetailResponse>> updateHall(@PathVariable Long id, @Valid @RequestBody HallRequest dto) {
         return ResponseEntity.ok(ApiResponse.success("Hall updated successfully", hallService.updateHall(id, dto)));
     }
 

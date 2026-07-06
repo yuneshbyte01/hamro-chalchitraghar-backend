@@ -3,22 +3,31 @@ package com.chalchitraghar.modules.halls.service;
 import java.util.List;
 
 import com.chalchitraghar.modules.halls.dto.request.HallRequest;
-import com.chalchitraghar.modules.halls.dto.response.HallResponse;
+import com.chalchitraghar.modules.halls.dto.response.AdminHallDetailResponse;
+import com.chalchitraghar.modules.halls.dto.response.AdminHallSummaryResponse;
+import com.chalchitraghar.modules.halls.dto.response.PublicHallDetailResponse;
+import com.chalchitraghar.modules.halls.dto.response.PublicHallSummaryResponse;
 
 /**
  * Service for hall management operations.
  */
 public interface HallService {
 
-    HallResponse addHall(HallRequest dto);
+    AdminHallDetailResponse addHall(HallRequest dto);
 
-    HallResponse updateHall(Long id, HallRequest dto);
+    AdminHallDetailResponse updateHall(Long id, HallRequest dto);
 
     void deleteHall(Long id);
 
-    List<HallResponse> getAllHalls();
+    List<PublicHallSummaryResponse> getPublicHalls();
 
-    HallResponse getHallById(Long id);
+    PublicHallDetailResponse getPublicHallById(Long id);
 
-    List<HallResponse> getActiveHalls();
+    List<PublicHallSummaryResponse> getPublicActiveHalls();
+
+    List<AdminHallSummaryResponse> getAdminHalls();
+
+    AdminHallDetailResponse getAdminHallById(Long id);
+
+    List<AdminHallSummaryResponse> getAdminActiveHalls();
 }

@@ -61,7 +61,7 @@ public class ShowMapper {
         ShowResponse dto = new ShowResponse();
         dto.setId(show.getId());
         dto.setMovie(movieMapper.toResponseDto(show.getMovie()));
-        dto.setHall(hallMapper.toResponseDto(show.getHall()));
+        dto.setHall(hallMapper.toPublicDetail(show.getHall()));
         dto.setStatus(show.getStatus());
         dto.setShowDate(show.getShowDate());
         dto.setShowTime(show.getShowTime());

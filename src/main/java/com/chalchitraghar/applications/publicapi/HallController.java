@@ -8,10 +8,13 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.chalchitraghar.modules.halls.dto.response.HallResponse;
+import com.chalchitraghar.modules.halls.dto.response.PublicHallDetailResponse;
+import com.chalchitraghar.modules.halls.dto.response.PublicHallSummaryResponse;
 import com.chalchitraghar.modules.halls.service.HallService;
 import com.chalchitraghar.shared.response.ApiResponse;
 
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -28,20 +31,26 @@ public class HallController {
     private final HallService hallService;
 
     @GetMapping
-    @Operation(summary = "List public halls")
-    public ResponseEntity<ApiResponse<List<HallResponse>>> getAllHalls() {
-        return ResponseEntity.ok(ApiResponse.success("Halls fetched successfully", hallService.getAllHalls()));
+    @Operation(summary = "List active public halls", description = "Returns only ACTIVE halls using the public hall summary contract.")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Active public halls fetched",
+            content = @Content(schema = @Schema(implementation = PublicHallSummaryResponse.class)))
+    public ResponseEntity<ApiResponse<List<PublicHallSummaryResponse>>> getAllHalls() {
+        return ResponseEntity.ok(ApiResponse.success("Halls fetched successfully", hallService.getPublicHalls()));
     }
 
     @GetMapping("/{id}")
-    @Operation(summary = "Get a public hall by ID")
-    public ResponseEntity<ApiResponse<HallResponse>> getHallById(@PathVariable Long id) {
-        return ResponseEntity.ok(ApiResponse.success("Hall fetched successfully", hallService.getHallById(id)));
+    @Operation(summary = "Get an active public hall by ID", description = "Inactive halls are hidden from public detail lookup and return 404.")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Active public hall fetched",
+            content = @Content(schema = @Schema(implementation = PublicHallDetailResponse.class)))
+    public ResponseEntity<ApiResponse<PublicHallDetailResponse>> getHallById(@PathVariable Long id) {
+        return ResponseEntity.ok(ApiResponse.success("Hall fetched successfully", hallService.getPublicHallById(id)));
     }
 
     @GetMapping("/active")
     @Operation(summary = "List active public halls")
-    public ResponseEntity<ApiResponse<List<HallResponse>>> getActiveHalls() {
-        return ResponseEntity.ok(ApiResponse.success("Active halls fetched successfully", hallService.getActiveHalls()));
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Active public halls fetched",
+            content = @Content(schema = @Schema(implementation = PublicHallSummaryResponse.class)))
+    public ResponseEntity<ApiResponse<List<PublicHallSummaryResponse>>> getActiveHalls() {
+        return ResponseEntity.ok(ApiResponse.success("Active halls fetched successfully", hallService.getPublicActiveHalls()));
     }
 }

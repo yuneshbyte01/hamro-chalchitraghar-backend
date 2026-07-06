@@ -100,7 +100,9 @@ Important DTOs:
 | `PublicMovieSummaryResponse`, `PublicMovieDetailResponse` | Public movie browsing responses |
 | `AdminMovieSummaryResponse`, `AdminMovieDetailResponse` | Admin movie management responses |
 | `MovieResponse` | Legacy nested movie response used inside `ShowResponse` |
-| `HallResponse`, `ShowResponse`, `SeatResponse`, `BookingResponse` | API responses |
+| `PublicHallSummaryResponse`, `PublicHallDetailResponse` | Public hall browsing responses |
+| `AdminHallSummaryResponse`, `AdminHallDetailResponse` | Admin hall management responses |
+| `ShowResponse`, `SeatResponse`, `BookingResponse` | API responses |
 | `UserResponse` | Authenticated customer profile response |
 | `AdminUserSummaryResponse`, `AdminUserDetailResponse` | Admin user lookup responses |
 | `PageResponse<T>` | Shared paginated list wrapper returned inside `ApiResponse<T>` |
@@ -119,6 +121,8 @@ Both movie list endpoints support case-insensitive search across `title`, `genre
 Movie create and update rules live in `MovieService`. The service rejects duplicate movies by case-insensitive `title` plus `releaseDate`, validates release date consistency for `UPCOMING`, `NOW_SHOWING`, and `ENDED`, and enforces the lifecycle `UPCOMING -> NOW_SHOWING -> ENDED` with the direct shortcut `UPCOMING -> ENDED`. The database also enforces duplicate protection through `movies.title_normalized` plus `release_date`.
 
 Movie visibility is audience-specific. Public movie lists and detail endpoints expose only `UPCOMING` and `NOW_SHOWING`; `status=ENDED` is rejected on public lists and ended movie detail is returned as not found. Admin movie endpoints can list and fetch all statuses. Ending a movie, either through update or delete, is blocked when future active `SCHEDULED` or `RUNNING` shows still reference it. The service enforces this through `ShowRepository`; controllers do not duplicate dependency checks.
+
+Hall responses are split by audience. Public hall list endpoints use `PublicHallSummaryResponse` and public hall detail uses `PublicHallDetailResponse`; neither public DTO exposes `layoutRef`, `createdAt`, or `updatedAt`. Public hall endpoints expose only `ACTIVE` halls, so inactive hall detail lookup returns not found. Admin hall list endpoints use `AdminHallSummaryResponse`, while admin create, update, and detail endpoints use `AdminHallDetailResponse` with audit timestamps. Admin endpoints can see both `ACTIVE` and `INACTIVE` halls.
 
 Admin user lists use `PageResponse<AdminUserSummaryResponse>` and support bounded pagination, allowlisted sorting, case-insensitive search across `name` and `email`, and optional filters for role, auth provider, enabled, locked, and email verification state.
 
@@ -140,7 +144,7 @@ Mappers are Spring components and convert between entities and DTOs:
 | Mapper | Responsibility |
 | --- | --- |
 | `MovieMapper` | Movie request mapping plus public/admin summary and detail response mapping |
-| `HallMapper` | Hall request/response mapping |
+| `HallMapper` | Hall request mapping plus public/admin summary and detail response mapping |
 | `ShowMapper` | Show mapping with nested movie and hall responses |
 | `SeatMapper` | Seat entity to public seat response |
 | `BookingMapper` | Booking response with selected seats and total price |
