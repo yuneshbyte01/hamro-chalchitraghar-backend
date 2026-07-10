@@ -12,6 +12,8 @@ import com.chalchitraghar.modules.bookings.entity.Booking;
  * Repository interface for Booking entity persistence operations.
  */
 public interface BookingRepository extends JpaRepository<Booking, Long> {
+
+    boolean existsByShowId(Long showId);
     
     /**
      * Finds all bookings for a specific user, ordered by booking time descending (most recent first).

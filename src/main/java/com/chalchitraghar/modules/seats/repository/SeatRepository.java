@@ -25,6 +25,8 @@ public interface SeatRepository extends JpaRepository<Seat, Long> {
      */
     boolean existsByShowId(Long showId);
 
+    long countByShowId(Long showId);
+
     /**
      * Finds all seats for a show, ordered by position index ascending.
      *
@@ -63,4 +65,7 @@ public interface SeatRepository extends JpaRepository<Seat, Long> {
      */
     @Query("SELECT s FROM Seat s WHERE s.seatStatus = 'LOCKED' AND s.lockExpiresAt < :now")
     List<Seat> findExpiredLockedSeats(@Param("now") LocalDateTime now);
+
+    @Query("SELECT s FROM Seat s WHERE s.show.id = :showId AND s.seatStatus = 'LOCKED' AND (s.lockExpiresAt IS NULL OR s.lockExpiresAt < :now)")
+    List<Seat> findExpiredLockedSeatsByShowId(@Param("showId") Long showId, @Param("now") LocalDateTime now);
 }

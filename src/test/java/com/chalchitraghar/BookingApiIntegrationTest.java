@@ -21,6 +21,7 @@ import com.chalchitraghar.modules.movies.enums.MovieStatus;
 import com.chalchitraghar.modules.seats.entity.Seat;
 import com.chalchitraghar.modules.seats.enums.SeatStatus;
 import com.chalchitraghar.modules.shows.entity.Show;
+import com.chalchitraghar.modules.shows.enums.ShowStatus;
 import com.chalchitraghar.modules.users.enums.Role;
 import com.fasterxml.jackson.databind.JsonNode;
 
@@ -164,6 +165,35 @@ class BookingApiIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.message").value("Seat IDs contain duplicates"))
                 .andExpect(jsonPath("$.errors").isArray());
+    }
+
+    @Test
+    void holdsAndBookingsRejectCancelledOrCompletedShows() throws Exception {
+        TestShowContext context = createShowContext("unavailable-show@example.com");
+        Seat seat = seatsForShow(context.show().getId()).getFirst();
+        context.show().setStatus(ShowStatus.CANCELLED);
+        showRepository.save(context.show());
+
+        mockMvc.perform(post("/api/customer/bookings/hold")
+                        .header("Authorization", bearer(context.customerToken()))
+                        .contentType("application/json")
+                        .content(json(Map.of("showId", context.show().getId(), "seatIds", List.of(seat.getId())))))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value("Seats cannot be held for a cancelled or completed show"));
+        mockMvc.perform(post("/api/customer/bookings")
+                        .header("Authorization", bearer(context.customerToken()))
+                        .contentType("application/json")
+                        .content(json(Map.of("showId", context.show().getId(), "seatIds", List.of(seat.getId())))))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value("Booking is not allowed for a cancelled or completed show"));
+
+        context.show().setStatus(ShowStatus.COMPLETED);
+        showRepository.save(context.show());
+        mockMvc.perform(post("/api/customer/bookings/hold")
+                        .header("Authorization", bearer(context.customerToken()))
+                        .contentType("application/json")
+                        .content(json(Map.of("showId", context.show().getId(), "seatIds", List.of(seat.getId())))))
+                .andExpect(status().isConflict());
     }
 
     private TestShowContext createShowContext(String customerEmail) throws Exception {

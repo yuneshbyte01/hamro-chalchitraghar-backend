@@ -51,6 +51,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler({
             HallConflictException.class,
             MovieConflictException.class,
+            ShowConflictException.class,
             SeatAlreadyBookedException.class,
             SeatLockedException.class
     })

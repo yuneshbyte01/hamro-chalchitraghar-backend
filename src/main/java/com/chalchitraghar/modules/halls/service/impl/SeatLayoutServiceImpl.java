@@ -17,6 +17,7 @@ import com.chalchitraghar.modules.halls.repository.SeatTemplateRepository;
 import com.chalchitraghar.modules.halls.mapper.SeatTemplateMapper;
 import com.chalchitraghar.modules.halls.service.SeatLayoutService;
 import com.chalchitraghar.modules.halls.service.SeatTemplateValidator;
+import com.chalchitraghar.modules.shows.repository.ShowRepository;
 import com.chalchitraghar.modules.seats.enums.SeatType;
 import com.chalchitraghar.shared.exception.HallConflictException;
 import com.chalchitraghar.shared.exception.ResourceNotFoundException;
@@ -36,6 +37,7 @@ public class SeatLayoutServiceImpl implements SeatLayoutService {
     private final HallRepository hallRepository;
     private final SeatTemplateMapper seatTemplateMapper;
     private final SeatTemplateValidator seatTemplateValidator;
+    private final ShowRepository showRepository;
 
     @Override
     @org.springframework.transaction.annotation.Transactional(readOnly = true)
@@ -105,17 +107,42 @@ public class SeatLayoutServiceImpl implements SeatLayoutService {
     @Override
     @Transactional
     public void generateSeatTemplates(Long hallId) {
+        Hall hall = requireSupportedActiveHall(hallId);
+        if (seatTemplateRepository.existsByHallId(hallId)) {
+            throw new HallConflictException("Seat layout already exists for this hall");
+        }
+        seatTemplateRepository.saveAll(buildValidatedTemplates(hall));
+    }
+
+    @Override
+    @Transactional
+    public AdminSeatLayoutResponse regenerateSeatTemplates(Long hallId) {
+        Hall hall = requireSupportedActiveHall(hallId);
+        if (!seatTemplateRepository.existsByHallId(hallId)) {
+            throw new ResourceNotFoundException("Seat layout", hallId);
+        }
+        if (showRepository.existsByHallId(hallId)) {
+            throw new HallConflictException("Cannot regenerate seat layout while shows exist for this hall");
+        }
+        List<SeatTemplate> templates = buildValidatedTemplates(hall);
+        seatTemplateRepository.deleteByHallId(hallId);
+        List<SeatTemplate> savedTemplates = seatTemplateRepository.saveAll(templates);
+        return seatTemplateMapper.toLayoutResponse(hall, savedTemplates);
+    }
+
+    private Hall requireSupportedActiveHall(Long hallId) {
         Hall hall = hallRepository.findById(hallId)
                 .orElseThrow(() -> new ResourceNotFoundException("Hall", hallId));
         if (hall.getStatus() != Status.ACTIVE) {
             throw new HallConflictException("Cannot generate seat layout for an inactive hall");
         }
-        if (seatTemplateRepository.existsByHallId(hallId)) {
-            throw new HallConflictException("Seat layout already exists for this hall");
-        }
         if (!Integer.valueOf(FIXED_LAYOUT_CAPACITY).equals(hall.getCapacity())) {
             throw new HallConflictException("Seat layout generation currently requires hall capacity to be 188");
         }
+        return hall;
+    }
+
+    private List<SeatTemplate> buildValidatedTemplates(Hall hall) {
         List<SeatTemplate> templates = new java.util.ArrayList<>(FIXED_LAYOUT_CAPACITY);
         int index = 0;
         for (int seat = 1; seat <= 8; seat++) {
@@ -127,7 +154,7 @@ public class SeatLayoutServiceImpl implements SeatLayoutService {
             }
         }
         seatTemplateValidator.validate(templates, hall.getCapacity());
-        seatTemplateRepository.saveAll(templates);
+        return templates;
     }
 
     private SeatTemplate buildSeat(Hall hall, String rowLabel, int seatNumber, SeatType seatType, int positionIndex) {

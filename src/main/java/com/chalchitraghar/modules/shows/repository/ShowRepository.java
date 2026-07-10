@@ -16,6 +16,10 @@ import com.chalchitraghar.modules.shows.entity.Show;
  */
 public interface ShowRepository extends JpaRepository<Show, Long> {
 
+    boolean existsByHallId(Long hallId);
+
+    long countByHallId(Long hallId);
+
     /**
      * Checks if there's an overlapping show for the same hall on the same date.
      * A show overlaps if: new show starts before existing show ends AND new show ends after existing show starts.

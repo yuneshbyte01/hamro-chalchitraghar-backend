@@ -1546,6 +1546,115 @@ class CatalogApiIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void adminCanRegenerateLayoutOnlyWithoutShowDependencies() throws Exception {
+        String adminToken = tokenFor("admin-regenerate@example.com", Role.ADMIN);
+        Hall hall = saveHall("Regeneration Hall", Status.ACTIVE);
+        postSeatLayout(hall.getId(), adminToken);
+
+        mockMvc.perform(post("/api/admin/halls/{hallId}/seat-layout/regenerate", hall.getId())
+                        .header("Authorization", bearer(adminToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("Seat layout regenerated successfully"))
+                .andExpect(jsonPath("$.data.totalSeats").value(188))
+                .andExpect(jsonPath("$.data.premiumSeats").value(8))
+                .andExpect(jsonPath("$.data.platinumSeats").value(180))
+                .andExpect(jsonPath("$.data.templates[0].seatCode").value("A1"))
+                .andExpect(jsonPath("$.data.templates[187].seatCode").value("J20"));
+
+        Movie movie = saveMovie("Regeneration Dependency Movie", MovieStatus.NOW_SHOWING);
+        saveShowWithSeats(movie, hall, adminToken);
+        mockMvc.perform(post("/api/admin/halls/{hallId}/seat-layout/regenerate", hall.getId())
+                        .header("Authorization", bearer(adminToken)))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value("Cannot regenerate seat layout while shows exist for this hall"));
+    }
+
+    @Test
+    void regenerationRejectsInactiveMissingLayoutAndNonAdmins() throws Exception {
+        String adminToken = tokenFor("admin-regenerate-rules@example.com", Role.ADMIN);
+        String customerToken = tokenFor("customer-regenerate@example.com", Role.CUSTOMER);
+        String staffToken = tokenFor("staff-regenerate@example.com", Role.STAFF);
+        Hall inactive = saveHall("Inactive Regeneration Hall", Status.ACTIVE);
+        postSeatLayout(inactive.getId(), adminToken);
+        inactive.setStatus(Status.INACTIVE);
+        hallRepository.save(inactive);
+        Hall withoutLayout = saveHall("No Regeneration Layout Hall", Status.ACTIVE);
+
+        mockMvc.perform(post("/api/admin/halls/{hallId}/seat-layout/regenerate", inactive.getId())
+                        .header("Authorization", bearer(adminToken))).andExpect(status().isConflict());
+        mockMvc.perform(post("/api/admin/halls/{hallId}/seat-layout/regenerate", withoutLayout.getId())
+                        .header("Authorization", bearer(adminToken))).andExpect(status().isNotFound());
+        mockMvc.perform(post("/api/admin/halls/{hallId}/seat-layout/regenerate", withoutLayout.getId())
+                        .header("Authorization", bearer(customerToken))).andExpect(status().isForbidden());
+        mockMvc.perform(post("/api/admin/halls/{hallId}/seat-layout/regenerate", withoutLayout.getId())
+                        .header("Authorization", bearer(staffToken))).andExpect(status().isForbidden());
+        mockMvc.perform(post("/api/admin/halls/{hallId}/seat-layout/regenerate", withoutLayout.getId()))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void showHallChangeIsAllowedBeforeSeatsAndBlockedAfterSeats() throws Exception {
+        String adminToken = tokenFor("admin-show-hall-change@example.com", Role.ADMIN);
+        Movie movie = saveMovie("Hall Change Movie", MovieStatus.NOW_SHOWING);
+        Hall firstHall = saveHall("Hall Change First", Status.ACTIVE);
+        Hall secondHall = saveHall("Hall Change Second", Status.ACTIVE);
+        Show showWithoutSeats = showRepository.save(Show.builder()
+                .movie(movie).hall(firstHall).showDate(LocalDate.now().plusDays(20))
+                .showTime(LocalTime.of(10, 0)).endTime(LocalTime.of(12, 0)).build());
+
+        mockMvc.perform(put("/api/admin/shows/{id}", showWithoutSeats.getId())
+                        .header("Authorization", bearer(adminToken))
+                        .contentType("application/json")
+                        .content(json(showRequest(movie.getId(), secondHall.getId(), 20, "10:00", "12:00"))))
+                .andExpect(status().isOk());
+
+        postSeatLayout(firstHall.getId(), adminToken);
+        Show showWithSeats = saveShowWithSeats(
+                saveMovie("Hall Change Generated Movie", MovieStatus.NOW_SHOWING), firstHall, adminToken);
+        mockMvc.perform(put("/api/admin/shows/{id}", showWithSeats.getId())
+                        .header("Authorization", bearer(adminToken))
+                        .contentType("application/json")
+                        .content(json(showRequest(showWithSeats.getMovie().getId(), secondHall.getId(), 10, "10:00", "12:00"))))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value("Cannot change show hall after seats have been generated"));
+
+        mockMvc.perform(put("/api/admin/shows/{id}", showWithSeats.getId())
+                        .header("Authorization", bearer(adminToken))
+                        .contentType("application/json")
+                        .content(json(showRequest(showWithSeats.getMovie().getId(), firstHall.getId(), 11, "10:00", "12:00"))))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void publicSeatRetrievalRejectsMissingCancelledAndCompletedShowsAndNormalizesExpiredLocks() throws Exception {
+        String adminToken = tokenFor("admin-public-seat-rules@example.com", Role.ADMIN);
+        Movie movie = saveMovie("Public Seat Rules Movie", MovieStatus.NOW_SHOWING);
+        Hall hall = saveHall("Public Seat Rules Hall", Status.ACTIVE);
+        Show show = saveShowWithSeats(movie, hall, adminToken);
+        var seat = seatsForShow(show.getId()).getFirst();
+        expireLock(seat);
+
+        mockMvc.perform(get("/api/public/shows/{showId}/seats", show.getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.length()").value(188))
+                .andExpect(jsonPath("$.data[0].seatStatus").value("AVAILABLE"))
+                .andExpect(jsonPath("$.data[0].lockedAt").doesNotExist())
+                .andExpect(jsonPath("$.data[0].lockExpiresAt").doesNotExist())
+                .andExpect(jsonPath("$.data[0].lockedByUserId").doesNotExist());
+
+        mockMvc.perform(get("/api/public/shows/{showId}/seats", Long.MAX_VALUE))
+                .andExpect(status().isNotFound());
+        show.setStatus(ShowStatus.CANCELLED);
+        showRepository.save(show);
+        mockMvc.perform(get("/api/public/shows/{showId}/seats", show.getId()))
+                .andExpect(status().isNotFound());
+        show.setStatus(ShowStatus.COMPLETED);
+        showRepository.save(show);
+        mockMvc.perform(get("/api/public/shows/{showId}/seats", show.getId()))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
     void showCreationRejectsUpcomingEndedInactiveAndOverlappingShows() throws Exception {
         String adminToken = tokenFor("admin-show-validation@example.com", Role.ADMIN);
         Hall activeHall = saveHall("Active Hall", Status.ACTIVE);

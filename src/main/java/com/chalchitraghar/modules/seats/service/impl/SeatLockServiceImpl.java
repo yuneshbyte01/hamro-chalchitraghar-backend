@@ -17,6 +17,11 @@ import com.chalchitraghar.modules.bookings.dto.response.SeatHoldResponse;
 import com.chalchitraghar.modules.seats.entity.Seat;
 import com.chalchitraghar.modules.seats.enums.SeatStatus;
 import com.chalchitraghar.modules.seats.repository.SeatRepository;
+import com.chalchitraghar.modules.shows.repository.ShowRepository;
+import com.chalchitraghar.modules.shows.entity.Show;
+import com.chalchitraghar.modules.shows.enums.ShowStatus;
+import com.chalchitraghar.shared.exception.ResourceNotFoundException;
+import com.chalchitraghar.shared.exception.ShowConflictException;
 
 import lombok.RequiredArgsConstructor;
 
@@ -27,9 +32,15 @@ public class SeatLockServiceImpl implements SeatLockService {
 
     private static final int LOCK_DURATION_MINUTES = 10;
     private final SeatRepository seatRepository;
+    private final ShowRepository showRepository;
 
     @Override
     public SeatHoldResponse holdSeats(Long showId, List<Long> seatIds, Long userId) {
+        Show show = showRepository.findById(showId)
+                .orElseThrow(() -> new ResourceNotFoundException("Show", showId));
+        if (show.getStatus() == ShowStatus.CANCELLED || show.getStatus() == ShowStatus.COMPLETED) {
+            throw new ShowConflictException("Seats cannot be held for a cancelled or completed show");
+        }
         if (seatIds == null || seatIds.isEmpty()) {
             throw new InvalidSeatSelectionException("At least one seat must be selected");
         }

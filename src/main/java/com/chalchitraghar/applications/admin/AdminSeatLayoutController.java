@@ -87,4 +87,16 @@ public class AdminSeatLayoutController {
         seatLayoutService.generateSeatTemplates(hallId);
         return ResponseEntity.ok(ApiResponse.success("Seat layout generated successfully"));
     }
+
+    @PostMapping("/{hallId}/seat-layout/regenerate")
+    @Operation(summary = "Safely regenerate a hall seat layout",
+            description = "Recreates the fixed validated layout only for an ACTIVE supported hall that already has a layout and has no shows of any status.")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Seat layout regenerated",
+            content = @Content(schema = @Schema(implementation = AdminSeatLayoutResponse.class)))
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Hall or existing layout not found")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "409", description = "Inactive/unsupported hall or shows exist")
+    public ResponseEntity<ApiResponse<AdminSeatLayoutResponse>> regenerateSeatLayout(@PathVariable Long hallId) {
+        return ResponseEntity.ok(ApiResponse.success(
+                "Seat layout regenerated successfully", seatLayoutService.regenerateSeatTemplates(hallId)));
+    }
 }

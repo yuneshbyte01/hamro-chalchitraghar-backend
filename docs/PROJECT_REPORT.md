@@ -114,7 +114,7 @@ The database is relational and centered around users, movies, halls, shows, seat
 | `User` | Authentication identity and role |
 | `Movie` | Movie metadata and display status |
 | `Hall` | Cinema hall and active/inactive state |
-| `SeatTemplate` | Reusable hall layout |
+| `SeatTemplate` | Immutable reusable hall layout with validated, dependency-safe regeneration |
 | `Show` | Scheduled screening for a movie in a hall |
 | `Seat` | Concrete generated seat for a show |
 | `Booking` | User booking for a show |

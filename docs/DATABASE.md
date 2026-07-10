@@ -321,6 +321,8 @@ Current generated prices:
 
 This category pricing is owned by the shared `SeatPricingPolicy` used during show-seat generation.
 
+Concrete show seats are immutable snapshots of the hall templates at show creation time. Cancelling a show retains these records for history; show status controls public availability. `SeatStatus.CANCELLED` remains defined but is currently unused.
+
 ### `bookings`
 
 Stores a booking record for one user and one show.

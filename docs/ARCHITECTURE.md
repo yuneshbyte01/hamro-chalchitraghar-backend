@@ -140,6 +140,10 @@ Generated templates have a dedicated admin contract. `GET /api/admin/halls/{hall
 
 Fixed layout generation follows a build-validate-persist workflow. The service constructs all templates in rendering order, the `SeatTemplateValidator` verifies row, numbering, generated-code, category, position, uniqueness, and capacity invariants, and the repository persists the validated collection with one `saveAll` call inside the generation transaction. Database unique constraints repeat the critical identity guarantees for both hall templates and show seats. `SeatPricingPolicy` is the authoritative mapping of `PREMIUM` to `750.0` and `PLATINUM` to `500.0`.
 
+Templates are read-only and generation is one-time by default. Explicit regeneration is allowed only when the hall is active, uses the supported capacity, already has templates, and has no shows of any status. Show seats are snapshots: they are bulk-cloned only after template count and integrity validation. A show cannot change halls after seats or bookings exist, and no automatic regeneration occurs.
+
+Show status controls seat visibility rather than mutating every historical seat. Public seat retrieval returns `404` for missing, cancelled, or completed shows and transactionally clears expired locks before mapping public DTOs. Holds and booking creation reject cancelled/completed shows. Cancelling a show retains its seats, and `SeatStatus.CANCELLED` is currently unused.
+
 Public `SeatResponse` remains separate because it represents a concrete, priced, availability-bearing seat for one show rather than a reusable hall template. `GET /api/public/shows/{showId}/seats` intentionally remains non-paginated and position-ordered because auditorium rendering requires the complete seat map in one response.
 
 Admin user lists use `PageResponse<AdminUserSummaryResponse>` and support bounded pagination, allowlisted sorting, case-insensitive search across `name` and `email`, and optional filters for role, auth provider, enabled, locked, and email verification state.

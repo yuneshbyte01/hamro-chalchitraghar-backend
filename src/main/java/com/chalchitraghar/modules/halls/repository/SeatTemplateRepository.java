@@ -1,6 +1,9 @@
 package com.chalchitraghar.modules.halls.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import java.util.List;
 import com.chalchitraghar.modules.halls.entity.SeatTemplate;
 
@@ -24,5 +27,11 @@ public interface SeatTemplateRepository extends JpaRepository<SeatTemplate, Long
      * @return list of seat templates for the hall, ordered by position
      */
     List<SeatTemplate> findByHallIdOrderByPositionIndexAsc(Long hallId);
+
+    long countByHallId(Long hallId);
+
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query("DELETE FROM SeatTemplate template WHERE template.hall.id = :hallId")
+    void deleteByHallId(@Param("hallId") Long hallId);
 
 }

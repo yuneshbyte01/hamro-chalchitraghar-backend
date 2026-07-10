@@ -587,7 +587,9 @@ Errors: `400` missing or invalid query parameters.
 | Authentication | Public |
 | Description | Lists all seats for a show ordered by `positionIndex`. |
 | Request body | None |
-| Validation | `showId` must be numeric |
+| Validation | `showId` must be numeric; show must exist and must not be `CANCELLED` or `COMPLETED` |
+
+This endpoint intentionally returns the complete, non-paginated seat snapshot. Expired locks are normalized to `AVAILABLE` before the response. Internal lock timestamps and ownership are never exposed. Missing, cancelled, and completed shows return `404`.
 
 Response `200`:
 
@@ -1166,6 +1168,12 @@ Response `200`:
 ```
 
 Errors: `404` hall not found, `409` inactive hall, layout already exists, or capacity does not match the fixed 188-seat generator.
+
+#### `POST /api/admin/halls/{hallId}/seat-layout/regenerate`
+
+Regenerates the same fixed validated preset for an `ACTIVE` hall. An existing layout is required, capacity must remain supported, and no show of any status may reference the hall. The operation deletes and recreates templates transactionally and returns `AdminSeatLayoutResponse`.
+
+Errors: `404` hall or existing layout not found; `409` inactive/unsupported hall or any dependent show exists.
 
 ### Shows
 

@@ -11,4 +11,6 @@ public interface SeatLayoutService {
     void generateSeatTemplates(Long hallId);
 
     AdminSeatLayoutResponse getSeatLayout(Long hallId, SeatTemplateSearchCriteria criteria);
+
+    AdminSeatLayoutResponse regenerateSeatTemplates(Long hallId);
 }

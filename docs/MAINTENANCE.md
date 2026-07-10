@@ -167,6 +167,10 @@ Fixed seat generation must retain the build-validate-persist sequence: create th
 
 Keep Flyway and entity uniqueness metadata aligned for template keys `(hall_id, seat_code)`, `(hall_id, row_label, seat_number)`, `(hall_id, position_index)` and their show-seat equivalents. Generated show-seat prices must come from `SeatPricingPolicy`; do not duplicate category prices in services.
 
+Seat templates are immutable API resources: do not add partial update or delete operations. Safe regeneration must remain all-or-nothing and must reject every hall with any show, including historical or cancelled shows. Concrete seats are show snapshots and must never be silently regenerated when a show changes hall; hall changes are rejected once seats or bookings exist.
+
+Show cancellation preserves concrete seats. Public reads, holds, and booking creation use show status as the availability boundary, while expired public locks may be safely normalized transactionally. `SeatStatus.CANCELLED` is intentionally unused.
+
 ## Add a Controller
 
 Controller conventions:

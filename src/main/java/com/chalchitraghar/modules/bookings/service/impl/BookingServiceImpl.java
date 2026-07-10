@@ -30,6 +30,8 @@ import com.chalchitraghar.modules.bookings.repository.BookingRepository;
 import com.chalchitraghar.modules.bookings.repository.BookingSeatRepository;
 import com.chalchitraghar.modules.seats.repository.SeatRepository;
 import com.chalchitraghar.modules.shows.repository.ShowRepository;
+import com.chalchitraghar.modules.shows.enums.ShowStatus;
+import com.chalchitraghar.shared.exception.ShowConflictException;
 
 import lombok.RequiredArgsConstructor;
 
@@ -51,6 +53,9 @@ public class BookingServiceImpl implements BookingService {
         }
         Show show = showRepository.findById(request.getShowId())
                 .orElseThrow(() -> new ResourceNotFoundException("Show", request.getShowId()));
+        if (show.getStatus() == ShowStatus.CANCELLED || show.getStatus() == ShowStatus.COMPLETED) {
+            throw new ShowConflictException("Booking is not allowed for a cancelled or completed show");
+        }
         List<Seat> seats = seatRepository.findByShowIdAndSeatIdsWithLock(
                 request.getShowId(), request.getSeatIds());
         if (seats.size() != request.getSeatIds().size()) {

@@ -24,6 +24,9 @@ import com.chalchitraghar.modules.halls.enums.Status;
 import com.chalchitraghar.modules.halls.repository.HallRepository;
 import com.chalchitraghar.modules.movies.repository.MovieRepository;
 import com.chalchitraghar.modules.shows.repository.ShowRepository;
+import com.chalchitraghar.modules.seats.repository.SeatRepository;
+import com.chalchitraghar.modules.bookings.repository.BookingRepository;
+import com.chalchitraghar.shared.exception.ShowConflictException;
 
 import lombok.RequiredArgsConstructor;
 
@@ -37,6 +40,8 @@ public class ShowServiceImpl implements ShowService {
     private final HallRepository hallRepository;
     private final ShowMapper showMapper;
     private final SeatGenerationService seatGenerationService;
+    private final SeatRepository seatRepository;
+    private final BookingRepository bookingRepository;
 
     private void validateHallAvailability(Long hallId, LocalDate showDate, LocalTime showTime, LocalTime endTime, Long excludeShowId) {
         if (showRepository.existsOverlappingShow(hallId, showDate, showTime, endTime, excludeShowId)) {
@@ -68,6 +73,13 @@ public class ShowServiceImpl implements ShowService {
     @Override
     public ShowResponse updateShow(Long id, ShowRequest dto) {
         Show show = showRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Show", id));
+        boolean hallChanges = !show.getHall().getId().equals(dto.getHallId());
+        if (hallChanges && bookingRepository.existsByShowId(id)) {
+            throw new ShowConflictException("Cannot change show hall after bookings exist");
+        }
+        if (hallChanges && seatRepository.existsByShowId(id)) {
+            throw new ShowConflictException("Cannot change show hall after seats have been generated");
+        }
         Movie movie = movieRepository.findById(dto.getMovieId())
                 .orElseThrow(() -> new ResourceNotFoundException("Movie", dto.getMovieId()));
         if (movie.getStatus() != MovieStatus.NOW_SHOWING) {
