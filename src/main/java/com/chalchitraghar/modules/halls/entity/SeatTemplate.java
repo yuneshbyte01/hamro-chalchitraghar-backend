@@ -7,13 +7,18 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import lombok.AccessLevel;
+import lombok.Setter;
 import jakarta.persistence.Column;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.PrePersist;
@@ -27,12 +32,15 @@ import jakarta.persistence.FetchType;
  * Template defining seat configuration for a hall, used to generate actual seats for shows.
  */
 @Entity
-@Table(name = "seat_templates")
+@Table(name = "seat_templates", uniqueConstraints = {
+        @jakarta.persistence.UniqueConstraint(name = "uk_seat_templates_hall_code", columnNames = {"hall_id", "seat_code"}),
+        @jakarta.persistence.UniqueConstraint(name = "uk_seat_templates_hall_row_number", columnNames = {"hall_id", "row_label", "seat_number"}),
+        @jakarta.persistence.UniqueConstraint(name = "uk_seat_templates_hall_position", columnNames = {"hall_id", "position_index"})
+})
 @Data
 @EqualsAndHashCode(callSuper = true)
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
 public class SeatTemplate extends GenericEntity {
 
     /**
@@ -48,6 +56,8 @@ public class SeatTemplate extends GenericEntity {
      */
     @Column(nullable = false)
     @NotBlank(message = "Row label is required")
+    @Pattern(regexp = "^[A-Z]{1,2}$", message = "Row label must contain one or two uppercase letters A-Z")
+    @Size(max = 2, message = "Row label must not exceed 2 characters")
     private String rowLabel;
 
     /**
@@ -56,6 +66,8 @@ public class SeatTemplate extends GenericEntity {
     @Column(nullable = false)
     @NotNull(message = "Seat number is required")
     @Positive(message = "Seat number must be greater than 0")
+    @Min(value = 1, message = "Seat number must be at least 1")
+    @Max(value = 100, message = "Seat number must not exceed 100")
     private Integer seatNumber;
 
     /**
@@ -63,6 +75,7 @@ public class SeatTemplate extends GenericEntity {
      */
     @Column(nullable = false)
     @NotBlank(message = "Seat code is required")
+    @Setter(AccessLevel.NONE)
     private String seatCode;
 
     /**
@@ -107,5 +120,27 @@ public class SeatTemplate extends GenericEntity {
      */
     private void generateSeatCode() {
         this.seatCode = this.rowLabel + this.seatNumber;
+    }
+
+    /** Assigns the generated code using the same authoritative rule as persistence callbacks. */
+    public void refreshSeatCode() {
+        this.generateSeatCode();
+    }
+
+    /** Creates a generated template and derives its code from row and seat number. */
+    public static SeatTemplate generated(
+            Hall hall,
+            String rowLabel,
+            Integer seatNumber,
+            SeatType seatType,
+            Integer positionIndex) {
+        SeatTemplate template = new SeatTemplate();
+        template.setHall(hall);
+        template.setRowLabel(rowLabel);
+        template.setSeatNumber(seatNumber);
+        template.setSeatType(seatType);
+        template.setPositionIndex(positionIndex);
+        template.refreshSeatCode();
+        return template;
     }
 }

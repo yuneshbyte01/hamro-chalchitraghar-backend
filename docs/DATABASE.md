@@ -271,6 +271,8 @@ The current seat layout generator creates 188 templates per hall:
 
 Seat template generation currently requires the hall to be `ACTIVE`, to have no existing templates, and to have `capacity = 188`.
 
+Template integrity is also protected by unique constraints on `(hall_id, seat_code)`, `(hall_id, row_label, seat_number)`, and `(hall_id, position_index)`. Concrete show seats have corresponding unique constraints on `(show_id, seat_code)`, `(show_id, row_label, seat_number)`, and `(show_id, position_index)`. These constraints prevent duplicate inventory during concurrent or accidental writes.
+
 ### `shows`
 
 Stores scheduled screenings.
@@ -316,6 +318,8 @@ Current generated prices:
 |------------|---------|
 | `PREMIUM`  | `750.0` |
 | `PLATINUM` | `500.0` |
+
+This category pricing is owned by the shared `SeatPricingPolicy` used during show-seat generation.
 
 ### `bookings`
 

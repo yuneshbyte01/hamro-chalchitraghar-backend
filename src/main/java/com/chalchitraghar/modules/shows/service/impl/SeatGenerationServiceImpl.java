@@ -2,7 +2,6 @@ package com.chalchitraghar.modules.shows.service.impl;
 
 import com.chalchitraghar.modules.shows.service.SeatGenerationService;
 import java.util.List;
-import java.util.Map;
 
 import org.springframework.stereotype.Service;
 
@@ -13,6 +12,7 @@ import com.chalchitraghar.modules.shows.entity.Show;
 import com.chalchitraghar.modules.seats.enums.SeatStatus;
 import com.chalchitraghar.modules.seats.enums.SeatType;
 import com.chalchitraghar.modules.seats.repository.SeatRepository;
+import com.chalchitraghar.modules.seats.service.SeatPricingPolicy;
 import com.chalchitraghar.modules.halls.repository.SeatTemplateRepository;
 import com.chalchitraghar.modules.shows.repository.ShowRepository;
 
@@ -23,12 +23,10 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class SeatGenerationServiceImpl implements SeatGenerationService {
 
-    private static final double PRICE_PLATINUM = 500.0;
-    private static final double PRICE_PREMIUM = 750.0;
-
     private final SeatRepository seatRepository;
     private final SeatTemplateRepository seatTemplateRepository;
     private final ShowRepository showRepository;
+    private final SeatPricingPolicy seatPricingPolicy;
 
     @Override
     @Transactional
@@ -43,9 +41,8 @@ public class SeatGenerationServiceImpl implements SeatGenerationService {
         if (templates.isEmpty()) {
             throw new ResourceNotFoundException("Seat template", show.getHall().getId());
         }
-        Map<SeatType, Double> priceMap = Map.of(SeatType.PLATINUM, PRICE_PLATINUM, SeatType.PREMIUM, PRICE_PREMIUM);
         for (SeatTemplate template : templates) {
-            Double seatPrice = priceMap.get(template.getSeatType());
+            Double seatPrice = seatPricingPolicy.priceFor(template.getSeatType());
             Seat seat = Seat.builder()
                     .show(show)
                     .rowLabel(template.getRowLabel())

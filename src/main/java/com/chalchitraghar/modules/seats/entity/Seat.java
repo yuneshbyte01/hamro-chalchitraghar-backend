@@ -30,7 +30,11 @@ import lombok.NoArgsConstructor;
  * Represents a seat within a show, tracking its availability and booking status.
 */
 @Entity
-@Table(name = "seats")
+@Table(name = "seats", uniqueConstraints = {
+        @jakarta.persistence.UniqueConstraint(name = "uk_seats_show_code", columnNames = {"show_id", "seat_code"}),
+        @jakarta.persistence.UniqueConstraint(name = "uk_seats_show_row_number", columnNames = {"show_id", "row_label", "seat_number"}),
+        @jakarta.persistence.UniqueConstraint(name = "uk_seats_show_position", columnNames = {"show_id", "position_index"})
+})
 @Data
 @EqualsAndHashCode(callSuper = true)
 @NoArgsConstructor

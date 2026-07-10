@@ -18,5 +18,6 @@ public class AdminSeatLayoutResponse {
     private Integer totalSeats;
     private Integer premiumSeats;
     private Integer platinumSeats;
+    private List<String> rows;
     private List<AdminSeatTemplateSummaryResponse> templates;
 }

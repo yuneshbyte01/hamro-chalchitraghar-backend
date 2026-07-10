@@ -1096,9 +1096,21 @@ Errors: `404` hall not found, `409` future active shows exist.
 | Field | Value |
 | --- | --- |
 | Authentication | ADMIN |
-| Description | Returns the complete generated seat-template layout ordered by `positionIndex`. |
+| Description | Returns generated seat templates with optional search, filtering, and sorting. Statistics describe the returned templates. |
 | Request body | None |
 | Validation | `hallId` must be numeric; hall and generated layout must exist |
+
+Optional query parameters:
+
+| Parameter | Behavior |
+| --- | --- |
+| `search` | Case-insensitive partial match against `seatCode` or `rowLabel` |
+| `seatType` | Exact enum filter: `PREMIUM` or `PLATINUM` |
+| `row` | Case-insensitive exact row-label filter |
+| `sortBy` | `positionIndex`, `rowLabel`, `seatNumber`, `seatCode`, or `seatType`; defaults to `positionIndex` |
+| `sortDir` | `asc` or `desc`; defaults to `asc` |
+
+Search and filters can be combined. The `totalSeats`, category counts, `rows`, and `templates` fields all describe the filtered result.
 
 Response `200`:
 
@@ -1113,6 +1125,7 @@ Response `200`:
     "totalSeats": 188,
     "premiumSeats": 8,
     "platinumSeats": 180,
+    "rows": ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"],
     "templates": [
       {
         "id": 1,
@@ -1128,7 +1141,7 @@ Response `200`:
 }
 ```
 
-Errors: `404` hall not found or hall has no generated seat layout.
+Errors: `400` invalid `seatType`, `sortBy`, or `sortDir`; `404` hall not found or hall has no generated seat layout.
 
 #### `POST /api/admin/halls/{hallId}/seat-layout`
 
@@ -1138,6 +1151,8 @@ Errors: `404` hall not found or hall has no generated seat layout.
 | Description | Generates seat templates for an active hall. The current generator creates 188 templates. |
 | Request body | None |
 | Validation | `hallId` numeric; hall must be `ACTIVE`; layout must not already exist; hall capacity must be `188` |
+
+Before persistence, the complete preset is validated: rows are one or two uppercase letters `A-Z`; seat numbers are `1` to `100`, unique and sequential within each row; `seatCode` equals `rowLabel + seatNumber`; positions start at `0` and are unique and gapless; categories are `PREMIUM` or `PLATINUM`; and template count equals hall capacity. A validation or capacity mismatch returns `409` without partial generation.
 
 Response `200`:
 

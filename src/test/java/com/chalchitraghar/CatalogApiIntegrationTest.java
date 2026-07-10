@@ -1366,11 +1366,116 @@ class CatalogApiIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.data.totalSeats").value(188))
                 .andExpect(jsonPath("$.data.premiumSeats").value(8))
                 .andExpect(jsonPath("$.data.platinumSeats").value(180))
+                .andExpect(jsonPath("$.data.rows.length()").value(10))
+                .andExpect(jsonPath("$.data.rows[0]").value("A"))
+                .andExpect(jsonPath("$.data.rows[9]").value("J"))
                 .andExpect(jsonPath("$.data.templates.length()").value(188))
                 .andExpect(jsonPath("$.data.templates[0].seatCode").value("A1"))
                 .andExpect(jsonPath("$.data.templates[0].positionIndex").value(0))
                 .andExpect(jsonPath("$.data.templates[187].seatCode").value("J20"))
                 .andExpect(jsonPath("$.data.templates[187].positionIndex").value(187));
+    }
+
+    @Test
+    void adminCanSearchSeatTemplatesByCodeAndRow() throws Exception {
+        String adminToken = tokenFor("admin-seat-search@example.com", Role.ADMIN);
+        Hall hall = saveHall("Searchable Layout Hall", Status.ACTIVE);
+        postSeatLayout(hall.getId(), adminToken);
+
+        mockMvc.perform(get("/api/admin/halls/{hallId}/seat-layout", hall.getId())
+                        .header("Authorization", bearer(adminToken))
+                        .param("search", "a1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.totalSeats").value(1))
+                .andExpect(jsonPath("$.data.templates[0].seatCode").value("A1"));
+
+        mockMvc.perform(get("/api/admin/halls/{hallId}/seat-layout", hall.getId())
+                        .header("Authorization", bearer(adminToken))
+                        .param("search", "b"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.totalSeats").value(20))
+                .andExpect(jsonPath("$.data.rows[0]").value("B"));
+    }
+
+    @Test
+    void adminCanFilterSeatTemplatesByTypeRowAndCombinedCriteria() throws Exception {
+        String adminToken = tokenFor("admin-seat-filter@example.com", Role.ADMIN);
+        Hall hall = saveHall("Filterable Layout Hall", Status.ACTIVE);
+        postSeatLayout(hall.getId(), adminToken);
+
+        mockMvc.perform(get("/api/admin/halls/{hallId}/seat-layout", hall.getId())
+                        .header("Authorization", bearer(adminToken))
+                        .param("seatType", "PREMIUM"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.totalSeats").value(8))
+                .andExpect(jsonPath("$.data.premiumSeats").value(8))
+                .andExpect(jsonPath("$.data.platinumSeats").value(0));
+
+        mockMvc.perform(get("/api/admin/halls/{hallId}/seat-layout", hall.getId())
+                        .header("Authorization", bearer(adminToken))
+                        .param("seatType", "PLATINUM"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.totalSeats").value(180))
+                .andExpect(jsonPath("$.data.premiumSeats").value(0))
+                .andExpect(jsonPath("$.data.platinumSeats").value(180));
+
+        mockMvc.perform(get("/api/admin/halls/{hallId}/seat-layout", hall.getId())
+                        .header("Authorization", bearer(adminToken))
+                        .param("row", "b"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.totalSeats").value(20))
+                .andExpect(jsonPath("$.data.rows.length()").value(1));
+
+        mockMvc.perform(get("/api/admin/halls/{hallId}/seat-layout", hall.getId())
+                        .header("Authorization", bearer(adminToken))
+                        .param("seatType", "PREMIUM")
+                        .param("row", "A"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.totalSeats").value(8))
+                .andExpect(jsonPath("$.data.templates[0].rowLabel").value("A"));
+    }
+
+    @Test
+    void adminCanSortTemplatesAndInvalidBrowseParametersReturnBadRequest() throws Exception {
+        String adminToken = tokenFor("admin-seat-sort@example.com", Role.ADMIN);
+        Hall hall = saveHall("Sortable Layout Hall", Status.ACTIVE);
+        postSeatLayout(hall.getId(), adminToken);
+
+        mockMvc.perform(get("/api/admin/halls/{hallId}/seat-layout", hall.getId())
+                        .header("Authorization", bearer(adminToken))
+                        .param("sortBy", "positionIndex")
+                        .param("sortDir", "desc"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.templates[0].positionIndex").value(187))
+                .andExpect(jsonPath("$.data.templates[187].positionIndex").value(0));
+
+        mockMvc.perform(get("/api/admin/halls/{hallId}/seat-layout", hall.getId())
+                        .header("Authorization", bearer(adminToken)).param("seatType", "VIP"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Invalid seatType. Allowed values: PREMIUM, PLATINUM"));
+        mockMvc.perform(get("/api/admin/halls/{hallId}/seat-layout", hall.getId())
+                        .header("Authorization", bearer(adminToken)).param("sortBy", "price"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Invalid sortBy. Allowed values: positionIndex, rowLabel, seatNumber, seatCode, seatType"));
+        mockMvc.perform(get("/api/admin/halls/{hallId}/seat-layout", hall.getId())
+                        .header("Authorization", bearer(adminToken)).param("sortDir", "sideways"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Invalid sortDir. Allowed values: asc, desc"));
+    }
+
+    @Test
+    void publicShowSeatsRemainCompleteAndPositionOrdered() throws Exception {
+        String adminToken = tokenFor("admin-public-seat-map@example.com", Role.ADMIN);
+        Movie movie = saveMovie("Public Seat Map Movie", MovieStatus.NOW_SHOWING);
+        Hall hall = saveHall("Public Seat Map Hall", Status.ACTIVE);
+        Show show = saveShowWithSeats(movie, hall, adminToken);
+
+        mockMvc.perform(get("/api/public/shows/{showId}/seats", show.getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("Seats fetched successfully"))
+                .andExpect(jsonPath("$.data.length()").value(188))
+                .andExpect(jsonPath("$.data[0].positionIndex").value(0))
+                .andExpect(jsonPath("$.data[187].positionIndex").value(187));
     }
 
     @Test
@@ -1423,6 +1528,21 @@ class CatalogApiIntegrationTest extends AbstractIntegrationTest {
 
         Long showId = showRepository.findAll().get(0).getId();
         org.assertj.core.api.Assertions.assertThat(seatsForShow(showId)).hasSize(188);
+    }
+
+    @Test
+    void generatedTemplatePresetHasExpectedBoundsAndSequentialPositions() throws Exception {
+        String adminToken = tokenFor("admin-template-integrity@example.com", Role.ADMIN);
+        Hall hall = saveHall("Template Integrity Hall", Status.ACTIVE);
+        postSeatLayout(hall.getId(), adminToken);
+
+        var templates = seatTemplateRepository.findByHallIdOrderByPositionIndexAsc(hall.getId());
+        org.assertj.core.api.Assertions.assertThat(templates).hasSize(hall.getCapacity());
+        org.assertj.core.api.Assertions.assertThat(templates.getFirst().getSeatCode()).isEqualTo("A1");
+        org.assertj.core.api.Assertions.assertThat(templates.getLast().getSeatCode()).isEqualTo("J20");
+        for (int index = 0; index < templates.size(); index++) {
+            org.assertj.core.api.Assertions.assertThat(templates.get(index).getPositionIndex()).isEqualTo(index);
+        }
     }
 
     @Test

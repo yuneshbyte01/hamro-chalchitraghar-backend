@@ -157,6 +157,16 @@ List<Seat> findByShowIdAndSeatIdsWithLock(Long showId, List<Long> seatIds);
 
 Services should own business rules. Controllers should remain thin.
 
+### Seat-template browsing
+
+Admin template inspection uses `GET /api/admin/halls/{hallId}/seat-layout`. Keep its search, `seatType` and row filters, allowlisted sorting, and validation in `SeatLayoutService`; the controller should only collect query parameters. `AdminSeatLayoutResponse` statistics (`totalSeats`, category counts, and `rows`) describe the filtered template result.
+
+Do not apply this admin browsing model to `GET /api/public/shows/{showId}/seats`. That endpoint returns concrete `SeatResponse` records and is intentionally non-paginated and ordered by `positionIndex`, allowing the frontend to render the complete auditorium map.
+
+Fixed seat generation must retain the build-validate-persist sequence: create the full collection, assign codes through `SeatTemplate.refreshSeatCode`, validate it with `SeatTemplateValidator`, then call `saveAll` within the transaction. Never persist templates incrementally. Validation requires uppercase one- or two-letter rows, seat numbers from `1` to `100` that are sequential per row, codes equal to row plus number, and zero-based gapless positions. The generated count must match hall capacity.
+
+Keep Flyway and entity uniqueness metadata aligned for template keys `(hall_id, seat_code)`, `(hall_id, row_label, seat_number)`, `(hall_id, position_index)` and their show-seat equivalents. Generated show-seat prices must come from `SeatPricingPolicy`; do not duplicate category prices in services.
+
 ## Add a Controller
 
 Controller conventions:

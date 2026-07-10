@@ -40,6 +40,11 @@ public class SeatTemplateMapper {
         int platinumSeats = (int) templates.stream()
                 .filter(template -> template.getSeatType() == SeatType.PLATINUM)
                 .count();
+        List<String> rows = templates.stream()
+                .map(SeatTemplate::getRowLabel)
+                .distinct()
+                .sorted(String.CASE_INSENSITIVE_ORDER)
+                .toList();
         return new AdminSeatLayoutResponse(
                 hall.getId(),
                 hall.getName(),
@@ -47,6 +52,7 @@ public class SeatTemplateMapper {
                 templates.size(),
                 premiumSeats,
                 platinumSeats,
+                rows,
                 summaries);
     }
 }
