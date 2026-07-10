@@ -102,6 +102,7 @@ Important DTOs:
 | `MovieResponse` | Legacy nested movie response used inside `ShowResponse` |
 | `PublicHallSummaryResponse`, `PublicHallDetailResponse` | Public hall browsing responses |
 | `AdminHallSummaryResponse`, `AdminHallDetailResponse` | Admin hall management responses |
+| `AdminSeatTemplateSummaryResponse`, `AdminSeatLayoutResponse` | Admin generated seat-template layout responses |
 | `ShowResponse`, `SeatResponse`, `BookingResponse` | API responses |
 | `UserResponse` | Authenticated customer profile response |
 | `AdminUserSummaryResponse`, `AdminUserDetailResponse` | Admin user lookup responses |
@@ -135,6 +136,8 @@ Hall create and update rules live in `HallService`. The service trims `name` and
 
 Hall inactivation is safe by default. Admin delete remains a soft delete that sets `status=INACTIVE`, and update can also inactivate a hall, but both paths are blocked when future active `SCHEDULED` or `RUNNING` shows still reference the hall. Once seat templates exist, `capacity` and `layoutRef` are immutable so generated show seats remain consistent with the original layout; `name` and `status` can still change subject to lifecycle and dependency rules. Seat layout generation stays fixed at 188 templates and requires an existing `ACTIVE` hall with `capacity=188` and no previous templates.
 
+Generated templates have a dedicated admin contract. `GET /api/admin/halls/{hallId}/seat-layout` returns `AdminSeatLayoutResponse`, including hall metadata, category counts, and position-ordered `AdminSeatTemplateSummaryResponse` entries. A missing hall or a hall without generated templates returns `404`. Public `SeatResponse` remains separate because it represents a concrete, priced, availability-bearing seat for one show rather than a reusable hall template.
+
 Admin user lists use `PageResponse<AdminUserSummaryResponse>` and support bounded pagination, allowlisted sorting, case-insensitive search across `name` and `email`, and optional filters for role, auth provider, enabled, locked, and email verification state.
 
 Admin user lifecycle and account state management is implemented in `UserService` and exposed through thin `AdminUserController` endpoints:
@@ -156,6 +159,7 @@ Mappers are Spring components and convert between entities and DTOs:
 | --- | --- |
 | `MovieMapper` | Movie request mapping plus public/admin summary and detail response mapping |
 | `HallMapper` | Hall request mapping plus public/admin summary and detail response mapping |
+| `SeatTemplateMapper` | Seat-template summaries and complete admin hall-layout responses |
 | `ShowMapper` | Show mapping with nested movie and hall responses |
 | `SeatMapper` | Seat entity to public seat response |
 | `BookingMapper` | Booking response with selected seats and total price |

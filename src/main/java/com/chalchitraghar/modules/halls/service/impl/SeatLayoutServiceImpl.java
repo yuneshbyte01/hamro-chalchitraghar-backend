@@ -2,11 +2,15 @@ package com.chalchitraghar.modules.halls.service.impl;
 
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
+import com.chalchitraghar.modules.halls.dto.response.AdminSeatLayoutResponse;
 import com.chalchitraghar.modules.halls.entity.Hall;
 import com.chalchitraghar.modules.halls.entity.SeatTemplate;
 import com.chalchitraghar.modules.halls.enums.Status;
 import com.chalchitraghar.modules.halls.repository.HallRepository;
 import com.chalchitraghar.modules.halls.repository.SeatTemplateRepository;
+import com.chalchitraghar.modules.halls.mapper.SeatTemplateMapper;
 import com.chalchitraghar.modules.halls.service.SeatLayoutService;
 import com.chalchitraghar.modules.seats.enums.SeatType;
 import com.chalchitraghar.shared.exception.HallConflictException;
@@ -23,6 +27,19 @@ public class SeatLayoutServiceImpl implements SeatLayoutService {
 
     private final SeatTemplateRepository seatTemplateRepository;
     private final HallRepository hallRepository;
+    private final SeatTemplateMapper seatTemplateMapper;
+
+    @Override
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
+    public AdminSeatLayoutResponse getSeatLayout(Long hallId) {
+        Hall hall = hallRepository.findById(hallId)
+                .orElseThrow(() -> new ResourceNotFoundException("Hall", hallId));
+        List<SeatTemplate> templates = seatTemplateRepository.findByHallIdOrderByPositionIndexAsc(hallId);
+        if (templates.isEmpty()) {
+            throw new ResourceNotFoundException("Seat layout", hallId);
+        }
+        return seatTemplateMapper.toLayoutResponse(hall, templates);
+    }
 
     @Override
     @Transactional

@@ -1091,6 +1091,45 @@ Dependency rule: delete is a soft inactivation and is rejected when the hall has
 
 Errors: `404` hall not found, `409` future active shows exist.
 
+#### `GET /api/admin/halls/{hallId}/seat-layout`
+
+| Field | Value |
+| --- | --- |
+| Authentication | ADMIN |
+| Description | Returns the complete generated seat-template layout ordered by `positionIndex`. |
+| Request body | None |
+| Validation | `hallId` must be numeric; hall and generated layout must exist |
+
+Response `200`:
+
+```json
+{
+  "success": true,
+  "message": "Seat layout fetched successfully",
+  "data": {
+    "hallId": 1,
+    "hallName": "Hall A",
+    "capacity": 188,
+    "totalSeats": 188,
+    "premiumSeats": 8,
+    "platinumSeats": 180,
+    "templates": [
+      {
+        "id": 1,
+        "rowLabel": "A",
+        "seatNumber": 1,
+        "seatCode": "A1",
+        "seatType": "PREMIUM",
+        "positionIndex": 0
+      }
+    ]
+  },
+  "errors": []
+}
+```
+
+Errors: `404` hall not found or hall has no generated seat layout.
+
 #### `POST /api/admin/halls/{hallId}/seat-layout`
 
 | Field | Value |

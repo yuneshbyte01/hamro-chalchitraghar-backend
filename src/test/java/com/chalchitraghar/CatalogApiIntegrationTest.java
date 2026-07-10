@@ -920,6 +920,7 @@ class CatalogApiIntegrationTest extends AbstractIntegrationTest {
         Hall alpha = saveHall("Alpha Admin Hall", Status.ACTIVE);
         Thread.sleep(5);
         Hall beta = saveHall("Beta Admin Hall", Status.ACTIVE);
+        Thread.sleep(5);
         Hall inactive = hallRepository.save(Hall.builder()
                 .name("Inactive Luxe Hall")
                 .capacity(188)
@@ -1347,6 +1348,61 @@ class CatalogApiIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.message").value("Seat layout generated successfully"))
                 .andExpect(jsonPath("$.errors").isArray());
+    }
+
+    @Test
+    void adminCanRetrieveGeneratedSeatLayout() throws Exception {
+        String adminToken = tokenFor("admin-seat-layout-read@example.com", Role.ADMIN);
+        Hall hall = saveHall("Readable Layout Hall", Status.ACTIVE);
+        postSeatLayout(hall.getId(), adminToken);
+
+        mockMvc.perform(get("/api/admin/halls/{hallId}/seat-layout", hall.getId())
+                        .header("Authorization", bearer(adminToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("Seat layout fetched successfully"))
+                .andExpect(jsonPath("$.data.hallId").value(hall.getId()))
+                .andExpect(jsonPath("$.data.hallName").value("Readable Layout Hall"))
+                .andExpect(jsonPath("$.data.capacity").value(188))
+                .andExpect(jsonPath("$.data.totalSeats").value(188))
+                .andExpect(jsonPath("$.data.premiumSeats").value(8))
+                .andExpect(jsonPath("$.data.platinumSeats").value(180))
+                .andExpect(jsonPath("$.data.templates.length()").value(188))
+                .andExpect(jsonPath("$.data.templates[0].seatCode").value("A1"))
+                .andExpect(jsonPath("$.data.templates[0].positionIndex").value(0))
+                .andExpect(jsonPath("$.data.templates[187].seatCode").value("J20"))
+                .andExpect(jsonPath("$.data.templates[187].positionIndex").value(187));
+    }
+
+    @Test
+    void seatLayoutRetrievalReturnsNotFoundForHallWithoutLayoutAndMissingHall() throws Exception {
+        String adminToken = tokenFor("admin-seat-layout-missing@example.com", Role.ADMIN);
+        Hall hall = saveHall("Hall Without Layout", Status.ACTIVE);
+
+        mockMvc.perform(get("/api/admin/halls/{hallId}/seat-layout", hall.getId())
+                        .header("Authorization", bearer(adminToken)))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message").value("Seat layout not found with id: " + hall.getId()));
+
+        mockMvc.perform(get("/api/admin/halls/{hallId}/seat-layout", Long.MAX_VALUE)
+                        .header("Authorization", bearer(adminToken)))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message").value("Hall not found with id: " + Long.MAX_VALUE));
+    }
+
+    @Test
+    void seatLayoutRetrievalRequiresAdminAuthentication() throws Exception {
+        Hall hall = saveHall("Protected Layout Hall", Status.ACTIVE);
+        String customerToken = tokenFor("seat-layout-customer@example.com", Role.CUSTOMER);
+        String staffToken = tokenFor("seat-layout-staff@example.com", Role.STAFF);
+
+        mockMvc.perform(get("/api/admin/halls/{hallId}/seat-layout", hall.getId())
+                        .header("Authorization", bearer(customerToken)))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(get("/api/admin/halls/{hallId}/seat-layout", hall.getId())
+                        .header("Authorization", bearer(staffToken)))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(get("/api/admin/halls/{hallId}/seat-layout", hall.getId()))
+                .andExpect(status().isUnauthorized());
     }
 
     @Test
