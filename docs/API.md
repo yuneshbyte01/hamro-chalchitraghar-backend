@@ -837,7 +837,7 @@ Errors: `400` invalid booking state, `403` booking does not belong to user, `404
 | Request body | None |
 | Validation | Valid bearer token |
 
-Response `200`: list of `CustomerBookingSummaryResponse` records. Customer identity and audit timestamps are not exposed.
+Response `200`: `PageResponse<CustomerBookingSummaryResponse>`. Query parameters are `page` (default `0`), `size` (default `20`), `sortBy` (default `bookingTime`), `sortDir` (default `desc`), `status`, `showDateFrom`, and `showDateTo`. Only the authenticated customer's bookings are queried; customer identity and audit timestamps are not exposed.
 
 ### `GET /api/customer/bookings/{bookingId}`
 
@@ -878,9 +878,17 @@ Errors: `400` invalid booking state or show already started, `403` owner mismatc
 
 Response `200`: `StaffBookingDetailResponse`, including safe customer identity and booking audit timestamps.
 
+### `GET /api/staff/bookings`
+
+Requires `STAFF` or `ADMIN`. Returns `PageResponse<StaffBookingSummaryResponse>`. Supports `page`, `size`, `sortBy`, `sortDir`, `search`, `status`, `showId`, `movieId`, `hallId`, `customerId`, `showDateFrom`, `showDateTo`, `bookingTimeFrom`, and `bookingTimeTo`. Search is case-insensitive across customer name/email, movie title, and hall name.
+
 ### `GET /api/admin/bookings/{bookingId}`
 
 Requires authentication and the `ADMIN` role. Returns any booking as `AdminBookingDetailResponse`, including safe customer identity and booking audit timestamps. Customer and staff callers receive `403`; unauthenticated callers receive `401`.
+
+### `GET /api/admin/bookings`
+
+Requires `ADMIN`. Returns `PageResponse<AdminBookingSummaryResponse>` and supports the same filters and safe search fields as the staff list. Allowed booking list sort fields are `id`, `bookingTime`, `status`, `createdAt`, and `updatedAt`; directions are `asc` and `desc`. Invalid statuses, formats, ranges, or sort values return `400`.
 
 Errors: `401` unauthenticated, `403` role not allowed, `404` booking not found.
 
@@ -1579,6 +1587,8 @@ User response separation:
 | `CustomerBookingDetailResponse` | Summary fields plus `startTime`, `endTime`, and `selectedSeats`; excludes customer identity and audit fields |
 | `StaffBookingDetailResponse` | Booking detail plus `customerId`, `customerName`, `customerEmail`, `createdAt`, and `updatedAt` |
 | `AdminBookingDetailResponse` | Separate admin contract containing the same safe operational fields as the staff detail contract |
+| `StaffBookingSummaryResponse` | Operational booking/customer/show fields plus ordered `selectedSeatCodes`, `totalPrice`, and `bookingTime` |
+| `AdminBookingSummaryResponse` | Separate admin summary contract with the same current safe operational fields |
 | `UserResponse` | `id`, `name`, `email`, `role` |
 | `AdminUserSummaryResponse` | `id`, `name`, `email`, `role`, `enabled`, `locked` |
 | `AdminUserDetailResponse` | `id`, `name`, `email`, `role`, `authProvider`, `emailVerified`, `enabled`, `locked`, `failedLoginAttempts`, `lockedUntil`, `lastLoginAt`, `passwordChangedAt`, `createdAt`, `updatedAt` |

@@ -40,6 +40,10 @@ public interface BookingSeatRepository extends JpaRepository<BookingSeat, Long> 
      */
     @Query("SELECT bs FROM BookingSeat bs WHERE bs.booking.id = :bookingId")
     List<BookingSeat> findByBookingId(@Param("bookingId") Long bookingId);
+
+    @Query("SELECT bs FROM BookingSeat bs JOIN FETCH bs.seat s "
+            + "WHERE bs.booking.id IN :bookingIds ORDER BY bs.booking.id, s.positionIndex")
+    List<BookingSeat> findByBookingIdsWithSeats(@Param("bookingIds") List<Long> bookingIds);
     
     /**
      * Finds all BookingSeat records for seats that are part of CONFIRMED bookings.

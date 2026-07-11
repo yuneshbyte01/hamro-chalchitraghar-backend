@@ -4,18 +4,28 @@ import com.chalchitraghar.modules.bookings.service.BookingService;
 import java.time.LocalDateTime;
 import java.time.Clock;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.chalchitraghar.modules.bookings.dto.request.BookingRequest;
+import com.chalchitraghar.modules.bookings.dto.request.BookingSearchCriteria;
 import com.chalchitraghar.modules.bookings.dto.response.AdminBookingDetailResponse;
+import com.chalchitraghar.modules.bookings.dto.response.AdminBookingSummaryResponse;
 import com.chalchitraghar.modules.bookings.dto.response.CustomerBookingDetailResponse;
 import com.chalchitraghar.modules.bookings.dto.response.CustomerBookingSummaryResponse;
 import com.chalchitraghar.modules.bookings.dto.response.StaffBookingDetailResponse;
+import com.chalchitraghar.modules.bookings.dto.response.StaffBookingSummaryResponse;
 import com.chalchitraghar.shared.exception.InvalidBookingStateException;
 import com.chalchitraghar.shared.exception.InvalidSeatSelectionException;
 import com.chalchitraghar.shared.exception.ResourceNotFoundException;
@@ -31,16 +41,21 @@ import com.chalchitraghar.modules.bookings.enums.BookingStatus;
 import com.chalchitraghar.modules.seats.enums.SeatStatus;
 import com.chalchitraghar.modules.bookings.repository.BookingRepository;
 import com.chalchitraghar.modules.bookings.repository.BookingSeatRepository;
+import com.chalchitraghar.modules.bookings.specification.BookingSpecification;
 import com.chalchitraghar.modules.seats.repository.SeatRepository;
 import com.chalchitraghar.modules.shows.repository.ShowRepository;
 import com.chalchitraghar.shared.exception.ShowConflictException;
 import com.chalchitraghar.modules.shows.service.ShowLifecycleService;
+import com.chalchitraghar.shared.response.PageResponse;
 
 import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
 public class BookingServiceImpl implements BookingService {
+
+    private static final Set<String> BOOKING_SORT_FIELDS = Set.of(
+            "id", "bookingTime", "status", "createdAt", "updatedAt");
 
     private final BookingRepository bookingRepository;
     private final BookingSeatRepository bookingSeatRepository;
@@ -153,14 +168,10 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<CustomerBookingSummaryResponse> getCustomerBookings(User user) {
-        return bookingRepository.findByUserIdOrderByBookingTimeDesc(user.getId()).stream()
-                .map(booking -> {
-                    List<BookingSeat> bookingSeats = bookingSeatRepository.findByBookingId(booking.getId());
-                    List<Seat> seats = bookingSeats.stream().map(BookingSeat::getSeat).collect(Collectors.toList());
-                    return bookingMapper.toCustomerSummary(booking, seats);
-                })
-                .collect(Collectors.toList());
+    public PageResponse<CustomerBookingSummaryResponse> getCustomerBookings(
+            User user, BookingSearchCriteria criteria, int page, int size, String sortBy, String sortDir) {
+        return searchBookings(criteria, user.getId(), page, size, sortBy, sortDir,
+                bookingMapper::toCustomerSummary);
     }
 
     @Override
@@ -226,9 +237,77 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     @Transactional(readOnly = true)
+    public PageResponse<StaffBookingSummaryResponse> getStaffBookings(
+            BookingSearchCriteria criteria, int page, int size, String sortBy, String sortDir) {
+        return searchBookings(criteria, null, page, size, sortBy, sortDir, bookingMapper::toStaffSummary);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public AdminBookingDetailResponse getAdminBookingById(Long bookingId) {
         Booking booking = findBooking(bookingId);
         return bookingMapper.toAdminDetail(booking, seatsFor(bookingId));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponse<AdminBookingSummaryResponse> getAdminBookings(
+            BookingSearchCriteria criteria, int page, int size, String sortBy, String sortDir) {
+        return searchBookings(criteria, null, page, size, sortBy, sortDir, bookingMapper::toAdminSummary);
+    }
+
+    private <T> PageResponse<T> searchBookings(
+            BookingSearchCriteria criteria,
+            Long ownerId,
+            int page,
+            int size,
+            String sortBy,
+            String sortDir,
+            BiFunction<Booking, List<Seat>, T> mapper) {
+        validateSearch(criteria, page, size, sortBy, sortDir);
+        Sort.Direction direction = "asc".equalsIgnoreCase(sortDir) ? Sort.Direction.ASC : Sort.Direction.DESC;
+        BookingStatus status = parseStatus(criteria.status());
+        Page<Booking> bookings = bookingRepository.findAll(
+                BookingSpecification.search(criteria, status, ownerId),
+                PageRequest.of(page, size, Sort.by(direction, sortBy)));
+        Map<Long, List<Seat>> seatsByBooking = bookingSeatRepository.findByBookingIdsWithSeats(
+                        bookings.getContent().stream().map(Booking::getId).toList()).stream()
+                .collect(Collectors.groupingBy(bs -> bs.getBooking().getId(),
+                        Collectors.mapping(BookingSeat::getSeat, Collectors.toList())));
+        List<T> content = bookings.getContent().stream()
+                .map(booking -> mapper.apply(booking, seatsByBooking.getOrDefault(booking.getId(), List.of())))
+                .toList();
+        return PageResponse.from(bookings, content);
+    }
+
+    private void validateSearch(
+            BookingSearchCriteria criteria, int page, int size, String sortBy, String sortDir) {
+        if (page < 0) throw new IllegalArgumentException("Page must be zero or greater");
+        if (size < 1) throw new IllegalArgumentException("Size must be at least 1");
+        if (!BOOKING_SORT_FIELDS.contains(sortBy)) {
+            throw new IllegalArgumentException("Invalid sortBy. Allowed values: "
+                    + String.join(", ", BOOKING_SORT_FIELDS));
+        }
+        if (!"asc".equalsIgnoreCase(sortDir) && !"desc".equalsIgnoreCase(sortDir)) {
+            throw new IllegalArgumentException("Invalid sortDir. Allowed values: asc, desc");
+        }
+        if (criteria.showDateFrom() != null && criteria.showDateTo() != null
+                && criteria.showDateFrom().isAfter(criteria.showDateTo())) {
+            throw new IllegalArgumentException("showDateFrom must not be after showDateTo");
+        }
+        if (criteria.bookingTimeFrom() != null && criteria.bookingTimeTo() != null
+                && criteria.bookingTimeFrom().isAfter(criteria.bookingTimeTo())) {
+            throw new IllegalArgumentException("bookingTimeFrom must not be after bookingTimeTo");
+        }
+    }
+
+    private BookingStatus parseStatus(String value) {
+        if (value == null || value.isBlank()) return null;
+        return Arrays.stream(BookingStatus.values())
+                .filter(status -> status.name().equalsIgnoreCase(value.trim()))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("Invalid status. Allowed values: "
+                        + String.join(", ", Arrays.stream(BookingStatus.values()).map(Enum::name).toList())));
     }
 
     private Booking findBooking(Long bookingId) {

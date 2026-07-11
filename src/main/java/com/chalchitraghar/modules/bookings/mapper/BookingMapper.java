@@ -7,9 +7,11 @@ import java.util.List;
 import org.springframework.stereotype.Component;
 
 import com.chalchitraghar.modules.bookings.dto.response.AdminBookingDetailResponse;
+import com.chalchitraghar.modules.bookings.dto.response.AdminBookingSummaryResponse;
 import com.chalchitraghar.modules.bookings.dto.response.CustomerBookingDetailResponse;
 import com.chalchitraghar.modules.bookings.dto.response.CustomerBookingSummaryResponse;
 import com.chalchitraghar.modules.bookings.dto.response.StaffBookingDetailResponse;
+import com.chalchitraghar.modules.bookings.dto.response.StaffBookingSummaryResponse;
 import com.chalchitraghar.modules.bookings.entity.Booking;
 import com.chalchitraghar.modules.seats.dto.response.SeatResponse;
 import com.chalchitraghar.modules.seats.entity.Seat;
@@ -54,6 +56,15 @@ public class BookingMapper {
                 totalPrice(orderedSeats), booking.getBookingTime(), booking.getCreatedAt(), booking.getUpdatedAt());
     }
 
+    public StaffBookingSummaryResponse toStaffSummary(Booking booking, List<Seat> seats) {
+        List<Seat> orderedSeats = orderedSeats(seats);
+        return new StaffBookingSummaryResponse(
+                booking.getId(), booking.getStatus(), booking.getUser().getId(), booking.getUser().getName(),
+                booking.getUser().getEmail(), booking.getShow().getId(), booking.getShow().getMovie().getTitle(),
+                booking.getShow().getHall().getName(), showDateTime(booking),
+                orderedSeats.stream().map(Seat::getSeatCode).toList(), totalPrice(orderedSeats), booking.getBookingTime());
+    }
+
     public AdminBookingDetailResponse toAdminDetail(Booking booking, List<Seat> seats) {
         List<Seat> orderedSeats = orderedSeats(seats);
         return new AdminBookingDetailResponse(
@@ -63,6 +74,15 @@ public class BookingMapper {
                 showDateTime(booking), booking.getShow().getShowTime().toString(),
                 booking.getShow().getEndTime().toString(), mapSeats(orderedSeats),
                 totalPrice(orderedSeats), booking.getBookingTime(), booking.getCreatedAt(), booking.getUpdatedAt());
+    }
+
+    public AdminBookingSummaryResponse toAdminSummary(Booking booking, List<Seat> seats) {
+        List<Seat> orderedSeats = orderedSeats(seats);
+        return new AdminBookingSummaryResponse(
+                booking.getId(), booking.getStatus(), booking.getUser().getId(), booking.getUser().getName(),
+                booking.getUser().getEmail(), booking.getShow().getId(), booking.getShow().getMovie().getTitle(),
+                booking.getShow().getHall().getName(), showDateTime(booking),
+                orderedSeats.stream().map(Seat::getSeatCode).toList(), totalPrice(orderedSeats), booking.getBookingTime());
     }
 
     private List<Seat> orderedSeats(List<Seat> seats) {

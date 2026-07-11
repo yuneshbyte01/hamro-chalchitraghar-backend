@@ -106,6 +106,8 @@ Important DTOs:
 | `PublicShowSummaryResponse`, `PublicShowDetailResponse` | Public show browsing responses |
 | `AdminShowSummaryResponse`, `AdminShowDetailResponse` | Admin show management responses |
 | `SeatResponse`, customer/staff/admin booking responses | Audience-safe seat and booking API responses |
+
+Booking lists use `BookingSearchCriteria`, `BookingSpecification`, and the shared `PageResponse<T>`. Customer history always adds the authenticated user's ID to the database specification. Staff and admin lists use separate summary DTOs and management routes; their case-insensitive search is limited to customer name/email, movie title, and hall name. Booking list seat codes are batch-loaded and ordered by concrete seat position.
 | `UserResponse` | Authenticated customer profile response |
 | `AdminUserSummaryResponse`, `AdminUserDetailResponse` | Admin user lookup responses |
 | `PageResponse<T>` | Shared paginated list wrapper returned inside `ApiResponse<T>` |

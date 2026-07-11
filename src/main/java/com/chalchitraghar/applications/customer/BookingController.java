@@ -1,6 +1,6 @@
 package com.chalchitraghar.applications.customer;
 
-import java.util.List;
+import java.time.LocalDate;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -11,9 +11,12 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.format.annotation.DateTimeFormat;
 
 import com.chalchitraghar.modules.bookings.dto.request.BookingRequest;
+import com.chalchitraghar.modules.bookings.dto.request.BookingSearchCriteria;
 import com.chalchitraghar.modules.bookings.dto.response.CustomerBookingDetailResponse;
 import com.chalchitraghar.modules.bookings.dto.response.CustomerBookingSummaryResponse;
 import com.chalchitraghar.modules.bookings.dto.request.SeatHoldRequest;
@@ -22,6 +25,7 @@ import com.chalchitraghar.modules.users.entity.User;
 import com.chalchitraghar.modules.bookings.service.BookingService;
 import com.chalchitraghar.modules.seats.service.SeatLockService;
 import com.chalchitraghar.shared.response.ApiResponse;
+import com.chalchitraghar.shared.response.PageResponse;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -68,10 +72,20 @@ public class BookingController {
     }
 
     @GetMapping("/my")
-    @Operation(summary = "List my bookings")
-    public ResponseEntity<ApiResponse<List<CustomerBookingSummaryResponse>>> getMyBookings() {
+    @Operation(summary = "List my bookings", description = "Authenticated owner-only paginated booking history.")
+    public ResponseEntity<ApiResponse<PageResponse<CustomerBookingSummaryResponse>>> getMyBookings(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "bookingTime") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortDir,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate showDateFrom,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate showDateTo) {
         User currentUser = getCurrentUser();
-        return ResponseEntity.ok(ApiResponse.success("Bookings fetched successfully", bookingService.getCustomerBookings(currentUser)));
+        BookingSearchCriteria criteria = new BookingSearchCriteria(
+                null, status, null, null, null, null, showDateFrom, showDateTo, null, null);
+        return ResponseEntity.ok(ApiResponse.success("Bookings fetched successfully",
+                bookingService.getCustomerBookings(currentUser, criteria, page, size, sortBy, sortDir)));
     }
 
     @GetMapping("/{bookingId}")

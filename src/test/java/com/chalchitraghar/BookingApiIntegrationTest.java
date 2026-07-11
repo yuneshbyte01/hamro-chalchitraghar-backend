@@ -90,10 +90,11 @@ class BookingApiIntegrationTest extends AbstractIntegrationTest {
 
         mockMvc.perform(get("/api/customer/bookings/my").header("Authorization", bearer(context.customerToken())))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data[0].selectedSeatCodes[0]").value(seats.get(0).getSeatCode()))
-                .andExpect(jsonPath("$.data[0].selectedSeats").doesNotExist())
-                .andExpect(jsonPath("$.data[0].customerEmail").doesNotExist())
-                .andExpect(jsonPath("$.data[0].createdAt").doesNotExist());
+                .andExpect(jsonPath("$.data.content[0].selectedSeatCodes[0]").value(seats.get(0).getSeatCode()))
+                .andExpect(jsonPath("$.data.content[0].selectedSeats").doesNotExist())
+                .andExpect(jsonPath("$.data.content[0].customerEmail").doesNotExist())
+                .andExpect(jsonPath("$.data.content[0].createdAt").doesNotExist())
+                .andExpect(jsonPath("$.data.totalElements").value(1));
     }
 
     @Test
@@ -124,6 +125,78 @@ class BookingApiIntegrationTest extends AbstractIntegrationTest {
                         .header("Authorization", bearer(staffToken))).andExpect(status().isForbidden());
         mockMvc.perform(get("/api/staff/bookings/{bookingId}", bookingId)).andExpect(status().isUnauthorized());
         mockMvc.perform(get("/api/admin/bookings/{bookingId}", bookingId)).andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void customerHistorySupportsPaginationStatusAndDateFiltersWithoutLeakingOtherUsers() throws Exception {
+        TestShowContext owner = createShowContext("history-owner@example.com");
+        Long ownerBooking = createBooking(owner.customerToken(), owner.show().getId(),
+                seatsForShow(owner.show().getId()).getFirst().getId());
+        TestShowContext other = createShowContext("history-other@example.com");
+        createBooking(other.customerToken(), other.show().getId(), seatsForShow(other.show().getId()).getFirst().getId());
+
+        mockMvc.perform(get("/api/customer/bookings/my")
+                        .header("Authorization", bearer(owner.customerToken()))
+                        .param("page", "0").param("size", "1")
+                        .param("status", "INITIATED")
+                        .param("showDateFrom", owner.show().getShowDate().toString())
+                        .param("showDateTo", owner.show().getShowDate().toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.content[0].bookingId").value(ownerBooking))
+                .andExpect(jsonPath("$.data.totalElements").value(1))
+                .andExpect(jsonPath("$.data.page").value(0))
+                .andExpect(jsonPath("$.data.size").value(1));
+    }
+
+    @Test
+    void managementListsSupportSearchFiltersSortingAndSafeResponses() throws Exception {
+        TestShowContext context = createShowContext("aarav.management@example.com");
+        Long bookingId = createBooking(context.customerToken(), context.show().getId(),
+                seatsForShow(context.show().getId()).getFirst().getId());
+        String staffToken = tokenFor("list-staff@example.com", Role.STAFF);
+        String adminToken = tokenFor("list-admin@example.com", Role.ADMIN);
+
+        mockMvc.perform(get("/api/staff/bookings").header("Authorization", bearer(staffToken))
+                        .param("search", "AARAV").param("status", "INITIATED")
+                        .param("showId", context.show().getId().toString())
+                        .param("movieId", context.show().getMovie().getId().toString())
+                        .param("hallId", context.show().getHall().getId().toString())
+                        .param("sortBy", "bookingTime").param("sortDir", "desc"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.content[0].bookingId").value(bookingId))
+                .andExpect(jsonPath("$.data.content[0].customerEmail").value("aarav.management@example.com"))
+                .andExpect(jsonPath("$.data.content[0].password").doesNotExist())
+                .andExpect(jsonPath("$.data.content[0].googleId").doesNotExist());
+
+        mockMvc.perform(get("/api/admin/bookings").header("Authorization", bearer(adminToken))
+                        .param("customerId", userRepository.findByEmail("aarav.management@example.com")
+                                .orElseThrow().getId().toString())
+                        .param("showDateFrom", context.show().getShowDate().toString())
+                        .param("showDateTo", context.show().getShowDate().toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.totalElements").value(1));
+    }
+
+    @Test
+    void bookingListsRejectInvalidQueriesAndUnauthorizedRoles() throws Exception {
+        String staffToken = tokenFor("query-staff@example.com", Role.STAFF);
+        String customerToken = tokenFor("query-customer@example.com", Role.CUSTOMER);
+
+        mockMvc.perform(get("/api/staff/bookings").header("Authorization", bearer(staffToken))
+                        .param("status", "UNKNOWN")).andExpect(status().isBadRequest());
+        mockMvc.perform(get("/api/staff/bookings").header("Authorization", bearer(staffToken))
+                        .param("sortBy", "user.password")).andExpect(status().isBadRequest());
+        mockMvc.perform(get("/api/staff/bookings").header("Authorization", bearer(staffToken))
+                        .param("sortDir", "sideways")).andExpect(status().isBadRequest());
+        mockMvc.perform(get("/api/staff/bookings").header("Authorization", bearer(staffToken))
+                        .param("showDateFrom", "2026-09-02").param("showDateTo", "2026-09-01"))
+                .andExpect(status().isBadRequest());
+        mockMvc.perform(get("/api/staff/bookings").header("Authorization", bearer(customerToken)))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(get("/api/admin/bookings").header("Authorization", bearer(staffToken)))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(get("/api/staff/bookings")).andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/api/admin/bookings")).andExpect(status().isUnauthorized());
     }
 
     @Test
