@@ -5,6 +5,7 @@ import com.chalchitraghar.modules.shows.entity.Show;
 import com.chalchitraghar.shared.GenericEntity;
 
 import java.time.LocalDateTime;
+import java.math.BigDecimal;
 
 import com.chalchitraghar.modules.seats.enums.SeatStatus;
 import com.chalchitraghar.modules.seats.enums.SeatType;
@@ -85,7 +86,7 @@ public class Seat extends GenericEntity {
     @Column(nullable = false)
     @NotNull(message = "Price is required")
     @Positive(message = "Price must be greater than 0")
-    private Double price;
+    private BigDecimal price;
 
     /**
      * Current availability status. Automatically set to AVAILABLE on creation.

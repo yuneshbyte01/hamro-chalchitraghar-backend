@@ -11,6 +11,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import java.util.List;
 import java.util.Map;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.test.web.servlet.MvcResult;
@@ -29,6 +31,74 @@ import com.chalchitraghar.modules.users.enums.Role;
 import com.fasterxml.jackson.databind.JsonNode;
 
 class BookingApiIntegrationTest extends AbstractIntegrationTest {
+
+    @Test
+    void bookingReferenceSupportsOwnedAndManagementLookups() throws Exception {
+        TestShowContext context = createShowContext("reference-owner@example.com");
+        Long bookingId = createBooking(context.customerToken(), context.show().getId(),
+                seatsForShow(context.show().getId()).getFirst().getId());
+        Booking booking = bookingRepository.findById(bookingId).orElseThrow();
+        assertThat(booking.getBookingReference()).matches("HCG-\\d{8}-[A-Z0-9]{8}");
+        assertThat(booking.getExpiresAt()).isAfter(booking.getBookingTime());
+        String otherToken = tokenFor("reference-other@example.com", Role.CUSTOMER);
+        String staffToken = tokenFor("reference-staff@example.com", Role.STAFF);
+        String adminToken = tokenFor("reference-admin@example.com", Role.ADMIN);
+
+        mockMvc.perform(get("/api/customer/bookings/reference/{reference}", booking.getBookingReference())
+                        .header("Authorization", bearer(context.customerToken())))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.bookingReference").value(booking.getBookingReference()))
+                .andExpect(jsonPath("$.data.currency").value("NPR"));
+        mockMvc.perform(get("/api/customer/bookings/reference/{reference}", booking.getBookingReference())
+                        .header("Authorization", bearer(otherToken))).andExpect(status().isNotFound());
+        mockMvc.perform(get("/api/staff/bookings/reference/{reference}", booking.getBookingReference())
+                        .header("Authorization", bearer(staffToken))).andExpect(status().isOk());
+        mockMvc.perform(get("/api/admin/bookings/reference/{reference}", booking.getBookingReference())
+                        .header("Authorization", bearer(adminToken))).andExpect(status().isOk());
+        mockMvc.perform(get("/api/customer/bookings/reference/UNKNOWN")).andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/api/admin/bookings/reference/UNKNOWN")
+                        .header("Authorization", bearer(adminToken))).andExpect(status().isNotFound());
+    }
+
+    @Test
+    void bookingPricingIsAnImmutableExactSnapshot() throws Exception {
+        TestShowContext context = createShowContext("price-snapshot@example.com");
+        List<Seat> seats = seatsForShow(context.show().getId());
+        Long bookingId = createBooking(context.customerToken(), context.show().getId(), seats.getFirst().getId());
+        Booking booking = bookingRepository.findById(bookingId).orElseThrow();
+        var bookingSeats = bookingSeatRepository.findByBookingId(bookingId);
+        assertThat(booking.getTotalAmount()).isEqualByComparingTo(bookingSeats.getFirst().getUnitPrice());
+        assertThat(booking.getCurrency()).isEqualTo("NPR");
+
+        Seat seat = seatRepository.findById(seats.getFirst().getId()).orElseThrow();
+        seat.setPrice(new BigDecimal("9999.99"));
+        seatRepository.save(seat);
+        mockMvc.perform(get("/api/customer/bookings/{id}", bookingId)
+                        .header("Authorization", bearer(context.customerToken())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.totalAmount").value(booking.getTotalAmount().doubleValue()))
+                .andExpect(jsonPath("$.data.selectedSeats[0].price").value(bookingSeats.getFirst().getUnitPrice().doubleValue()));
+    }
+
+    @Test
+    void staleInitiatedBookingExpiresLazilyAndReleasesReservedSeats() throws Exception {
+        TestShowContext context = createShowContext("lazy-expiry@example.com");
+        Seat seat = seatsForShow(context.show().getId()).getFirst();
+        Long bookingId = createBooking(context.customerToken(), context.show().getId(), seat.getId());
+        Booking booking = bookingRepository.findById(bookingId).orElseThrow();
+        booking.setExpiresAt(LocalDateTime.now().minusMinutes(1));
+        bookingRepository.save(booking);
+
+        mockMvc.perform(get("/api/customer/bookings/{id}", bookingId)
+                        .header("Authorization", bearer(context.customerToken())))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.bookingStatus").value("EXPIRED"));
+        Booking expired = bookingRepository.findById(bookingId).orElseThrow();
+        assertThat(expired.getExpiredAt()).isNotNull();
+        assertThat(seatRepository.findById(seat.getId()).orElseThrow().getSeatStatus()).isEqualTo(SeatStatus.AVAILABLE);
+        mockMvc.perform(post("/api/customer/bookings/{id}/confirm", bookingId)
+                        .header("Authorization", bearer(context.customerToken()))).andExpect(status().isBadRequest());
+        mockMvc.perform(post("/api/customer/bookings/{id}/cancel", bookingId)
+                        .header("Authorization", bearer(context.customerToken()))).andExpect(status().isBadRequest());
+    }
 
     @Test
     void everyCustomerBookingEndpointRequiresAuthentication() throws Exception {
@@ -285,6 +355,7 @@ class BookingApiIntegrationTest extends AbstractIntegrationTest {
 
         Booking booking = bookingRepository.findById(bookingId).orElseThrow();
         assertThat(booking.getStatus()).isEqualTo(BookingStatus.CONFIRMED);
+        assertThat(booking.getConfirmedAt()).isNotNull();
         assertThat(seatRepository.findById(seat.getId()).orElseThrow().getSeatStatus()).isEqualTo(SeatStatus.BOOKED);
     }
 
@@ -303,6 +374,7 @@ class BookingApiIntegrationTest extends AbstractIntegrationTest {
 
         Booking booking = bookingRepository.findById(bookingId).orElseThrow();
         assertThat(booking.getStatus()).isEqualTo(BookingStatus.CANCELLED);
+        assertThat(booking.getCancelledAt()).isNotNull();
         assertThat(seatRepository.findById(seat.getId()).orElseThrow().getSeatStatus()).isEqualTo(SeatStatus.AVAILABLE);
     }
 

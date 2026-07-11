@@ -2,6 +2,7 @@ package com.chalchitraghar.modules.bookings.dto.response;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.math.BigDecimal;
 
 import com.chalchitraghar.modules.bookings.enums.BookingStatus;
 import com.chalchitraghar.modules.seats.dto.response.SeatResponse;
@@ -17,6 +18,7 @@ import lombok.NoArgsConstructor;
 @Schema(description = "Customer-safe booking detail; contains no customer identity or audit fields")
 public class CustomerBookingDetailResponse {
     private Long bookingId;
+    private String bookingReference;
     private BookingStatus bookingStatus;
     private Long showId;
     private String movieName;
@@ -25,6 +27,8 @@ public class CustomerBookingDetailResponse {
     private String startTime;
     private String endTime;
     private List<SeatResponse> selectedSeats;
-    private Double totalPrice;
+    private BigDecimal totalAmount;
+    private String currency;
     private LocalDateTime bookingTime;
+    private LocalDateTime expiresAt;
 }

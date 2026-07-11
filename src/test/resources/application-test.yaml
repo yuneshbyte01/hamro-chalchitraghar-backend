@@ -26,6 +26,9 @@ cors:
 
 app:
   time-zone: Asia/Kathmandu
+  bookings:
+    initiated-expiration-minutes: 15
+    currency: NPR
   shows:
     status-reconciliation-interval-ms: 60000
   mail:

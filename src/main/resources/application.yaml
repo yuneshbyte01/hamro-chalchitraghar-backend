@@ -22,6 +22,9 @@ spring:
 
 app:
   time-zone: ${APP_TIME_ZONE:Asia/Kathmandu}
+  bookings:
+    initiated-expiration-minutes: ${BOOKING_INITIATED_EXPIRATION_MINUTES:15}
+    currency: ${BOOKING_CURRENCY:NPR}
   shows:
     buffer-minutes: ${SHOW_BUFFER_MINUTES:15}
     duration-tolerance-minutes: ${SHOW_DURATION_TOLERANCE_MINUTES:5}

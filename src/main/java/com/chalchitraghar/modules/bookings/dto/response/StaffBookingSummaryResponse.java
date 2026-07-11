@@ -2,6 +2,7 @@ package com.chalchitraghar.modules.bookings.dto.response;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.math.BigDecimal;
 
 import com.chalchitraghar.modules.bookings.enums.BookingStatus;
 
@@ -16,6 +17,7 @@ import lombok.NoArgsConstructor;
 @Schema(description = "Staff operational booking summary")
 public class StaffBookingSummaryResponse {
     private Long bookingId;
+    private String bookingReference;
     private BookingStatus bookingStatus;
     private Long customerId;
     private String customerName;
@@ -25,6 +27,8 @@ public class StaffBookingSummaryResponse {
     private String hallName;
     private LocalDateTime showDateTime;
     private List<String> selectedSeatCodes;
-    private Double totalPrice;
+    private BigDecimal totalAmount;
+    private String currency;
     private LocalDateTime bookingTime;
+    private LocalDateTime expiresAt;
 }

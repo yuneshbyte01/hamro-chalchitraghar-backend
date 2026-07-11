@@ -61,4 +61,12 @@ public class BookingManagementController {
                 "Booking fetched successfully",
                 bookingService.getStaffBookingById(bookingId)));
     }
+
+    @GetMapping("/reference/{bookingReference}")
+    @Operation(summary = "Get booking by reference for staff")
+    public ResponseEntity<ApiResponse<StaffBookingDetailResponse>> getBookingByReference(
+            @PathVariable String bookingReference) {
+        return ResponseEntity.ok(ApiResponse.success("Booking fetched successfully",
+                bookingService.getStaffBookingByReference(bookingReference)));
+    }
 }

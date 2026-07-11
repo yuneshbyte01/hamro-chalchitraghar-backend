@@ -7,6 +7,7 @@ import com.chalchitraghar.modules.users.entity.User;
 import com.chalchitraghar.shared.GenericEntity;
 
 import java.time.LocalDateTime;
+import java.math.BigDecimal;
 
 import com.chalchitraghar.modules.bookings.enums.BookingStatus;
 
@@ -37,6 +38,10 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Builder
 public class Booking extends GenericEntity {
+
+    @Column(name = "booking_reference", nullable = false, unique = true, updatable = false, length = 50)
+    @NotNull(message = "Booking reference is required")
+    private String bookingReference;
 
     /**
      * User who made this booking.
@@ -69,6 +74,19 @@ public class Booking extends GenericEntity {
     @Enumerated(EnumType.STRING)
     private BookingStatus status;
 
+    @Column(name = "total_amount", nullable = false, precision = 12, scale = 2)
+    @NotNull(message = "Total amount is required")
+    private BigDecimal totalAmount;
+
+    @Column(nullable = false, length = 3)
+    @NotNull(message = "Currency is required")
+    private String currency;
+
+    private LocalDateTime expiresAt;
+    private LocalDateTime confirmedAt;
+    private LocalDateTime cancelledAt;
+    private LocalDateTime expiredAt;
+
     /**
      * Lifecycle callback invoked before entity persistence.
      * Sets default status to INITIATED and bookingTime to current timestamp.
@@ -79,9 +97,6 @@ public class Booking extends GenericEntity {
         super.onCreate();
         if (this.status == null) {
             this.status = BookingStatus.INITIATED;
-        }
-        if (this.bookingTime == null) {
-            this.bookingTime = LocalDateTime.now();
         }
     }
 }

@@ -108,6 +108,8 @@ Important DTOs:
 | `SeatResponse`, customer/staff/admin booking responses | Audience-safe seat and booking API responses |
 
 Booking lists use `BookingSearchCriteria`, `BookingSpecification`, and the shared `PageResponse<T>`. Customer history always adds the authenticated user's ID to the database specification. Staff and admin lists use separate summary DTOs and management routes; their case-insensitive search is limited to customer name/email, movie title, and hall name. Booking list seat codes are batch-loaded and ordered by concrete seat position.
+
+`BookingReferenceGenerator` creates non-ID-derived customer references. `BookingLifecycleService` centralizes initiated-booking expiry and reserved-seat release. Booking creation snapshots each seat's `BigDecimal` price into `BookingSeat.unitPrice`, stores `Booking.totalAmount` and configured currency, and all booking mappers read those immutable values.
 | `UserResponse` | Authenticated customer profile response |
 | `AdminUserSummaryResponse`, `AdminUserDetailResponse` | Admin user lookup responses |
 | `PageResponse<T>` | Shared paginated list wrapper returned inside `ApiResponse<T>` |

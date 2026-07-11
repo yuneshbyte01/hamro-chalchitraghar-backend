@@ -1,5 +1,7 @@
 package com.chalchitraghar.modules.bookings.entity;
 
+import java.math.BigDecimal;
+
 import com.chalchitraghar.modules.seats.entity.Seat;
 
 import com.chalchitraghar.shared.GenericEntity;
@@ -9,6 +11,8 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.Column;
+import jakarta.persistence.UniqueConstraint;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -21,7 +25,8 @@ import lombok.NoArgsConstructor;
  * Maps which seats are included in a booking.
  */
 @Entity
-@Table(name = "booking_seats")
+@Table(name = "booking_seats", uniqueConstraints = @UniqueConstraint(
+        name = "uk_booking_seats_booking_seat", columnNames = {"booking_id", "seat_id"}))
 @Data
 @EqualsAndHashCode(callSuper = true)
 @NoArgsConstructor
@@ -44,4 +49,8 @@ public class BookingSeat extends GenericEntity {
     @JoinColumn(name = "seat_id", nullable = false)
     @NotNull(message = "Seat is required")
     private Seat seat;
+
+    @Column(name = "unit_price", nullable = false, precision = 12, scale = 2)
+    @NotNull(message = "Unit price is required")
+    private BigDecimal unitPrice;
 }

@@ -243,3 +243,6 @@ Hamro Chalchitraghar Backend is complete as a Spring Boot REST API with:
 - Docker and Docker Compose support.
 - Swagger/OpenAPI documentation.
 - Integration tests for the core API behavior.
+# Booking identity, pricing, and expiry
+
+Bookings now receive immutable `HCG-YYYYMMDD-XXXXXXXX` references with owner-only customer lookup and management lookup routes. Monetary values use exact `BigDecimal` snapshots in NPR: booking seats retain unit prices and bookings retain totals. Initiated reservations have a configurable expiry deadline; lazy lifecycle reconciliation transitions stale records to `EXPIRED`, records lifecycle timestamps, and safely releases eligible reserved seats. Payment, refunds, and confirmed-booking cancellation remain outside the current scope.

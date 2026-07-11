@@ -3,6 +3,7 @@ package com.chalchitraghar.modules.bookings.service.impl;
 import com.chalchitraghar.modules.bookings.service.BookingService;
 import java.time.LocalDateTime;
 import java.time.Clock;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -14,6 +15,7 @@ import java.util.stream.Collectors;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -41,6 +43,8 @@ import com.chalchitraghar.modules.bookings.enums.BookingStatus;
 import com.chalchitraghar.modules.seats.enums.SeatStatus;
 import com.chalchitraghar.modules.bookings.repository.BookingRepository;
 import com.chalchitraghar.modules.bookings.repository.BookingSeatRepository;
+import com.chalchitraghar.modules.bookings.service.BookingLifecycleService;
+import com.chalchitraghar.modules.bookings.service.BookingReferenceGenerator;
 import com.chalchitraghar.modules.bookings.specification.BookingSpecification;
 import com.chalchitraghar.modules.seats.repository.SeatRepository;
 import com.chalchitraghar.modules.shows.repository.ShowRepository;
@@ -63,7 +67,15 @@ public class BookingServiceImpl implements BookingService {
     private final SeatRepository seatRepository;
     private final BookingMapper bookingMapper;
     private final ShowLifecycleService showLifecycleService;
+    private final BookingLifecycleService bookingLifecycleService;
+    private final BookingReferenceGenerator bookingReferenceGenerator;
     private final Clock clock;
+
+    @Value("${app.bookings.initiated-expiration-minutes:15}")
+    private long initiatedExpirationMinutes;
+
+    @Value("${app.bookings.currency:NPR}")
+    private String bookingCurrency;
 
     @Override
     @Transactional
@@ -91,16 +103,22 @@ public class BookingServiceImpl implements BookingService {
             throw new SeatAlreadyBookedException(String.format("Seats %s are already part of an active booking", bookedSeatIds));
         }
         validateSeatsForBookingCreation(seats, user.getId());
+        LocalDateTime bookingTime = LocalDateTime.now(clock);
+        BigDecimal totalAmount = seats.stream().map(Seat::getPrice).reduce(BigDecimal.ZERO, BigDecimal::add);
         Booking booking = Booking.builder()
                 .user(user)
                 .show(show)
-                .bookingTime(LocalDateTime.now(clock))
+                .bookingReference(bookingReferenceGenerator.generate())
+                .bookingTime(bookingTime)
                 .status(BookingStatus.INITIATED)
+                .totalAmount(totalAmount)
+                .currency(bookingCurrency)
+                .expiresAt(bookingTime.plusMinutes(initiatedExpirationMinutes))
                 .build();
         booking = bookingRepository.save(booking);
         List<BookingSeat> bookingSeats = new ArrayList<>();
         for (Seat seat : seats) {
-            bookingSeats.add(BookingSeat.builder().booking(booking).seat(seat).build());
+            bookingSeats.add(BookingSeat.builder().booking(booking).seat(seat).unitPrice(seat.getPrice()).build());
         }
         bookingSeatRepository.saveAll(bookingSeats);
         for (Seat seat : seats) {
@@ -110,7 +128,7 @@ public class BookingServiceImpl implements BookingService {
             seat.setLockedByUserId(null);
         }
         seatRepository.saveAll(seats);
-        return bookingMapper.toCustomerDetail(booking, seats);
+        return bookingMapper.toCustomerDetail(booking, bookingSeats);
     }
 
     @Override
@@ -121,6 +139,9 @@ public class BookingServiceImpl implements BookingService {
         if (!booking.getUser().getId().equals(user.getId())) {
             throw new AccessDeniedException(
                     String.format("Booking %d does not belong to user %d", bookingId, user.getId()));
+        }
+        if (bookingLifecycleService.reconcileExpiry(booking)) {
+            throw new InvalidBookingStateException("Booking has expired and cannot be confirmed");
         }
         if (booking.getStatus() != BookingStatus.INITIATED) {
             throw new InvalidBookingStateException(
@@ -162,12 +183,13 @@ public class BookingServiceImpl implements BookingService {
         }
         seatRepository.saveAll(seats);
         booking.setStatus(BookingStatus.CONFIRMED);
+        booking.setConfirmedAt(LocalDateTime.now(clock));
         bookingRepository.save(booking);
-        return bookingMapper.toCustomerDetail(booking, seats);
+        return bookingMapper.toCustomerDetail(booking, bookingSeats);
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public PageResponse<CustomerBookingSummaryResponse> getCustomerBookings(
             User user, BookingSearchCriteria criteria, int page, int size, String sortBy, String sortDir) {
         return searchBookings(criteria, user.getId(), page, size, sortBy, sortDir,
@@ -183,6 +205,7 @@ public class BookingServiceImpl implements BookingService {
             throw new AccessDeniedException(
                     String.format("Booking %d does not belong to user %d", bookingId, user.getId()));
         }
+        bookingLifecycleService.reconcileExpiry(booking);
         if (booking.getStatus() != BookingStatus.INITIATED) {
             throw new InvalidBookingStateException(
                     String.format("Booking %d cannot be cancelled. Current status: %s. Only INITIATED bookings can be cancelled.",
@@ -207,19 +230,22 @@ public class BookingServiceImpl implements BookingService {
             throw new ResourceNotFoundException(String.format("Seats not found: %s", missingSeatIds));
         }
         for (Seat seat : seats) {
-            seat.setSeatStatus(SeatStatus.AVAILABLE);
-            seat.setLockedAt(null);
-            seat.setLockExpiresAt(null);
-            seat.setLockedByUserId(null);
+            if (seat.getSeatStatus() == SeatStatus.RESERVED) {
+                seat.setSeatStatus(SeatStatus.AVAILABLE);
+                seat.setLockedAt(null);
+                seat.setLockExpiresAt(null);
+                seat.setLockedByUserId(null);
+            }
         }
         seatRepository.saveAll(seats);
         booking.setStatus(BookingStatus.CANCELLED);
+        booking.setCancelledAt(LocalDateTime.now(clock));
         bookingRepository.save(booking);
-        return bookingMapper.toCustomerDetail(booking, seats);
+        return bookingMapper.toCustomerDetail(booking, bookingSeats);
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public CustomerBookingDetailResponse getCustomerBookingById(Long bookingId, User user) {
         Booking booking = findBooking(bookingId);
         if (!booking.getUser().getId().equals(user.getId())) {
@@ -229,28 +255,52 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
+    public CustomerBookingDetailResponse getCustomerBookingByReference(String reference, User user) {
+        Booking booking = findBooking(reference);
+        if (!booking.getUser().getId().equals(user.getId())) {
+            throw new ResourceNotFoundException("Booking not found with reference: " + reference);
+        }
+        return bookingMapper.toCustomerDetail(booking, seatsFor(booking.getId()));
+    }
+
+    @Override
+    @Transactional
     public StaffBookingDetailResponse getStaffBookingById(Long bookingId) {
         Booking booking = findBooking(bookingId);
         return bookingMapper.toStaffDetail(booking, seatsFor(bookingId));
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
+    public StaffBookingDetailResponse getStaffBookingByReference(String reference) {
+        Booking booking = findBooking(reference);
+        return bookingMapper.toStaffDetail(booking, seatsFor(booking.getId()));
+    }
+
+    @Override
+    @Transactional
     public PageResponse<StaffBookingSummaryResponse> getStaffBookings(
             BookingSearchCriteria criteria, int page, int size, String sortBy, String sortDir) {
         return searchBookings(criteria, null, page, size, sortBy, sortDir, bookingMapper::toStaffSummary);
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public AdminBookingDetailResponse getAdminBookingById(Long bookingId) {
         Booking booking = findBooking(bookingId);
         return bookingMapper.toAdminDetail(booking, seatsFor(bookingId));
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
+    public AdminBookingDetailResponse getAdminBookingByReference(String reference) {
+        Booking booking = findBooking(reference);
+        return bookingMapper.toAdminDetail(booking, seatsFor(booking.getId()));
+    }
+
+    @Override
+    @Transactional
     public PageResponse<AdminBookingSummaryResponse> getAdminBookings(
             BookingSearchCriteria criteria, int page, int size, String sortBy, String sortDir) {
         return searchBookings(criteria, null, page, size, sortBy, sortDir, bookingMapper::toAdminSummary);
@@ -263,17 +313,17 @@ public class BookingServiceImpl implements BookingService {
             int size,
             String sortBy,
             String sortDir,
-            BiFunction<Booking, List<Seat>, T> mapper) {
+            BiFunction<Booking, List<BookingSeat>, T> mapper) {
         validateSearch(criteria, page, size, sortBy, sortDir);
         Sort.Direction direction = "asc".equalsIgnoreCase(sortDir) ? Sort.Direction.ASC : Sort.Direction.DESC;
         BookingStatus status = parseStatus(criteria.status());
         Page<Booking> bookings = bookingRepository.findAll(
                 BookingSpecification.search(criteria, status, ownerId),
                 PageRequest.of(page, size, Sort.by(direction, sortBy)));
-        Map<Long, List<Seat>> seatsByBooking = bookingSeatRepository.findByBookingIdsWithSeats(
+        bookings.getContent().forEach(bookingLifecycleService::reconcileExpiry);
+        Map<Long, List<BookingSeat>> seatsByBooking = bookingSeatRepository.findByBookingIdsWithSeats(
                         bookings.getContent().stream().map(Booking::getId).toList()).stream()
-                .collect(Collectors.groupingBy(bs -> bs.getBooking().getId(),
-                        Collectors.mapping(BookingSeat::getSeat, Collectors.toList())));
+                .collect(Collectors.groupingBy(bs -> bs.getBooking().getId()));
         List<T> content = bookings.getContent().stream()
                 .map(booking -> mapper.apply(booking, seatsByBooking.getOrDefault(booking.getId(), List.of())))
                 .toList();
@@ -311,14 +361,21 @@ public class BookingServiceImpl implements BookingService {
     }
 
     private Booking findBooking(Long bookingId) {
-        return bookingRepository.findById(bookingId)
+        Booking booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new ResourceNotFoundException("Booking", bookingId));
+        bookingLifecycleService.reconcileExpiry(booking);
+        return booking;
     }
 
-    private List<Seat> seatsFor(Long bookingId) {
-        return bookingSeatRepository.findByBookingId(bookingId).stream()
-                .map(BookingSeat::getSeat)
-                .collect(Collectors.toList());
+    private Booking findBooking(String reference) {
+        Booking booking = bookingRepository.findByBookingReference(reference.toUpperCase())
+                .orElseThrow(() -> new ResourceNotFoundException("Booking not found with reference: " + reference));
+        bookingLifecycleService.reconcileExpiry(booking);
+        return booking;
+    }
+
+    private List<BookingSeat> seatsFor(Long bookingId) {
+        return bookingSeatRepository.findByBookingId(bookingId);
     }
 
     private void validateSeatsForBookingCreation(List<Seat> seats, Long userId) {

@@ -393,6 +393,10 @@ Join table between bookings and selected seats.
 
 ## Booking Lifecycle
 
+Bookings have an immutable unique `booking_reference` in `HCG-YYYYMMDD-XXXXXXXX` format, `total_amount NUMERIC(12,2)`, three-letter `currency`, and lifecycle timestamps `expires_at`, `confirmed_at`, `cancelled_at`, and `expired_at`. Each `booking_seats` row stores immutable `unit_price NUMERIC(12,2)` and `(booking_id, seat_id)` is unique. Historical totals are never recalculated from mutable show-seat prices.
+
+The active lifecycle is `INITIATED -> CONFIRMED`, `INITIATED -> CANCELLED`, or `INITIATED -> EXPIRED`. Initiated bookings receive a configured expiry deadline. Lazy reconciliation before reads and confirmation marks stale bookings `EXPIRED`, records `expired_at`, and releases only still-reserved seats without another active booking claim. `PENDING` and `BOOKED` remain enum values for compatibility but are unused by this phase.
+
 1. A show is created by admin.
 2. Seats are generated from the hall's seat templates.
 3. A customer may hold available seats, changing `seats.seat_status` to `LOCKED`.

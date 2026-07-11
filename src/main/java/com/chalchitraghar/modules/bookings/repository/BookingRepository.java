@@ -1,6 +1,7 @@
 package com.chalchitraghar.modules.bookings.repository;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
@@ -16,6 +17,10 @@ import com.chalchitraghar.modules.bookings.enums.BookingStatus;
 public interface BookingRepository extends JpaRepository<Booking, Long>, JpaSpecificationExecutor<Booking> {
 
     boolean existsByShowId(Long showId);
+
+    boolean existsByBookingReference(String bookingReference);
+
+    Optional<Booking> findByBookingReference(String bookingReference);
 
     boolean existsByShowIdAndStatusIn(Long showId, List<BookingStatus> statuses);
 

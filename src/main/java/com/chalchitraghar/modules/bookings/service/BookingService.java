@@ -27,12 +27,18 @@ public interface BookingService {
 
     CustomerBookingDetailResponse getCustomerBookingById(Long bookingId, User user);
 
+    CustomerBookingDetailResponse getCustomerBookingByReference(String bookingReference, User user);
+
     StaffBookingDetailResponse getStaffBookingById(Long bookingId);
+
+    StaffBookingDetailResponse getStaffBookingByReference(String bookingReference);
 
     PageResponse<StaffBookingSummaryResponse> getStaffBookings(
             BookingSearchCriteria criteria, int page, int size, String sortBy, String sortDir);
 
     AdminBookingDetailResponse getAdminBookingById(Long bookingId);
+
+    AdminBookingDetailResponse getAdminBookingByReference(String bookingReference);
 
     PageResponse<AdminBookingSummaryResponse> getAdminBookings(
             BookingSearchCriteria criteria, int page, int size, String sortBy, String sortDir);

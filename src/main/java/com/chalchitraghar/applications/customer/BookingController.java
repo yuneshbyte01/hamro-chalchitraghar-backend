@@ -95,6 +95,14 @@ public class BookingController {
         return ResponseEntity.ok(ApiResponse.success("Booking fetched successfully", bookingService.getCustomerBookingById(bookingId, currentUser)));
     }
 
+    @GetMapping("/reference/{bookingReference}")
+    @Operation(summary = "Get my booking by reference", description = "Owner-only lookup; non-owner references are hidden as not found.")
+    public ResponseEntity<ApiResponse<CustomerBookingDetailResponse>> getBookingByReference(
+            @PathVariable String bookingReference) {
+        return ResponseEntity.ok(ApiResponse.success("Booking fetched successfully",
+                bookingService.getCustomerBookingByReference(bookingReference, getCurrentUser())));
+    }
+
     @PostMapping("/{bookingId}/cancel")
     @Operation(summary = "Cancel a booking", description = "Cancels an INITIATED booking owned by the current user and releases reserved seats.")
     public ResponseEntity<ApiResponse<CustomerBookingDetailResponse>> cancelBooking(@PathVariable Long bookingId) {

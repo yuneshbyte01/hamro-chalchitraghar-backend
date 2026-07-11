@@ -1,5 +1,7 @@
 package com.chalchitraghar.modules.seats.service;
 
+import java.math.BigDecimal;
+
 import org.springframework.stereotype.Component;
 
 import com.chalchitraghar.modules.seats.enums.SeatType;
@@ -8,13 +10,13 @@ import com.chalchitraghar.modules.seats.enums.SeatType;
 @Component
 public class SeatPricingPolicy {
 
-    public double priceFor(SeatType seatType) {
+    public BigDecimal priceFor(SeatType seatType) {
         if (seatType == null) {
             throw new IllegalArgumentException("Seat type is required for pricing");
         }
         return switch (seatType) {
-            case PREMIUM -> 750.0;
-            case PLATINUM -> 500.0;
+            case PREMIUM -> new BigDecimal("750.00");
+            case PLATINUM -> new BigDecimal("500.00");
         };
     }
 }

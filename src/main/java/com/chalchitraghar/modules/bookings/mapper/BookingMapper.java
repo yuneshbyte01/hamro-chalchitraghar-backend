@@ -13,90 +13,79 @@ import com.chalchitraghar.modules.bookings.dto.response.CustomerBookingSummaryRe
 import com.chalchitraghar.modules.bookings.dto.response.StaffBookingDetailResponse;
 import com.chalchitraghar.modules.bookings.dto.response.StaffBookingSummaryResponse;
 import com.chalchitraghar.modules.bookings.entity.Booking;
+import com.chalchitraghar.modules.bookings.entity.BookingSeat;
 import com.chalchitraghar.modules.seats.dto.response.SeatResponse;
-import com.chalchitraghar.modules.seats.entity.Seat;
 import com.chalchitraghar.modules.seats.mapper.SeatMapper;
 
 import lombok.RequiredArgsConstructor;
 
-/** Centralized audience-specific booking response mapping. */
 @Component
 @RequiredArgsConstructor
 public class BookingMapper {
-
     private final SeatMapper seatMapper;
 
-    public CustomerBookingSummaryResponse toCustomerSummary(Booking booking, List<Seat> seats) {
-        List<Seat> orderedSeats = orderedSeats(seats);
-        return new CustomerBookingSummaryResponse(
-                booking.getId(), booking.getStatus(), booking.getShow().getId(),
-                booking.getShow().getMovie().getTitle(), booking.getShow().getHall().getName(),
-                showDateTime(booking), orderedSeats.stream().map(Seat::getSeatCode).toList(),
-                totalPrice(orderedSeats), booking.getBookingTime());
+    public CustomerBookingSummaryResponse toCustomerSummary(Booking b, List<BookingSeat> seats) {
+        var ordered = ordered(seats);
+        return new CustomerBookingSummaryResponse(b.getId(), b.getBookingReference(), b.getStatus(), b.getShow().getId(),
+                b.getShow().getMovie().getTitle(), b.getShow().getHall().getName(), showDateTime(b),
+                ordered.stream().map(bs -> bs.getSeat().getSeatCode()).toList(), b.getTotalAmount(), b.getCurrency(),
+                b.getBookingTime(), b.getExpiresAt());
     }
 
-    public CustomerBookingDetailResponse toCustomerDetail(Booking booking, List<Seat> seats) {
-        List<Seat> orderedSeats = orderedSeats(seats);
-        return new CustomerBookingDetailResponse(
-                booking.getId(), booking.getStatus(), booking.getShow().getId(),
-                booking.getShow().getMovie().getTitle(), booking.getShow().getHall().getName(),
-                showDateTime(booking), booking.getShow().getShowTime().toString(),
-                booking.getShow().getEndTime().toString(), mapSeats(orderedSeats),
-                totalPrice(orderedSeats), booking.getBookingTime());
+    public CustomerBookingDetailResponse toCustomerDetail(Booking b, List<BookingSeat> seats) {
+        return new CustomerBookingDetailResponse(b.getId(), b.getBookingReference(), b.getStatus(), b.getShow().getId(),
+                b.getShow().getMovie().getTitle(), b.getShow().getHall().getName(), showDateTime(b),
+                b.getShow().getShowTime().toString(), b.getShow().getEndTime().toString(), mapSeats(seats),
+                b.getTotalAmount(), b.getCurrency(), b.getBookingTime(), b.getExpiresAt());
     }
 
-    public StaffBookingDetailResponse toStaffDetail(Booking booking, List<Seat> seats) {
-        List<Seat> orderedSeats = orderedSeats(seats);
-        return new StaffBookingDetailResponse(
-                booking.getId(), booking.getStatus(), booking.getUser().getId(),
-                booking.getUser().getName(), booking.getUser().getEmail(), booking.getShow().getId(),
-                booking.getShow().getMovie().getTitle(), booking.getShow().getHall().getName(),
-                showDateTime(booking), booking.getShow().getShowTime().toString(),
-                booking.getShow().getEndTime().toString(), mapSeats(orderedSeats),
-                totalPrice(orderedSeats), booking.getBookingTime(), booking.getCreatedAt(), booking.getUpdatedAt());
+    public StaffBookingSummaryResponse toStaffSummary(Booking b, List<BookingSeat> seats) {
+        var ordered = ordered(seats);
+        return new StaffBookingSummaryResponse(b.getId(), b.getBookingReference(), b.getStatus(), b.getUser().getId(),
+                b.getUser().getName(), b.getUser().getEmail(), b.getShow().getId(), b.getShow().getMovie().getTitle(),
+                b.getShow().getHall().getName(), showDateTime(b),
+                ordered.stream().map(bs -> bs.getSeat().getSeatCode()).toList(), b.getTotalAmount(), b.getCurrency(),
+                b.getBookingTime(), b.getExpiresAt());
     }
 
-    public StaffBookingSummaryResponse toStaffSummary(Booking booking, List<Seat> seats) {
-        List<Seat> orderedSeats = orderedSeats(seats);
-        return new StaffBookingSummaryResponse(
-                booking.getId(), booking.getStatus(), booking.getUser().getId(), booking.getUser().getName(),
-                booking.getUser().getEmail(), booking.getShow().getId(), booking.getShow().getMovie().getTitle(),
-                booking.getShow().getHall().getName(), showDateTime(booking),
-                orderedSeats.stream().map(Seat::getSeatCode).toList(), totalPrice(orderedSeats), booking.getBookingTime());
+    public AdminBookingSummaryResponse toAdminSummary(Booking b, List<BookingSeat> seats) {
+        var ordered = ordered(seats);
+        return new AdminBookingSummaryResponse(b.getId(), b.getBookingReference(), b.getStatus(), b.getUser().getId(),
+                b.getUser().getName(), b.getUser().getEmail(), b.getShow().getId(), b.getShow().getMovie().getTitle(),
+                b.getShow().getHall().getName(), showDateTime(b),
+                ordered.stream().map(bs -> bs.getSeat().getSeatCode()).toList(), b.getTotalAmount(), b.getCurrency(),
+                b.getBookingTime(), b.getExpiresAt());
     }
 
-    public AdminBookingDetailResponse toAdminDetail(Booking booking, List<Seat> seats) {
-        List<Seat> orderedSeats = orderedSeats(seats);
-        return new AdminBookingDetailResponse(
-                booking.getId(), booking.getStatus(), booking.getUser().getId(),
-                booking.getUser().getName(), booking.getUser().getEmail(), booking.getShow().getId(),
-                booking.getShow().getMovie().getTitle(), booking.getShow().getHall().getName(),
-                showDateTime(booking), booking.getShow().getShowTime().toString(),
-                booking.getShow().getEndTime().toString(), mapSeats(orderedSeats),
-                totalPrice(orderedSeats), booking.getBookingTime(), booking.getCreatedAt(), booking.getUpdatedAt());
+    public StaffBookingDetailResponse toStaffDetail(Booking b, List<BookingSeat> seats) {
+        return new StaffBookingDetailResponse(b.getId(), b.getBookingReference(), b.getStatus(), b.getUser().getId(),
+                b.getUser().getName(), b.getUser().getEmail(), b.getShow().getId(), b.getShow().getMovie().getTitle(),
+                b.getShow().getHall().getName(), showDateTime(b), b.getShow().getShowTime().toString(),
+                b.getShow().getEndTime().toString(), mapSeats(seats), b.getTotalAmount(), b.getCurrency(),
+                b.getBookingTime(), b.getExpiresAt(), b.getConfirmedAt(), b.getCancelledAt(), b.getExpiredAt(),
+                b.getCreatedAt(), b.getUpdatedAt());
     }
 
-    public AdminBookingSummaryResponse toAdminSummary(Booking booking, List<Seat> seats) {
-        List<Seat> orderedSeats = orderedSeats(seats);
-        return new AdminBookingSummaryResponse(
-                booking.getId(), booking.getStatus(), booking.getUser().getId(), booking.getUser().getName(),
-                booking.getUser().getEmail(), booking.getShow().getId(), booking.getShow().getMovie().getTitle(),
-                booking.getShow().getHall().getName(), showDateTime(booking),
-                orderedSeats.stream().map(Seat::getSeatCode).toList(), totalPrice(orderedSeats), booking.getBookingTime());
+    public AdminBookingDetailResponse toAdminDetail(Booking b, List<BookingSeat> seats) {
+        return new AdminBookingDetailResponse(b.getId(), b.getBookingReference(), b.getStatus(), b.getUser().getId(),
+                b.getUser().getName(), b.getUser().getEmail(), b.getShow().getId(), b.getShow().getMovie().getTitle(),
+                b.getShow().getHall().getName(), showDateTime(b), b.getShow().getShowTime().toString(),
+                b.getShow().getEndTime().toString(), mapSeats(seats), b.getTotalAmount(), b.getCurrency(),
+                b.getBookingTime(), b.getExpiresAt(), b.getConfirmedAt(), b.getCancelledAt(), b.getExpiredAt(),
+                b.getCreatedAt(), b.getUpdatedAt());
     }
 
-    private List<Seat> orderedSeats(List<Seat> seats) {
+    private List<BookingSeat> ordered(List<BookingSeat> seats) {
         return seats == null ? List.of() : seats.stream()
-                .sorted(Comparator.comparing(Seat::getPositionIndex).thenComparing(Seat::getId))
-                .toList();
+                .sorted(Comparator.comparing(bs -> bs.getSeat().getPositionIndex())).toList();
     }
 
-    private List<SeatResponse> mapSeats(List<Seat> seats) {
-        return seats.stream().map(seatMapper::toResponseDto).toList();
-    }
-
-    private Double totalPrice(List<Seat> seats) {
-        return seats.stream().mapToDouble(Seat::getPrice).sum();
+    private List<SeatResponse> mapSeats(List<BookingSeat> seats) {
+        return ordered(seats).stream().map(bs -> {
+            SeatResponse response = seatMapper.toResponseDto(bs.getSeat());
+            response.setPrice(bs.getUnitPrice());
+            return response;
+        }).toList();
     }
 
     private LocalDateTime showDateTime(Booking booking) {

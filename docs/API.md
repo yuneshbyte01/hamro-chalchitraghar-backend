@@ -806,7 +806,8 @@ Response `201`:
     "startTime": "18:30",
     "endTime": "21:00",
     "selectedSeats": [],
-    "totalPrice": 1250.0,
+    "totalAmount": 1250.00,
+    "currency": "NPR",
     "bookingTime": "2026-07-01T18:30:00"
   },
   "errors": []
@@ -885,6 +886,8 @@ Requires `STAFF` or `ADMIN`. Returns `PageResponse<StaffBookingSummaryResponse>`
 ### `GET /api/admin/bookings/{bookingId}`
 
 Requires authentication and the `ADMIN` role. Returns any booking as `AdminBookingDetailResponse`, including safe customer identity and booking audit timestamps. Customer and staff callers receive `403`; unauthenticated callers receive `401`.
+
+Booking reference lookup is available at `GET /api/customer/bookings/reference/{bookingReference}`, `GET /api/staff/bookings/reference/{bookingReference}`, and `GET /api/admin/bookings/reference/{bookingReference}`. Customer lookup is authenticated and owner-only; a non-owner receives `404`. References use `HCG-YYYYMMDD-XXXXXXXX`. Booking totals and selected-seat prices are immutable NPR snapshots. `INITIATED` bookings expose `expiresAt` and expire after the configured deadline.
 
 ### `GET /api/admin/bookings`
 
@@ -1583,11 +1586,11 @@ User response separation:
 | `AdminShowSummaryResponse` | `id`, `movieId`, `movieTitle`, `hallId`, `hallName`, `status`, `showDate`, `showTime`, `endTime` |
 | `AdminShowDetailResponse` | `id`, admin `movie`, admin `hall`, `status`, `showDate`, `showTime`, `endTime`, `createdAt`, `updatedAt` |
 | `SeatResponse` | `id`, `rowLabel`, `seatNumber`, `seatCode`, `seatType`, `price`, `positionIndex`, `seatStatus` |
-| `CustomerBookingSummaryResponse` | `bookingId`, `bookingStatus`, `showId`, `movieName`, `hallName`, `showDateTime`, `selectedSeatCodes`, `totalPrice`, `bookingTime` |
+| `CustomerBookingSummaryResponse` | `bookingId`, `bookingReference`, `bookingStatus`, show fields, ordered `selectedSeatCodes`, `totalAmount`, `currency`, `bookingTime`, `expiresAt` |
 | `CustomerBookingDetailResponse` | Summary fields plus `startTime`, `endTime`, and `selectedSeats`; excludes customer identity and audit fields |
 | `StaffBookingDetailResponse` | Booking detail plus `customerId`, `customerName`, `customerEmail`, `createdAt`, and `updatedAt` |
 | `AdminBookingDetailResponse` | Separate admin contract containing the same safe operational fields as the staff detail contract |
-| `StaffBookingSummaryResponse` | Operational booking/customer/show fields plus ordered `selectedSeatCodes`, `totalPrice`, and `bookingTime` |
+| `StaffBookingSummaryResponse` | Operational booking/customer/show fields plus `bookingReference`, ordered `selectedSeatCodes`, stored `totalAmount`, `currency`, `bookingTime`, and `expiresAt` |
 | `AdminBookingSummaryResponse` | Separate admin summary contract with the same current safe operational fields |
 | `UserResponse` | `id`, `name`, `email`, `role` |
 | `AdminUserSummaryResponse` | `id`, `name`, `email`, `role`, `enabled`, `locked` |

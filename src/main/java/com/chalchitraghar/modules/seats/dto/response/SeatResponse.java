@@ -1,5 +1,7 @@
 package com.chalchitraghar.modules.seats.dto.response;
 
+import java.math.BigDecimal;
+
 import com.chalchitraghar.modules.seats.enums.SeatType;
 import com.chalchitraghar.modules.seats.enums.SeatStatus;
 
@@ -20,7 +22,7 @@ public class SeatResponse {
     private Integer seatNumber;
     private String seatCode;
     private SeatType seatType;
-    private Double price;
+    private BigDecimal price;
     private Integer positionIndex;
     private SeatStatus seatStatus;
 }

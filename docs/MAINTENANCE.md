@@ -98,6 +98,8 @@ Bookings follow the same audience boundary. Customer list/detail operations use 
 
 Booking history is paginated with the shared `PageResponse<T>`. Keep filters in `BookingSearchCriteria` and `BookingSpecification`, apply customer ownership in the database query, and retain the booking sort allowlist (`id`, `bookingTime`, `status`, `createdAt`, `updatedAt`). Staff/admin search must remain limited to customer name/email, movie title, and hall name. Batch-load booking seats for list pages and let `BookingMapper` order seat codes by `positionIndex`.
 
+Booking prices are currency-safe snapshots: copy `Seat.price` into `BookingSeat.unitPrice`, sum with `BigDecimal` into `Booking.totalAmount`, and never map historical prices from the mutable seat. Generate references only through `BookingReferenceGenerator`. Route all initiated expiry checks through `BookingLifecycleService` using the application `Clock`; confirmation, cancellation, and expiry timestamps must not use an independent system clock.
+
 Paginated show lists use `ShowSearchCriteria`, `ShowSpecification`, and the shared `PageResponse<T>`. Add new show filters in the criteria/specification rather than controllers, keep the sort-field allowlist in `ShowServiceImpl`, and apply public visibility predicates in the database query before pagination.
 
 Keep scheduling and lifecycle decisions in `ShowServiceImpl`. `SHOW_BUFFER_MINUTES` configures the cleaning gap (default 15), while `SHOW_DURATION_TOLERANCE_MINUTES` configures the movie-duration tolerance (default 5). Any lifecycle extension must update the centralized transition guard, the status endpoint documentation, and scheduling integration tests; do not bypass it by assigning `Show.status` in controllers.

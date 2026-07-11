@@ -2,6 +2,7 @@ package com.chalchitraghar.modules.shows.service.impl;
 
 import com.chalchitraghar.modules.shows.service.SeatGenerationService;
 import java.util.List;
+import java.math.BigDecimal;
 
 import org.springframework.stereotype.Service;
 
@@ -50,7 +51,7 @@ public class SeatGenerationServiceImpl implements SeatGenerationService {
         seatTemplateValidator.validate(templates, show.getHall().getCapacity());
         List<Seat> generatedSeats = new java.util.ArrayList<>(templates.size());
         for (SeatTemplate template : templates) {
-            Double seatPrice = seatPricingPolicy.priceFor(template.getSeatType());
+            BigDecimal seatPrice = seatPricingPolicy.priceFor(template.getSeatType());
             Seat seat = Seat.builder()
                     .show(show)
                     .rowLabel(template.getRowLabel())
