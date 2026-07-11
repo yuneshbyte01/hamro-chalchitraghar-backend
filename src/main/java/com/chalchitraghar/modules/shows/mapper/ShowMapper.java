@@ -7,7 +7,10 @@ import com.chalchitraghar.modules.movies.mapper.MovieMapper;
 import org.springframework.stereotype.Component;
 
 import com.chalchitraghar.modules.shows.dto.request.ShowRequest;
-import com.chalchitraghar.modules.shows.dto.response.ShowResponse;
+import com.chalchitraghar.modules.shows.dto.response.AdminShowDetailResponse;
+import com.chalchitraghar.modules.shows.dto.response.AdminShowSummaryResponse;
+import com.chalchitraghar.modules.shows.dto.response.PublicShowDetailResponse;
+import com.chalchitraghar.modules.shows.dto.response.PublicShowSummaryResponse;
 import com.chalchitraghar.modules.halls.entity.Hall;
 import com.chalchitraghar.modules.movies.entity.Movie;
 import com.chalchitraghar.modules.shows.entity.Show;
@@ -47,21 +50,48 @@ public class ShowMapper {
                 .build();
     }
 
-    /**
-     * Converts a Show entity to a ShowResponse DTO.
-     *
-     * @param show the entity to convert
-     * @return the response DTO, or null if show is null
-     */
-    public ShowResponse toResponseDto(Show show) {
+    /** Converts a show to its public list representation. */
+    public PublicShowSummaryResponse toPublicSummary(Show show) {
         if (show == null) {
             return null;
         }
+        PublicShowSummaryResponse dto = new PublicShowSummaryResponse();
+        mapSummary(show, dto);
+        return dto;
+    }
 
-        ShowResponse dto = new ShowResponse();
+    public PublicShowDetailResponse toPublicDetail(Show show) {
+        if (show == null) {
+            return null;
+        }
+        PublicShowDetailResponse dto = new PublicShowDetailResponse();
         dto.setId(show.getId());
-        dto.setMovie(movieMapper.toResponseDto(show.getMovie()));
+        dto.setMovie(movieMapper.toPublicDetail(show.getMovie()));
         dto.setHall(hallMapper.toPublicDetail(show.getHall()));
+        dto.setStatus(show.getStatus());
+        dto.setShowDate(show.getShowDate());
+        dto.setShowTime(show.getShowTime());
+        dto.setEndTime(show.getEndTime());
+        return dto;
+    }
+
+    public AdminShowSummaryResponse toAdminSummary(Show show) {
+        if (show == null) {
+            return null;
+        }
+        AdminShowSummaryResponse dto = new AdminShowSummaryResponse();
+        mapSummary(show, dto);
+        return dto;
+    }
+
+    public AdminShowDetailResponse toAdminDetail(Show show) {
+        if (show == null) {
+            return null;
+        }
+        AdminShowDetailResponse dto = new AdminShowDetailResponse();
+        dto.setId(show.getId());
+        dto.setMovie(movieMapper.toAdminDetail(show.getMovie()));
+        dto.setHall(hallMapper.toAdminDetail(show.getHall()));
         dto.setStatus(show.getStatus());
         dto.setShowDate(show.getShowDate());
         dto.setShowTime(show.getShowTime());
@@ -69,6 +99,30 @@ public class ShowMapper {
         dto.setCreatedAt(show.getCreatedAt());
         dto.setUpdatedAt(show.getUpdatedAt());
         return dto;
+    }
+
+    private void mapSummary(Show show, PublicShowSummaryResponse dto) {
+        dto.setId(show.getId());
+        dto.setMovieId(show.getMovie().getId());
+        dto.setMovieTitle(show.getMovie().getTitle());
+        dto.setHallId(show.getHall().getId());
+        dto.setHallName(show.getHall().getName());
+        dto.setStatus(show.getStatus());
+        dto.setShowDate(show.getShowDate());
+        dto.setShowTime(show.getShowTime());
+        dto.setEndTime(show.getEndTime());
+    }
+
+    private void mapSummary(Show show, AdminShowSummaryResponse dto) {
+        dto.setId(show.getId());
+        dto.setMovieId(show.getMovie().getId());
+        dto.setMovieTitle(show.getMovie().getTitle());
+        dto.setHallId(show.getHall().getId());
+        dto.setHallName(show.getHall().getName());
+        dto.setStatus(show.getStatus());
+        dto.setShowDate(show.getShowDate());
+        dto.setShowTime(show.getShowTime());
+        dto.setEndTime(show.getEndTime());
     }
 
     /**

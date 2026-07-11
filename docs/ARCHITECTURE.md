@@ -99,11 +99,13 @@ Important DTOs:
 | `SeatHoldRequest`, `BookingRequest` | Customer booking workflow |
 | `PublicMovieSummaryResponse`, `PublicMovieDetailResponse` | Public movie browsing responses |
 | `AdminMovieSummaryResponse`, `AdminMovieDetailResponse` | Admin movie management responses |
-| `MovieResponse` | Legacy nested movie response used inside `ShowResponse` |
+| `MovieResponse` | Legacy movie response retained for compatibility |
 | `PublicHallSummaryResponse`, `PublicHallDetailResponse` | Public hall browsing responses |
 | `AdminHallSummaryResponse`, `AdminHallDetailResponse` | Admin hall management responses |
 | `AdminSeatTemplateSummaryResponse`, `AdminSeatLayoutResponse` | Admin generated seat-template layout responses |
-| `ShowResponse`, `SeatResponse`, `BookingResponse` | API responses |
+| `PublicShowSummaryResponse`, `PublicShowDetailResponse` | Public show browsing responses |
+| `AdminShowSummaryResponse`, `AdminShowDetailResponse` | Admin show management responses |
+| `SeatResponse`, `BookingResponse` | Seat and booking API responses |
 | `UserResponse` | Authenticated customer profile response |
 | `AdminUserSummaryResponse`, `AdminUserDetailResponse` | Admin user lookup responses |
 | `PageResponse<T>` | Shared paginated list wrapper returned inside `ApiResponse<T>` |
@@ -144,6 +146,8 @@ Templates are read-only and generation is one-time by default. Explicit regenera
 
 Show status controls seat visibility rather than mutating every historical seat. Public seat retrieval returns `404` for missing, cancelled, or completed shows and transactionally clears expired locks before mapping public DTOs. Holds and booking creation reject cancelled/completed shows. Cancelling a show retains its seats, and `SeatStatus.CANCELLED` is currently unused.
 
+Show reads are audience-specific. Public show lists use `PublicShowSummaryResponse`, public detail uses `PublicShowDetailResponse`, and both hide cancelled/completed shows plus shows linked to a non-`NOW_SHOWING` movie or inactive hall. Admin lists use `AdminShowSummaryResponse` and admin detail/create/update use `AdminShowDetailResponse`; admin reads include every show status and historical movie/hall associations. `ShowService` exposes separate public and admin read methods, while `ShowMapper` owns all audience-specific response construction.
+
 Public `SeatResponse` remains separate because it represents a concrete, priced, availability-bearing seat for one show rather than a reusable hall template. `GET /api/public/shows/{showId}/seats` intentionally remains non-paginated and position-ordered because auditorium rendering requires the complete seat map in one response.
 
 Admin user lists use `PageResponse<AdminUserSummaryResponse>` and support bounded pagination, allowlisted sorting, case-insensitive search across `name` and `email`, and optional filters for role, auth provider, enabled, locked, and email verification state.
@@ -168,7 +172,7 @@ Mappers are Spring components and convert between entities and DTOs:
 | `MovieMapper` | Movie request mapping plus public/admin summary and detail response mapping |
 | `HallMapper` | Hall request mapping plus public/admin summary and detail response mapping |
 | `SeatTemplateMapper` | Seat-template summaries and complete admin hall-layout responses |
-| `ShowMapper` | Show mapping with nested movie and hall responses |
+| `ShowMapper` | Public/admin show summary and detail mapping using audience-safe nested movie and hall DTOs |
 | `SeatMapper` | Seat entity to public seat response |
 | `BookingMapper` | Booking response with selected seats and total price |
 | `UserMapper` | User profile, admin user summary, and admin user detail responses |

@@ -11,7 +11,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.chalchitraghar.modules.shows.dto.request.ShowRequest;
-import com.chalchitraghar.modules.shows.dto.response.ShowResponse;
+import com.chalchitraghar.modules.shows.dto.response.AdminShowDetailResponse;
+import com.chalchitraghar.modules.shows.dto.response.AdminShowSummaryResponse;
+import com.chalchitraghar.modules.shows.dto.response.PublicShowDetailResponse;
+import com.chalchitraghar.modules.shows.dto.response.PublicShowSummaryResponse;
 import com.chalchitraghar.shared.exception.HallConflictException;
 import com.chalchitraghar.shared.exception.ResourceNotFoundException;
 import com.chalchitraghar.modules.shows.mapper.ShowMapper;
@@ -52,7 +55,7 @@ public class ShowServiceImpl implements ShowService {
     }
 
     @Override
-    public ShowResponse addShow(ShowRequest dto) {
+    public AdminShowDetailResponse addShow(ShowRequest dto) {
         Movie movie = movieRepository.findById(dto.getMovieId())
                 .orElseThrow(() -> new ResourceNotFoundException("Movie", dto.getMovieId()));
         if (movie.getStatus() != MovieStatus.NOW_SHOWING) {
@@ -67,11 +70,11 @@ public class ShowServiceImpl implements ShowService {
         Show show = showMapper.toEntity(dto, movie, hall);
         Show saved = showRepository.save(show);
         seatGenerationService.generateSeatsForShow(saved.getId());
-        return showMapper.toResponseDto(saved);
+        return showMapper.toAdminDetail(saved);
     }
 
     @Override
-    public ShowResponse updateShow(Long id, ShowRequest dto) {
+    public AdminShowDetailResponse updateShow(Long id, ShowRequest dto) {
         Show show = showRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Show", id));
         boolean hallChanges = !show.getHall().getId().equals(dto.getHallId());
         if (hallChanges && bookingRepository.existsByShowId(id)) {
@@ -92,7 +95,7 @@ public class ShowServiceImpl implements ShowService {
         }
         validateHallAvailability(dto.getHallId(), dto.getShowDate(), dto.getShowTime(), dto.getEndTime(), id);
         showMapper.updateEntityFromDto(show, dto, movie, hall);
-        return showMapper.toResponseDto(showRepository.save(show));
+        return showMapper.toAdminDetail(showRepository.save(show));
     }
 
     @Override
@@ -104,46 +107,66 @@ public class ShowServiceImpl implements ShowService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<ShowResponse> getAllShows() {
-        return showRepository.findAll().stream().map(showMapper::toResponseDto).collect(Collectors.toList());
+    public List<PublicShowSummaryResponse> getPublicShows() {
+        return showRepository.findAll().stream()
+                .filter(this::isPubliclyVisible)
+                .map(showMapper::toPublicSummary)
+                .collect(Collectors.toList());
     }
 
     @Override
     @Transactional(readOnly = true)
-    public ShowResponse getShowById(Long id) {
+    public PublicShowDetailResponse getPublicShowById(Long id) {
         Show show = showRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Show", id));
-        if (show.getStatus() == ShowStatus.CANCELLED || show.getStatus() == ShowStatus.COMPLETED) {
+        if (!isPubliclyVisible(show)) {
             throw new ResourceNotFoundException("Show", id);
         }
-        if (show.getMovie().getStatus() != MovieStatus.NOW_SHOWING) {
-            throw new ResourceNotFoundException("Show", id);
-        }
-        return showMapper.toResponseDto(show);
+        return showMapper.toPublicDetail(show);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<ShowResponse> getShowsByHall(Long hallId) {
-        return showRepository.findByHallId(hallId).stream().map(showMapper::toResponseDto).collect(Collectors.toList());
+    public List<PublicShowSummaryResponse> getPublicShowsByMovie(Long movieId) {
+        return showRepository.findByMovieId(movieId).stream()
+                .filter(this::isPubliclyVisible)
+                .map(showMapper::toPublicSummary)
+                .collect(Collectors.toList());
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<ShowResponse> getShowsByMovie(Long movieId) {
-        return showRepository.findByMovieId(movieId).stream().map(showMapper::toResponseDto).collect(Collectors.toList());
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public List<ShowResponse> getShowsByMovieAndShowDate(Long movieId, LocalDate showDate) {
+    public List<PublicShowSummaryResponse> getPublicShowsByMovieAndShowDate(Long movieId, LocalDate showDate) {
         Movie movie = movieRepository.findById(movieId)
                 .orElseThrow(() -> new ResourceNotFoundException("Movie", movieId));
         if (movie.getStatus() != MovieStatus.NOW_SHOWING) {
             return List.of();
         }
         return showRepository.findByMovieIdAndShowDate(movieId, showDate).stream()
-                .filter(show -> show.getStatus() != ShowStatus.CANCELLED && show.getStatus() != ShowStatus.COMPLETED)
-                .map(showMapper::toResponseDto)
+                .filter(this::isPubliclyVisible)
+                .map(showMapper::toPublicSummary)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<AdminShowSummaryResponse> getAdminShows() {
+        return showRepository.findAll().stream()
+                .map(showMapper::toAdminSummary)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public AdminShowDetailResponse getAdminShowById(Long id) {
+        Show show = showRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Show", id));
+        return showMapper.toAdminDetail(show);
+    }
+
+    private boolean isPubliclyVisible(Show show) {
+        return show.getStatus() != ShowStatus.CANCELLED
+                && show.getStatus() != ShowStatus.COMPLETED
+                && show.getMovie().getStatus() == MovieStatus.NOW_SHOWING
+                && show.getHall().getStatus() == Status.ACTIVE;
     }
 }

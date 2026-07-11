@@ -14,7 +14,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.chalchitraghar.modules.shows.dto.request.ShowRequest;
-import com.chalchitraghar.modules.shows.dto.response.ShowResponse;
+import com.chalchitraghar.modules.shows.dto.response.AdminShowDetailResponse;
+import com.chalchitraghar.modules.shows.dto.response.AdminShowSummaryResponse;
 import com.chalchitraghar.modules.shows.service.ShowService;
 import com.chalchitraghar.shared.response.ApiResponse;
 
@@ -38,27 +39,27 @@ public class AdminShowController {
 
     @GetMapping
     @Operation(summary = "List shows for admin")
-    public ResponseEntity<ApiResponse<List<ShowResponse>>> getAllShows() {
-        return ResponseEntity.ok(ApiResponse.success("Shows fetched successfully", showService.getAllShows()));
+    public ResponseEntity<ApiResponse<List<AdminShowSummaryResponse>>> getAllShows() {
+        return ResponseEntity.ok(ApiResponse.success("Shows fetched successfully", showService.getAdminShows()));
     }
 
     @GetMapping("/{id}")
     @Operation(summary = "Get show by ID for admin")
-    public ResponseEntity<ApiResponse<ShowResponse>> getShowById(@PathVariable Long id) {
-        return ResponseEntity.ok(ApiResponse.success("Show fetched successfully", showService.getShowById(id)));
+    public ResponseEntity<ApiResponse<AdminShowDetailResponse>> getShowById(@PathVariable Long id) {
+        return ResponseEntity.ok(ApiResponse.success("Show fetched successfully", showService.getAdminShowById(id)));
     }
 
     @PostMapping
     @Operation(summary = "Create a show", description = "Creates a show and generates seats from hall seat templates.")
-    public ResponseEntity<ApiResponse<ShowResponse>> createShow(@Valid @RequestBody ShowRequest dto) {
-        ShowResponse created = showService.addShow(dto);
+    public ResponseEntity<ApiResponse<AdminShowDetailResponse>> createShow(@Valid @RequestBody ShowRequest dto) {
+        AdminShowDetailResponse created = showService.addShow(dto);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success("Show created successfully", created));
     }
 
     @PutMapping("/{id}")
     @Operation(summary = "Update a show")
-    public ResponseEntity<ApiResponse<ShowResponse>> updateShow(@PathVariable Long id, @Valid @RequestBody ShowRequest dto) {
+    public ResponseEntity<ApiResponse<AdminShowDetailResponse>> updateShow(@PathVariable Long id, @Valid @RequestBody ShowRequest dto) {
         return ResponseEntity.ok(ApiResponse.success("Show updated successfully", showService.updateShow(id, dto)));
     }
 

@@ -516,7 +516,7 @@ Response `200`: list of `PublicHallSummaryResponse`.
 | Field | Value |
 | --- | --- |
 | Authentication | Public |
-| Description | Lists all shows. |
+| Description | Lists publicly visible shows. Cancelled/completed shows and shows linked to a non-now-showing movie or inactive hall are excluded. |
 | Request body | None |
 | Validation | None |
 
@@ -529,14 +529,14 @@ Response `200`:
   "data": [
     {
       "id": 1,
-      "movie": { "id": 1, "title": "Jatra", "status": "NOW_SHOWING" },
-      "hall": { "id": 1, "name": "Hall A", "status": "ACTIVE" },
+      "movieId": 1,
+      "movieTitle": "Jatra",
+      "hallId": 1,
+      "hallName": "Hall A",
       "status": "SCHEDULED",
       "showDate": "2026-08-20",
       "showTime": "18:30:00",
-      "endTime": "21:00:00",
-      "createdAt": "2026-07-01T10:00:00",
-      "updatedAt": "2026-07-01T10:00:00"
+      "endTime": "21:00:00"
     }
   ],
   "errors": []
@@ -548,11 +548,11 @@ Response `200`:
 | Field | Value |
 | --- | --- |
 | Authentication | Public |
-| Description | Fetches one active public show by ID. Cancelled, completed, or non-now-showing movie shows are treated as not found. |
+| Description | Fetches one public show by ID. Cancelled/completed shows and shows linked to a non-now-showing movie or inactive hall are treated as not found. |
 | Request body | None |
 | Validation | `id` must be numeric |
 
-Response `200`: `ShowResponse`.
+Response `200`: `PublicShowDetailResponse`.
 
 Errors: `400` invalid ID type, `404` show not found.
 
@@ -561,11 +561,11 @@ Errors: `400` invalid ID type, `404` show not found.
 | Field | Value |
 | --- | --- |
 | Authentication | Public |
-| Description | Lists shows for a movie ID. |
+| Description | Lists publicly visible shows for a movie ID. |
 | Request body | None |
 | Validation | `movieId` must be numeric |
 
-Response `200`: list of `ShowResponse`.
+Response `200`: list of `PublicShowSummaryResponse`.
 
 ### `GET /api/public/shows?movieId={movieId}&date={date}`
 
@@ -576,7 +576,7 @@ Response `200`: list of `ShowResponse`.
 | Request body | None |
 | Validation | `movieId` numeric, `date` parseable as `yyyy-MM-dd` |
 
-Response `200`: list of `ShowResponse`.
+Response `200`: list of `PublicShowSummaryResponse`.
 
 Errors: `400` missing or invalid query parameters.
 
@@ -1186,20 +1186,20 @@ Errors: `404` hall or existing layout not found; `409` inactive/unsupported hall
 | Request body | None |
 | Validation | ADMIN token |
 
-Response `200`: list of `ShowResponse`.
+Response `200`: list of `AdminShowSummaryResponse`. All show statuses and historical movie/hall associations are visible.
 
 #### `GET /api/admin/shows/{id}`
 
 | Field | Value |
 | --- | --- |
 | Authentication | ADMIN |
-| Description | Fetches one show by ID using the same service rules as public show lookup. |
+| Description | Fetches one show by ID for administration, including scheduled, running, completed, and cancelled shows. |
 | Request body | None |
 | Validation | `id` numeric |
 
-Response `200`: `ShowResponse`.
+Response `200`: `AdminShowDetailResponse`.
 
-Errors: `404` show not found, cancelled, completed, or linked to a non-now-showing movie.
+Errors: `404` show not found.
 
 #### `POST /api/admin/shows`
 
@@ -1232,7 +1232,7 @@ Validation:
 | Schedule | Must not overlap another non-cancelled show in the same hall/date |
 | Seat templates | The hall must already have seat templates |
 
-Response `201`: `ShowResponse`.
+Response `201`: `AdminShowDetailResponse`.
 
 Errors: `400` validation, `404` movie/hall/seat template not found, `409` inactive hall, non-now-showing movie, or overlapping show.
 
@@ -1244,7 +1244,7 @@ Errors: `400` validation, `404` movie/hall/seat template not found, `409` inacti
 | Description | Updates a show after validating movie status, hall status, and schedule conflicts. |
 | Validation | Same body rules as create plus numeric `id` |
 
-Response `200`: `ShowResponse`.
+Response `200`: `AdminShowDetailResponse`.
 
 Errors: `400` validation, `404` show/movie/hall not found, `409` schedule conflict or invalid movie/hall status.
 
@@ -1525,12 +1525,15 @@ User response separation:
 | `PublicMovieDetailResponse` | `id`, `title`, `genre`, `durationMinutes`, `language`, `description`, `posterUrl`, `releaseDate`, `status` |
 | `AdminMovieSummaryResponse` | `id`, `title`, `genre`, `language`, `releaseDate`, `status` |
 | `AdminMovieDetailResponse` | `id`, `title`, `genre`, `durationMinutes`, `language`, `description`, `posterUrl`, `releaseDate`, `status`, `createdAt`, `updatedAt` |
-| `MovieResponse` | Legacy nested movie response currently used inside `ShowResponse`: `id`, `title`, `genre`, `durationMinutes`, `language`, `description`, `posterUrl`, `releaseDate`, `status`, `createdAt`, `updatedAt` |
+| `MovieResponse` | Legacy movie response retained for compatibility; new audience-specific contracts use public/admin movie DTOs |
 | `PublicHallSummaryResponse` | `id`, `name`, `capacity` |
 | `PublicHallDetailResponse` | `id`, `name`, `capacity`, `status` |
 | `AdminHallSummaryResponse` | `id`, `name`, `capacity`, `layoutRef`, `status` |
 | `AdminHallDetailResponse` | `id`, `name`, `capacity`, `layoutRef`, `status`, `createdAt`, `updatedAt` |
-| `ShowResponse` | `id`, `movie`, `hall`, `status`, `showDate`, `showTime`, `endTime`, `createdAt`, `updatedAt` |
+| `PublicShowSummaryResponse` | `id`, `movieId`, `movieTitle`, `hallId`, `hallName`, `status`, `showDate`, `showTime`, `endTime` |
+| `PublicShowDetailResponse` | `id`, public `movie`, public `hall`, `status`, `showDate`, `showTime`, `endTime` |
+| `AdminShowSummaryResponse` | `id`, `movieId`, `movieTitle`, `hallId`, `hallName`, `status`, `showDate`, `showTime`, `endTime` |
+| `AdminShowDetailResponse` | `id`, admin `movie`, admin `hall`, `status`, `showDate`, `showTime`, `endTime`, `createdAt`, `updatedAt` |
 | `SeatResponse` | `id`, `rowLabel`, `seatNumber`, `seatCode`, `seatType`, `price`, `positionIndex`, `seatStatus` |
 | `BookingResponse` | `bookingId`, `bookingStatus`, `showId`, `movieName`, `hallName`, `showDateTime`, `startTime`, `endTime`, `selectedSeats`, `totalPrice`, `bookingTime` |
 | `UserResponse` | `id`, `name`, `email`, `role` |

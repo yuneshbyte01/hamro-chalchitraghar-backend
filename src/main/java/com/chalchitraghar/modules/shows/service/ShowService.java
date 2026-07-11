@@ -4,26 +4,31 @@ import java.time.LocalDate;
 import java.util.List;
 
 import com.chalchitraghar.modules.shows.dto.request.ShowRequest;
-import com.chalchitraghar.modules.shows.dto.response.ShowResponse;
+import com.chalchitraghar.modules.shows.dto.response.AdminShowDetailResponse;
+import com.chalchitraghar.modules.shows.dto.response.AdminShowSummaryResponse;
+import com.chalchitraghar.modules.shows.dto.response.PublicShowDetailResponse;
+import com.chalchitraghar.modules.shows.dto.response.PublicShowSummaryResponse;
 
 /**
  * Service for show management operations.
  */
 public interface ShowService {
 
-    ShowResponse addShow(ShowRequest dto);
+    AdminShowDetailResponse addShow(ShowRequest dto);
 
-    ShowResponse updateShow(Long id, ShowRequest dto);
+    AdminShowDetailResponse updateShow(Long id, ShowRequest dto);
 
     void deleteShow(Long id);
 
-    List<ShowResponse> getAllShows();
+    List<PublicShowSummaryResponse> getPublicShows();
 
-    ShowResponse getShowById(Long id);
+    PublicShowDetailResponse getPublicShowById(Long id);
 
-    List<ShowResponse> getShowsByHall(Long hallId);
+    List<PublicShowSummaryResponse> getPublicShowsByMovie(Long movieId);
 
-    List<ShowResponse> getShowsByMovie(Long movieId);
+    List<PublicShowSummaryResponse> getPublicShowsByMovieAndShowDate(Long movieId, LocalDate showDate);
 
-    List<ShowResponse> getShowsByMovieAndShowDate(Long movieId, LocalDate showDate);
+    List<AdminShowSummaryResponse> getAdminShows();
+
+    AdminShowDetailResponse getAdminShowById(Long id);
 }

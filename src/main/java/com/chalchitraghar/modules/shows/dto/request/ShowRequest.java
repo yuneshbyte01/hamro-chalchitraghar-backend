@@ -1,8 +1,5 @@
 package com.chalchitraghar.modules.shows.dto.request;
 
-import com.chalchitraghar.modules.halls.entity.Hall;
-import com.chalchitraghar.modules.movies.entity.Movie;
-import com.chalchitraghar.modules.shows.entity.Show;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;

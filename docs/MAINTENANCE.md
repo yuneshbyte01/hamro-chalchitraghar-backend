@@ -92,6 +92,8 @@ Rules:
 
 ## Add a DTO
 
+Keep response DTOs separated by audience when visibility or field exposure differs. Shows use public summary/detail contracts without audit fields and admin summary/detail contracts with full administrative nested DTOs. Controllers must delegate conversion to `ShowMapper`; public and admin show reads must call their separate `ShowService` methods so public visibility rules cannot affect historical admin access.
+
 Place request DTOs under:
 
 ```text

@@ -10,7 +10,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.chalchitraghar.modules.shows.dto.response.ShowResponse;
+import com.chalchitraghar.modules.shows.dto.response.PublicShowDetailResponse;
+import com.chalchitraghar.modules.shows.dto.response.PublicShowSummaryResponse;
 import com.chalchitraghar.modules.shows.service.ShowService;
 import com.chalchitraghar.shared.response.ApiResponse;
 
@@ -31,29 +32,29 @@ public class ShowController {
 
     @GetMapping
     @Operation(summary = "List public shows")
-    public ResponseEntity<ApiResponse<List<ShowResponse>>> getAllShows() {
-        return ResponseEntity.ok(ApiResponse.success("Shows fetched successfully", showService.getAllShows()));
+    public ResponseEntity<ApiResponse<List<PublicShowSummaryResponse>>> getAllShows() {
+        return ResponseEntity.ok(ApiResponse.success("Shows fetched successfully", showService.getPublicShows()));
     }
 
     @GetMapping("/{id}")
     @Operation(summary = "Get a public show by ID")
-    public ResponseEntity<ApiResponse<ShowResponse>> getShowById(@PathVariable Long id) {
-        return ResponseEntity.ok(ApiResponse.success("Show fetched successfully", showService.getShowById(id)));
+    public ResponseEntity<ApiResponse<PublicShowDetailResponse>> getShowById(@PathVariable Long id) {
+        return ResponseEntity.ok(ApiResponse.success("Show fetched successfully", showService.getPublicShowById(id)));
     }
 
     @GetMapping("/movie/{movieId}")
     @Operation(summary = "List shows for a movie")
-    public ResponseEntity<ApiResponse<List<ShowResponse>>> getShowsByMovie(@PathVariable Long movieId) {
-        return ResponseEntity.ok(ApiResponse.success("Movie shows fetched successfully", showService.getShowsByMovie(movieId)));
+    public ResponseEntity<ApiResponse<List<PublicShowSummaryResponse>>> getShowsByMovie(@PathVariable Long movieId) {
+        return ResponseEntity.ok(ApiResponse.success("Movie shows fetched successfully", showService.getPublicShowsByMovie(movieId)));
     }
 
     @GetMapping(params = {"movieId", "date"})
     @Operation(summary = "List shows for a movie and date")
-    public ResponseEntity<ApiResponse<List<ShowResponse>>> getShowsByMovieAndDate(
+    public ResponseEntity<ApiResponse<List<PublicShowSummaryResponse>>> getShowsByMovieAndDate(
             @RequestParam Long movieId,
             @RequestParam LocalDate date) {
         return ResponseEntity.ok(ApiResponse.success(
                 "Movie shows fetched successfully",
-                showService.getShowsByMovieAndShowDate(movieId, date)));
+                showService.getPublicShowsByMovieAndShowDate(movieId, date)));
     }
 }
