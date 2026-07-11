@@ -469,3 +469,13 @@ LOCAL user lifecycle:
 | Booking creation | Allows available seats or seats held by the same user |
 | Booking confirmation | Only `INITIATED` bookings can be confirmed |
 | Booking cancellation | Only owner can cancel an `INITIATED` booking before show time |
+## Payment-1 Maintenance Rules
+
+- Keep payment business logic in `modules/payments`; controllers only authenticate, delegate, and wrap responses.
+- Generate references only through `PaymentReferenceGenerator`; never accept a payment reference from a request body.
+- Preserve exact `BigDecimal`/`NUMERIC(12,2)` amounts and three-character currencies.
+- Keep customer, staff, and admin DTOs separate and mapping centralized in `PaymentMapper`.
+- Customer lookups must remain owner-only and return `404` for missing and non-owned references.
+- Payment-1 endpoints are read-only. Do not create payment rows during booking confirmation.
+- Do not treat the placeholder status/provider/method enums as implemented provider behavior.
+- Never persist credentials, payment secrets, sensitive account/card data, or raw provider payloads in `payments`.

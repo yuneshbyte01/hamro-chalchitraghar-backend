@@ -443,3 +443,22 @@ Migration rules:
 - Do not edit migrations that have already been applied to a shared database.
 - Keep entity mappings, DTOs, repositories, and documentation in sync with migrations.
 - Run tests after adding migrations.
+## Payments
+
+`payments` is the Payment-1 aggregate table. Many attempts may belong to one booking to support future retries. No payment row is currently created automatically or through a public API.
+
+| Column | Type | Rules |
+|---|---|---|
+| `booking_id` | `BIGINT` | Required FK to `bookings(id)` |
+| `payment_reference` | `VARCHAR(50)` | Required, unique, immutable application value in `PAY-YYYYMMDD-XXXXXXXX` format |
+| `provider` | `VARCHAR(30)` | `LOCAL`, `ESEWA`, or `KHALTI` |
+| `method` | `VARCHAR(30)` | `ONLINE` or `CASH` |
+| `status` | `VARCHAR(30)` | `CREATED`, `PENDING`, `SUCCESS`, `FAILED`, `EXPIRED`, `CANCELLED`, or `REFUNDED` |
+| `amount` | `NUMERIC(12,2)` | Required and greater than zero |
+| `currency` | `VARCHAR(3)` | Required three-character code |
+| `provider_transaction_id` | `VARCHAR(255)` | Nullable; repository lookup is scoped by provider |
+| `idempotency_key` | `VARCHAR(255)` | Nullable foundation for Payment-2 |
+| failure fields | varying | Nullable code/message |
+| lifecycle timestamps | `TIMESTAMP` | Initiated/completed/failed/expired/cancelled as applicable |
+
+Indexes cover booking, status, provider/status, creation time, and provider transaction ID. Payment reference uniqueness is enforced by the database. Provider transaction IDs are not yet constrained because provider integration is outside Payment-1.

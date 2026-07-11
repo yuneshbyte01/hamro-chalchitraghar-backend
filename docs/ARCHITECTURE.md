@@ -397,3 +397,10 @@ The Dockerfile builds the application with Maven in a JDK image, then runs the p
 9. Mapper returns DTOs.
 10. Controller wraps response in `ApiResponse<T>`.
 11. `GlobalExceptionHandler` converts exceptions into standard error responses.
+## Payments Module (Payment-1)
+
+`modules/payments` owns the payment aggregate, enums, persistence, reference generation, audience-specific read service, and centralized mapper. Controllers remain separated under customer, staff, and admin application packages. Customer, staff, and admin DTOs are deliberately distinct even where their current shapes overlap.
+
+One booking may have many payment attempts. The domain defines placeholder lifecycle states and providers, but Payment-1 has no initiation, provider calls, callbacks, cash collection, verification, refund processing, reconciliation, or automatic booking confirmation. Existing `PaymentAuthorizationService` and its permissive local implementation remain unchanged until a later phase.
+
+Customer reads always constrain results to the authenticated booking owner and obscure non-owned references as `404`. Staff and admin reads expose safe operational identity fields under their existing route policies.
