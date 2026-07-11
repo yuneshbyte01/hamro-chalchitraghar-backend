@@ -5,12 +5,18 @@ import com.chalchitraghar.modules.shows.service.ShowService;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
+import java.util.Arrays;
+import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.chalchitraghar.modules.shows.dto.request.ShowRequest;
+import com.chalchitraghar.modules.shows.dto.request.ShowSearchCriteria;
 import com.chalchitraghar.modules.shows.dto.response.AdminShowDetailResponse;
 import com.chalchitraghar.modules.shows.dto.response.AdminShowSummaryResponse;
 import com.chalchitraghar.modules.shows.dto.response.PublicShowDetailResponse;
@@ -30,6 +36,8 @@ import com.chalchitraghar.modules.shows.repository.ShowRepository;
 import com.chalchitraghar.modules.seats.repository.SeatRepository;
 import com.chalchitraghar.modules.bookings.repository.BookingRepository;
 import com.chalchitraghar.shared.exception.ShowConflictException;
+import com.chalchitraghar.modules.shows.specification.ShowSpecification;
+import com.chalchitraghar.shared.response.PageResponse;
 
 import lombok.RequiredArgsConstructor;
 
@@ -37,6 +45,9 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 @Transactional
 public class ShowServiceImpl implements ShowService {
+
+    private static final Set<String> SHOW_SORT_FIELDS = Set.of(
+            "showDate", "showTime", "endTime", "status", "createdAt", "updatedAt");
 
     private final ShowRepository showRepository;
     private final MovieRepository movieRepository;
@@ -107,11 +118,13 @@ public class ShowServiceImpl implements ShowService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<PublicShowSummaryResponse> getPublicShows() {
-        return showRepository.findAll().stream()
-                .filter(this::isPubliclyVisible)
+    public PageResponse<PublicShowSummaryResponse> getPublicShows(
+            ShowSearchCriteria criteria, int page, int size, String sortBy, String sortDir) {
+        Page<Show> shows = searchShows(criteria, page, size, sortBy, sortDir, true);
+        List<PublicShowSummaryResponse> content = shows.getContent().stream()
                 .map(showMapper::toPublicSummary)
-                .collect(Collectors.toList());
+                .toList();
+        return PageResponse.from(shows, content);
     }
 
     @Override
@@ -149,10 +162,13 @@ public class ShowServiceImpl implements ShowService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<AdminShowSummaryResponse> getAdminShows() {
-        return showRepository.findAll().stream()
+    public PageResponse<AdminShowSummaryResponse> getAdminShows(
+            ShowSearchCriteria criteria, int page, int size, String sortBy, String sortDir) {
+        Page<Show> shows = searchShows(criteria, page, size, sortBy, sortDir, false);
+        List<AdminShowSummaryResponse> content = shows.getContent().stream()
                 .map(showMapper::toAdminSummary)
-                .collect(Collectors.toList());
+                .toList();
+        return PageResponse.from(shows, content);
     }
 
     @Override
@@ -168,5 +184,50 @@ public class ShowServiceImpl implements ShowService {
                 && show.getStatus() != ShowStatus.COMPLETED
                 && show.getMovie().getStatus() == MovieStatus.NOW_SHOWING
                 && show.getHall().getStatus() == Status.ACTIVE;
+    }
+
+    private Page<Show> searchShows(
+            ShowSearchCriteria criteria,
+            int page,
+            int size,
+            String sortBy,
+            String sortDir,
+            boolean publicOnly) {
+        if (page < 0) {
+            throw new IllegalArgumentException("Page must be zero or greater");
+        }
+        if (size < 1) {
+            throw new IllegalArgumentException("Size must be at least 1");
+        }
+        if (!SHOW_SORT_FIELDS.contains(sortBy)) {
+            throw new IllegalArgumentException("Invalid sortBy. Allowed values: "
+                    + String.join(", ", SHOW_SORT_FIELDS));
+        }
+        Sort.Direction direction = parseSortDirection(sortDir);
+        ShowStatus status = publicOnly ? null : parseStatus(criteria.status());
+        PageRequest pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
+        return showRepository.findAll(ShowSpecification.search(criteria, status, publicOnly), pageable);
+    }
+
+    private Sort.Direction parseSortDirection(String sortDir) {
+        if ("asc".equalsIgnoreCase(sortDir)) {
+            return Sort.Direction.ASC;
+        }
+        if ("desc".equalsIgnoreCase(sortDir)) {
+            return Sort.Direction.DESC;
+        }
+        throw new IllegalArgumentException("Invalid sortDir. Allowed values: asc, desc");
+    }
+
+    private ShowStatus parseStatus(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        return Arrays.stream(ShowStatus.values())
+                .filter(status -> status.name().equalsIgnoreCase(value.trim()))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Invalid status. Allowed values: "
+                                + String.join(", ", Arrays.stream(ShowStatus.values()).map(Enum::name).toList())));
     }
 }

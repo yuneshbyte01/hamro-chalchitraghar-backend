@@ -1,6 +1,7 @@
 package com.chalchitraghar.modules.shows.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -14,7 +15,7 @@ import com.chalchitraghar.modules.shows.entity.Show;
 /**
  * Repository interface for Show entity persistence operations.
  */
-public interface ShowRepository extends JpaRepository<Show, Long> {
+public interface ShowRepository extends JpaRepository<Show, Long>, JpaSpecificationExecutor<Show> {
 
     boolean existsByHallId(Long hallId);
 

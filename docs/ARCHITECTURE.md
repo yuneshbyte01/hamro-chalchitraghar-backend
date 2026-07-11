@@ -148,6 +148,8 @@ Show status controls seat visibility rather than mutating every historical seat.
 
 Show reads are audience-specific. Public show lists use `PublicShowSummaryResponse`, public detail uses `PublicShowDetailResponse`, and both hide cancelled/completed shows plus shows linked to a non-`NOW_SHOWING` movie or inactive hall. Admin lists use `AdminShowSummaryResponse` and admin detail/create/update use `AdminShowDetailResponse`; admin reads include every show status and historical movie/hall associations. `ShowService` exposes separate public and admin read methods, while `ShowMapper` owns all audience-specific response construction.
 
+Show list endpoints return `PageResponse<T>` and use `ShowSpecification` so visibility, case-insensitive movie-title/hall-name search, and combinable filters are applied before pagination. Public lists filter by movie, hall, and show date; admin lists additionally filter by show status. Both allow sorting by `showDate`, `showTime`, `endTime`, `status`, `createdAt`, or `updatedAt`, with `showDate` ascending as the default.
+
 Public `SeatResponse` remains separate because it represents a concrete, priced, availability-bearing seat for one show rather than a reusable hall template. `GET /api/public/shows/{showId}/seats` intentionally remains non-paginated and position-ordered because auditorium rendering requires the complete seat map in one response.
 
 Admin user lists use `PageResponse<AdminUserSummaryResponse>` and support bounded pagination, allowlisted sorting, case-insensitive search across `name` and `email`, and optional filters for role, auth provider, enabled, locked, and email verification state.

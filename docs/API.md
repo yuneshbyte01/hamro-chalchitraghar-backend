@@ -516,9 +516,11 @@ Response `200`: list of `PublicHallSummaryResponse`.
 | Field | Value |
 | --- | --- |
 | Authentication | Public |
-| Description | Lists publicly visible shows. Cancelled/completed shows and shows linked to a non-now-showing movie or inactive hall are excluded. |
+| Description | Lists publicly visible shows in a `PageResponse`. Cancelled/completed shows and shows linked to a non-now-showing movie or inactive hall are excluded. |
 | Request body | None |
-| Validation | None |
+| Validation | `page >= 0`, `size >= 1`, valid sorting and ISO `showDate` |
+
+Query parameters: `page` (default `0`), `size` (default `20`), `sortBy` (default `showDate`), `sortDir` (default `asc`), `search`, `movieId`, `hallId`, and `showDate`. Search is case-insensitive across movie title and hall name. Filters can be combined. Allowed sort fields are `showDate`, `showTime`, `endTime`, `status`, `createdAt`, and `updatedAt`; directions are `asc` and `desc`.
 
 Response `200`:
 
@@ -526,8 +528,8 @@ Response `200`:
 {
   "success": true,
   "message": "Shows fetched successfully",
-  "data": [
-    {
+  "data": {
+    "content": [{
       "id": 1,
       "movieId": 1,
       "movieTitle": "Jatra",
@@ -537,8 +539,13 @@ Response `200`:
       "showDate": "2026-08-20",
       "showTime": "18:30:00",
       "endTime": "21:00:00"
-    }
-  ],
+    }],
+    "page": 0,
+    "size": 20,
+    "totalElements": 1,
+    "totalPages": 1,
+    "last": true
+  },
   "errors": []
 }
 ```
@@ -1182,11 +1189,13 @@ Errors: `404` hall or existing layout not found; `409` inactive/unsupported hall
 | Field | Value |
 | --- | --- |
 | Authentication | ADMIN |
-| Description | Lists all shows for admin. |
+| Description | Lists all shows for admin in a `PageResponse`. |
 | Request body | None |
-| Validation | ADMIN token |
+| Validation | ADMIN token, `page >= 0`, `size >= 1`, valid status/sorting and ISO `showDate` |
 
-Response `200`: list of `AdminShowSummaryResponse`. All show statuses and historical movie/hall associations are visible.
+Query parameters: `page` (default `0`), `size` (default `20`), `sortBy` (default `showDate`), `sortDir` (default `asc`), `search`, `movieId`, `hallId`, `status`, and `showDate`. Search is case-insensitive across movie title and hall name. Filters can be combined. Status supports `SCHEDULED`, `RUNNING`, `COMPLETED`, and `CANCELLED`. Allowed sort fields are `showDate`, `showTime`, `endTime`, `status`, `createdAt`, and `updatedAt`; directions are `asc` and `desc`.
+
+Response `200`: `PageResponse<AdminShowSummaryResponse>`. All show statuses and historical movie/hall associations are visible.
 
 #### `GET /api/admin/shows/{id}`
 

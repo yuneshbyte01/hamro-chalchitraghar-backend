@@ -36,13 +36,16 @@ class ShowApiIntegrationTest extends AbstractIntegrationTest {
 
         mockMvc.perform(get("/api/public/shows"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.length()").value(1))
-                .andExpect(jsonPath("$.data[0].movieTitle").value("Visible Movie"))
-                .andExpect(jsonPath("$.data[0].hallName").value("Active Hall"))
-                .andExpect(jsonPath("$.data[0].movie").doesNotExist())
-                .andExpect(jsonPath("$.data[0].hall").doesNotExist())
-                .andExpect(jsonPath("$.data[0].createdAt").doesNotExist())
-                .andExpect(jsonPath("$.data[0].updatedAt").doesNotExist());
+                .andExpect(jsonPath("$.data.content.length()").value(1))
+                .andExpect(jsonPath("$.data.content[0].movieTitle").value("Visible Movie"))
+                .andExpect(jsonPath("$.data.content[0].hallName").value("Active Hall"))
+                .andExpect(jsonPath("$.data.content[0].movie").doesNotExist())
+                .andExpect(jsonPath("$.data.content[0].hall").doesNotExist())
+                .andExpect(jsonPath("$.data.content[0].createdAt").doesNotExist())
+                .andExpect(jsonPath("$.data.content[0].updatedAt").doesNotExist())
+                .andExpect(jsonPath("$.data.page").value(0))
+                .andExpect(jsonPath("$.data.size").value(20))
+                .andExpect(jsonPath("$.data.totalElements").value(1));
 
         mockMvc.perform(get("/api/public/shows/movie/{movieId}", current.getId()))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.data.length()").value(1));
@@ -86,9 +89,10 @@ class ShowApiIntegrationTest extends AbstractIntegrationTest {
 
         mockMvc.perform(get("/api/admin/shows").header("Authorization", bearer(token)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data[*].status", containsInAnyOrder("SCHEDULED", "RUNNING", "COMPLETED", "CANCELLED")))
-                .andExpect(jsonPath("$.data[0].movieTitle").exists())
-                .andExpect(jsonPath("$.data[0].createdAt").doesNotExist());
+                .andExpect(jsonPath("$.data.content[*].status", containsInAnyOrder("SCHEDULED", "RUNNING", "COMPLETED", "CANCELLED")))
+                .andExpect(jsonPath("$.data.content[0].movieTitle").exists())
+                .andExpect(jsonPath("$.data.content[0].createdAt").doesNotExist())
+                .andExpect(jsonPath("$.data.totalElements").value(4));
 
         for (Show show : new Show[] {scheduled, running, completed, cancelled}) {
             mockMvc.perform(get("/api/admin/shows/{id}", show.getId()).header("Authorization", bearer(token)))
@@ -135,6 +139,73 @@ class ShowApiIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.movie.title").value("Writable Show"))
                 .andExpect(jsonPath("$.data.updatedAt").exists());
+    }
+
+    @Test
+    void publicListSupportsPagingSearchFiltersSortingAndValidation() throws Exception {
+        Movie firstMovie = saveMovie("Kabaddi Search", MovieStatus.NOW_SHOWING);
+        Movie secondMovie = saveMovie("Different Movie", MovieStatus.NOW_SHOWING);
+        Hall firstHall = saveHall("Aud1 Main", Status.ACTIVE);
+        Hall secondHall = saveHall("Balcony Hall", Status.ACTIVE);
+        saveShow(firstMovie, firstHall, ShowStatus.SCHEDULED, 12);
+        saveShow(firstMovie, secondHall, ShowStatus.RUNNING, 11);
+        saveShow(secondMovie, secondHall, ShowStatus.SCHEDULED, 10);
+
+        mockMvc.perform(get("/api/public/shows").param("page", "1").param("size", "1")
+                        .param("sortBy", "showDate").param("sortDir", "desc"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.page").value(1))
+                .andExpect(jsonPath("$.data.size").value(1))
+                .andExpect(jsonPath("$.data.totalElements").value(3))
+                .andExpect(jsonPath("$.data.totalPages").value(3))
+                .andExpect(jsonPath("$.data.content[0].showDate")
+                        .value(LocalDate.now().plusDays(11).toString()));
+
+        mockMvc.perform(get("/api/public/shows").param("search", "kAbAdDi"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.totalElements").value(2));
+        mockMvc.perform(get("/api/public/shows").param("search", "AUD1"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.totalElements").value(1));
+        mockMvc.perform(get("/api/public/shows")
+                        .param("movieId", firstMovie.getId().toString())
+                        .param("hallId", secondHall.getId().toString())
+                        .param("showDate", LocalDate.now().plusDays(11).toString()))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.totalElements").value(1));
+
+        mockMvc.perform(get("/api/public/shows").param("sortBy", "movie"))
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.success").value(false));
+        mockMvc.perform(get("/api/public/shows").param("sortDir", "sideways"))
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.success").value(false));
+    }
+
+    @Test
+    void adminListSupportsCombinedFiltersSearchSortingAndPaging() throws Exception {
+        String token = tokenFor("show-query-admin@example.com", Role.ADMIN);
+        Movie movie = saveMovie("Admin Search Movie", MovieStatus.ENDED);
+        Movie otherMovie = saveMovie("Other Historical Movie", MovieStatus.ENDED);
+        Hall hall = saveHall("Admin Search Hall", Status.INACTIVE);
+        Hall otherHall = saveHall("Other Historical Hall", Status.INACTIVE);
+        saveShow(movie, hall, ShowStatus.CANCELLED, 12);
+        saveShow(movie, hall, ShowStatus.COMPLETED, 11);
+        saveShow(otherMovie, otherHall, ShowStatus.SCHEDULED, 10);
+
+        mockMvc.perform(get("/api/admin/shows").header("Authorization", bearer(token))
+                        .param("search", "admin search")
+                        .param("movieId", movie.getId().toString())
+                        .param("hallId", hall.getId().toString())
+                        .param("status", "cancelled")
+                        .param("showDate", LocalDate.now().plusDays(12).toString())
+                        .param("sortBy", "showTime").param("sortDir", "desc"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.totalElements").value(1))
+                .andExpect(jsonPath("$.data.content[0].status").value("CANCELLED"));
+
+        mockMvc.perform(get("/api/admin/shows").header("Authorization", bearer(token))
+                        .param("page", "1").param("size", "2"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.page").value(1))
+                .andExpect(jsonPath("$.data.size").value(2))
+                .andExpect(jsonPath("$.data.totalElements").value(3))
+                .andExpect(jsonPath("$.data.last").value(true));
     }
 
     private Show saveShow(Movie movie, Hall hall, ShowStatus status, int daysFromNow) {

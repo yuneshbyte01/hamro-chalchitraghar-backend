@@ -94,6 +94,8 @@ Rules:
 
 Keep response DTOs separated by audience when visibility or field exposure differs. Shows use public summary/detail contracts without audit fields and admin summary/detail contracts with full administrative nested DTOs. Controllers must delegate conversion to `ShowMapper`; public and admin show reads must call their separate `ShowService` methods so public visibility rules cannot affect historical admin access.
 
+Paginated show lists use `ShowSearchCriteria`, `ShowSpecification`, and the shared `PageResponse<T>`. Add new show filters in the criteria/specification rather than controllers, keep the sort-field allowlist in `ShowServiceImpl`, and apply public visibility predicates in the database query before pagination.
+
 Place request DTOs under:
 
 ```text
