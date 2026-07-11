@@ -11,6 +11,9 @@ import jakarta.persistence.LockModeType;
 import com.chalchitraghar.modules.payments.enums.PaymentStatus;
 import com.chalchitraghar.modules.payments.entity.Payment;
 import com.chalchitraghar.modules.payments.enums.PaymentProvider;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import java.time.LocalDateTime;
 
 public interface PaymentRepository extends JpaRepository<Payment, Long>, JpaSpecificationExecutor<Payment> {
     Optional<Payment> findByPaymentReference(String paymentReference);
@@ -28,4 +31,11 @@ public interface PaymentRepository extends JpaRepository<Payment, Long>, JpaSpec
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT p FROM Payment p WHERE p.paymentReference = :reference")
     Optional<Payment> findByPaymentReferenceForUpdate(@Param("reference") String reference);
+    Page<Payment> findByStatusOrderByCreatedAtAsc(PaymentStatus status, Pageable pageable);
+    Page<Payment> findByStatusInAndExpiresAtBeforeOrderByExpiresAtAsc(java.util.Collection<PaymentStatus> statuses, LocalDateTime now, Pageable pageable);
+    Page<Payment> findByManualReviewRequiredTrue(Pageable pageable);
+    long countByStatus(PaymentStatus status);
+    long countByManualReviewRequiredTrue();
+    @Query("SELECT COALESCE(SUM(p.amount),0), COALESCE(AVG(p.amount),0) FROM Payment p WHERE p.status='SUCCESS'")
+    java.util.List<Object[]> successfulAmountStatistics();
 }

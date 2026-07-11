@@ -31,6 +31,9 @@ app:
   payments:
     attempt-expiration-minutes: ${PAYMENT_ATTEMPT_EXPIRATION_MINUTES:10}
     local-enabled: ${PAYMENT_LOCAL_ENABLED:false}
+    reconciliation-interval-ms: ${PAYMENT_RECONCILIATION_INTERVAL_MS:300000}
+    reconciliation-batch-size: ${PAYMENT_RECONCILIATION_BATCH_SIZE:100}
+    expiry-interval-ms: ${PAYMENT_EXPIRY_INTERVAL_MS:60000}
     esewa:
       enabled: ${ESEWA_ENABLED:false}
       environment: ${ESEWA_ENVIRONMENT:SANDBOX}

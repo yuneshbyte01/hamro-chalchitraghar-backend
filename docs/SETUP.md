@@ -238,3 +238,4 @@ Current migrations:
 ## eSewa Sandbox
 
 Enable with the `ESEWA_*` variables in `.env.example`. Official sandbox merchant code is `EPAYTEST`. Published test wallet IDs are `9711111111`, `9711111112`, `9711111113`, and `9711111114`; password `Nepal@123`, token `123456`, and MPIN `1122`. These customer credentials are for sandbox testing only and must never be production configuration. Production requires merchant-issued product code and secret.
+Payment operations use `PAYMENT_RECONCILIATION_INTERVAL_MS` (default `300000`), `PAYMENT_RECONCILIATION_BATCH_SIZE` (default `100`), and `PAYMENT_EXPIRY_INTERVAL_MS` (default `60000`). Production deployments should tune these values conservatively and monitor manual-review and consistency endpoints.

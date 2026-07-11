@@ -37,6 +37,21 @@ class PaymentApiIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.data.signature").isNotEmpty());
     }
 
+    @Test void adminOperationalEndpointsExposeReviewStatisticsAndResolution() throws Exception {
+        Context c=context("ops-payment@example.com"); Payment p=payment(c.booking,"PAY-20260711-OPS00001",new BigDecimal("500"));
+        p.setStatus(PaymentStatus.SUCCESS);p.setManualReviewRequired(true);p.setManualReviewReason("test review");paymentRepository.saveAndFlush(p);
+        String admin=tokenFor("ops-admin@example.com",Role.ADMIN);
+        mockMvc.perform(get("/api/admin/payments").header("Authorization",bearer(admin)).param("status","SUCCESS"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.totalElements").value(1));
+        mockMvc.perform(get("/api/admin/payments/manual-review").header("Authorization",bearer(admin)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.totalElements").value(1));
+        mockMvc.perform(get("/api/admin/payments/statistics").header("Authorization",bearer(admin)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.successful").value(1));
+        mockMvc.perform(post("/api/admin/payments/{ref}/resolve",p.getPaymentReference()).header("Authorization",bearer(admin)).param("resolution","CLEAR"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.manualReviewRequired").value(false));
+        mockMvc.perform(get("/api/admin/payments/statistics").header("Authorization",bearer(c.token))).andExpect(status().isForbidden());
+    }
+
     @Test void initiatesFromServerAmountAndIsIdempotent() throws Exception {
         Context c=context("init-payment@example.com");
         String body="{\"provider\":\"LOCAL\",\"method\":\"ONLINE\",\"amount\":1,\"currency\":\"USD\"}";

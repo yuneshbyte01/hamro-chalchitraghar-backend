@@ -7,6 +7,7 @@ import com.chalchitraghar.modules.bookings.entity.Booking;
 import com.chalchitraghar.modules.payments.enums.PaymentMethod;
 import com.chalchitraghar.modules.payments.enums.PaymentProvider;
 import com.chalchitraghar.modules.payments.enums.PaymentStatus;
+import com.chalchitraghar.modules.payments.enums.PaymentFailureReason;
 import com.chalchitraghar.shared.GenericEntity;
 
 import jakarta.persistence.*;
@@ -51,6 +52,7 @@ public class Payment extends GenericEntity {
     @Column(name = "manual_review_reason", length = 500) private String manualReviewReason;
     @Column(name = "idempotency_key", length = 255) private String idempotencyKey;
     @Column(name = "failure_code", length = 100) private String failureCode;
+    @Enumerated(EnumType.STRING) @Column(name="failure_reason",length=50) private PaymentFailureReason failureReason;
     @Column(name = "failure_message", length = 500) private String failureMessage;
     @Column(name = "initiated_at") private LocalDateTime initiatedAt;
     @Column(name = "expires_at") private LocalDateTime expiresAt;

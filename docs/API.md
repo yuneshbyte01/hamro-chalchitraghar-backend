@@ -1628,3 +1628,6 @@ Payment attempts expire after `PAYMENT_ATTEMPT_EXPIRATION_MINUTES` (default 10).
 ## eSewa ePay v2 sandbox flow
 
 Customers initiate an ESEWA/ONLINE attempt with `POST /api/customer/bookings/{bookingReference}/payments`. The backend returns a signed form payload; the frontend must POST every returned form field to `paymentUrl`. After eSewa redirects to the frontend success route with Base64 `data`, the frontend calls public `POST /api/payments/esewa/verify`. The backend verifies the response signature and independently checks eSewa status before changing state. `POST /api/admin/payments/{paymentReference}/reconcile` recovers missed redirects. Verified success confirms an eligible booking and books its seats; late success remains financially successful but is flagged for manual review.
+## Payment operations
+
+Admins can page and filter payments with `GET /api/admin/payments`, inspect `GET /api/admin/payments/manual-review`, resolve review items with `POST /api/admin/payments/{paymentReference}/resolve?resolution=CLEAR|KEEP|NO_REFUND_REQUIRED`, view aggregate metrics at `GET /api/admin/payments/statistics`, and inspect detected inconsistencies at `GET /api/admin/payments/consistency`. Staff remains read-only. Scheduled reconciliation and expiry have no public endpoints.

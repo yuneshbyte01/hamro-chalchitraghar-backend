@@ -465,3 +465,4 @@ Indexes cover booking, status, provider/status, creation time, and provider tran
 
 Payment-2 adds `expires_at`, `(booking_id, idempotency_key)` uniqueness, and indexes on booking/status, status/expiry, and booking/idempotency. The idempotency key remains nullable for Payment-1 legacy/test rows but is mandatory for API initiation. Its exact scope is one booking; booking ownership therefore indirectly scopes it to the customer.
 Payment-3 adds `provider_reference`, `provider_status`, `verification_time`, `manual_review_required`, and `manual_review_reason`. A PostgreSQL partial unique index prevents reuse of a non-null `(provider, provider_transaction_id)` pair.
+Payment-4 adds `failure_reason` plus operational indexes for manual review, verification time, and amount. The `refunds` table is a persistence skeleton linked many-to-one to payments; no refund service operations, callbacks, or endpoints exist.
