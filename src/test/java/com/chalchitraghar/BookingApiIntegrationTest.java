@@ -5,6 +5,7 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -28,6 +29,102 @@ import com.chalchitraghar.modules.users.enums.Role;
 import com.fasterxml.jackson.databind.JsonNode;
 
 class BookingApiIntegrationTest extends AbstractIntegrationTest {
+
+    @Test
+    void everyCustomerBookingEndpointRequiresAuthentication() throws Exception {
+        mockMvc.perform(post("/api/customer/bookings/hold").contentType("application/json")
+                        .content(json(Map.of("showId", 1, "seatIds", List.of(1)))))
+                .andExpect(status().isUnauthorized());
+        mockMvc.perform(post("/api/customer/bookings").contentType("application/json")
+                        .content(json(Map.of("showId", 1, "seatIds", List.of(1)))))
+                .andExpect(status().isUnauthorized());
+        mockMvc.perform(post("/api/customer/bookings/1/confirm")).andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/api/customer/bookings/my")).andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/api/customer/bookings/1")).andExpect(status().isUnauthorized());
+        mockMvc.perform(post("/api/customer/bookings/1/cancel")).andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void invalidTokenCannotAccessCustomerBookings() throws Exception {
+        mockMvc.perform(get("/api/customer/bookings/my").header("Authorization", "Bearer invalid-token"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void customerDetailIsOwnerOnlyAndDoesNotExposeManagementFields() throws Exception {
+        TestShowContext context = createShowContext("detail-owner@example.com");
+        Long bookingId = createBooking(context.customerToken(), context.show().getId(),
+                seatsForShow(context.show().getId()).getFirst().getId());
+        String otherToken = tokenFor("detail-other@example.com", Role.CUSTOMER);
+
+        mockMvc.perform(get("/api/customer/bookings/{bookingId}", bookingId)
+                        .header("Authorization", bearer(context.customerToken())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.customerId").doesNotExist())
+                .andExpect(jsonPath("$.data.customerEmail").doesNotExist())
+                .andExpect(jsonPath("$.data.createdAt").doesNotExist())
+                .andExpect(jsonPath("$.data.updatedAt").doesNotExist())
+                .andExpect(jsonPath("$.data.selectedSeats[0].lockedByUserId").doesNotExist());
+        mockMvc.perform(get("/api/customer/bookings/{bookingId}", bookingId)
+                        .header("Authorization", bearer(otherToken)))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(post("/api/customer/bookings/{bookingId}/confirm", bookingId)
+                        .header("Authorization", bearer(otherToken)))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(post("/api/customer/bookings/{bookingId}/cancel", bookingId)
+                        .header("Authorization", bearer(otherToken)))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void customerHistoryUsesSummaryContractAndDeterministicSeatOrdering() throws Exception {
+        TestShowContext context = createShowContext("summary@example.com");
+        List<Seat> seats = seatsForShow(context.show().getId());
+        mockMvc.perform(post("/api/customer/bookings")
+                        .header("Authorization", bearer(context.customerToken())).contentType("application/json")
+                        .content(json(Map.of("showId", context.show().getId(),
+                                "seatIds", List.of(seats.get(1).getId(), seats.get(0).getId())))))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.data.selectedSeats[0].positionIndex").value(0))
+                .andExpect(jsonPath("$.data.selectedSeats[1].positionIndex").value(1));
+
+        mockMvc.perform(get("/api/customer/bookings/my").header("Authorization", bearer(context.customerToken())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data[0].selectedSeatCodes[0]").value(seats.get(0).getSeatCode()))
+                .andExpect(jsonPath("$.data[0].selectedSeats").doesNotExist())
+                .andExpect(jsonPath("$.data[0].customerEmail").doesNotExist())
+                .andExpect(jsonPath("$.data[0].createdAt").doesNotExist());
+    }
+
+    @Test
+    void staffAndAdminUseSeparateManagementEndpoints() throws Exception {
+        TestShowContext context = createShowContext("management-detail@example.com");
+        Long bookingId = createBooking(context.customerToken(), context.show().getId(),
+                seatsForShow(context.show().getId()).getFirst().getId());
+        String staffToken = tokenFor("booking-staff@example.com", Role.STAFF);
+        String adminToken = tokenFor("booking-admin@example.com", Role.ADMIN);
+        String customerToken = tokenFor("booking-customer@example.com", Role.CUSTOMER);
+
+        mockMvc.perform(get("/api/staff/bookings/{bookingId}", bookingId)
+                        .header("Authorization", bearer(staffToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.customerEmail").value("management-detail@example.com"))
+                .andExpect(jsonPath("$.data.createdAt").exists());
+        mockMvc.perform(get("/api/admin/bookings/{bookingId}", bookingId)
+                        .header("Authorization", bearer(adminToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.customerEmail").value("management-detail@example.com"))
+                .andExpect(jsonPath("$.data.updatedAt").exists());
+
+        mockMvc.perform(get("/api/staff/bookings/{bookingId}", bookingId)
+                        .header("Authorization", bearer(customerToken))).andExpect(status().isForbidden());
+        mockMvc.perform(get("/api/admin/bookings/{bookingId}", bookingId)
+                        .header("Authorization", bearer(customerToken))).andExpect(status().isForbidden());
+        mockMvc.perform(get("/api/admin/bookings/{bookingId}", bookingId)
+                        .header("Authorization", bearer(staffToken))).andExpect(status().isForbidden());
+        mockMvc.perform(get("/api/staff/bookings/{bookingId}", bookingId)).andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/api/admin/bookings/{bookingId}", bookingId)).andExpect(status().isUnauthorized());
+    }
 
     @Test
     void customerCanHoldAvailableSeats() throws Exception {

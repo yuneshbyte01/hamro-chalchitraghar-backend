@@ -105,7 +105,7 @@ Important DTOs:
 | `AdminSeatTemplateSummaryResponse`, `AdminSeatLayoutResponse` | Admin generated seat-template layout responses |
 | `PublicShowSummaryResponse`, `PublicShowDetailResponse` | Public show browsing responses |
 | `AdminShowSummaryResponse`, `AdminShowDetailResponse` | Admin show management responses |
-| `SeatResponse`, `BookingResponse` | Seat and booking API responses |
+| `SeatResponse`, customer/staff/admin booking responses | Audience-safe seat and booking API responses |
 | `UserResponse` | Authenticated customer profile response |
 | `AdminUserSummaryResponse`, `AdminUserDetailResponse` | Admin user lookup responses |
 | `PageResponse<T>` | Shared paginated list wrapper returned inside `ApiResponse<T>` |

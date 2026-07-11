@@ -824,7 +824,7 @@ Errors: `400` duplicate seat IDs, `404` show or seats not found, `409` active bo
 | Request body | None |
 | Validation | `bookingId` numeric, booking belongs to current user, booking status is `INITIATED` |
 
-Response `200`: `BookingResponse` with `bookingStatus` as `CONFIRMED`.
+Response `200`: `CustomerBookingDetailResponse` with `bookingStatus` as `CONFIRMED`.
 
 Errors: `400` invalid booking state, `403` booking does not belong to user, `404` booking not found, `409` seats already confirmed elsewhere.
 
@@ -837,7 +837,7 @@ Errors: `400` invalid booking state, `403` booking does not belong to user, `404
 | Request body | None |
 | Validation | Valid bearer token |
 
-Response `200`: list of `BookingResponse`.
+Response `200`: list of `CustomerBookingSummaryResponse` records. Customer identity and audit timestamps are not exposed.
 
 ### `GET /api/customer/bookings/{bookingId}`
 
@@ -848,7 +848,7 @@ Response `200`: list of `BookingResponse`.
 | Request body | None |
 | Validation | `bookingId` numeric |
 
-Response `200`: `BookingResponse`.
+Response `200`: owner-only `CustomerBookingDetailResponse`.
 
 Errors: `403` booking not accessible, `404` booking not found.
 
@@ -861,7 +861,7 @@ Errors: `403` booking not accessible, `404` booking not found.
 | Request body | None |
 | Validation | `bookingId` numeric, owner only, status must be `INITIATED`, show time must not have passed |
 
-Response `200`: `BookingResponse` with `bookingStatus` as `CANCELLED`.
+Response `200`: `CustomerBookingDetailResponse` with `bookingStatus` as `CANCELLED`.
 
 Errors: `400` invalid booking state or show already started, `403` owner mismatch, `404` booking not found.
 
@@ -876,7 +876,11 @@ Errors: `400` invalid booking state or show already started, `403` owner mismatc
 | Request body | None |
 | Validation | `bookingId` numeric |
 
-Response `200`: `BookingResponse`.
+Response `200`: `StaffBookingDetailResponse`, including safe customer identity and booking audit timestamps.
+
+### `GET /api/admin/bookings/{bookingId}`
+
+Requires authentication and the `ADMIN` role. Returns any booking as `AdminBookingDetailResponse`, including safe customer identity and booking audit timestamps. Customer and staff callers receive `403`; unauthenticated callers receive `401`.
 
 Errors: `401` unauthenticated, `403` role not allowed, `404` booking not found.
 
@@ -1571,7 +1575,10 @@ User response separation:
 | `AdminShowSummaryResponse` | `id`, `movieId`, `movieTitle`, `hallId`, `hallName`, `status`, `showDate`, `showTime`, `endTime` |
 | `AdminShowDetailResponse` | `id`, admin `movie`, admin `hall`, `status`, `showDate`, `showTime`, `endTime`, `createdAt`, `updatedAt` |
 | `SeatResponse` | `id`, `rowLabel`, `seatNumber`, `seatCode`, `seatType`, `price`, `positionIndex`, `seatStatus` |
-| `BookingResponse` | `bookingId`, `bookingStatus`, `showId`, `movieName`, `hallName`, `showDateTime`, `startTime`, `endTime`, `selectedSeats`, `totalPrice`, `bookingTime` |
+| `CustomerBookingSummaryResponse` | `bookingId`, `bookingStatus`, `showId`, `movieName`, `hallName`, `showDateTime`, `selectedSeatCodes`, `totalPrice`, `bookingTime` |
+| `CustomerBookingDetailResponse` | Summary fields plus `startTime`, `endTime`, and `selectedSeats`; excludes customer identity and audit fields |
+| `StaffBookingDetailResponse` | Booking detail plus `customerId`, `customerName`, `customerEmail`, `createdAt`, and `updatedAt` |
+| `AdminBookingDetailResponse` | Separate admin contract containing the same safe operational fields as the staff detail contract |
 | `UserResponse` | `id`, `name`, `email`, `role` |
 | `AdminUserSummaryResponse` | `id`, `name`, `email`, `role`, `enabled`, `locked` |
 | `AdminUserDetailResponse` | `id`, `name`, `email`, `role`, `authProvider`, `emailVerified`, `enabled`, `locked`, `failedLoginAttempts`, `lockedUntil`, `lastLoginAt`, `passwordChangedAt`, `createdAt`, `updatedAt` |

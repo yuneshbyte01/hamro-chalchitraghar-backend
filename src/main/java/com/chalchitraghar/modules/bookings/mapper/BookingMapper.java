@@ -1,71 +1,85 @@
 package com.chalchitraghar.modules.bookings.mapper;
 
-import com.chalchitraghar.modules.seats.mapper.SeatMapper;
-
 import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Component;
 
-import com.chalchitraghar.modules.bookings.dto.response.BookingResponse;
-import com.chalchitraghar.modules.seats.dto.response.SeatResponse;
+import com.chalchitraghar.modules.bookings.dto.response.AdminBookingDetailResponse;
+import com.chalchitraghar.modules.bookings.dto.response.CustomerBookingDetailResponse;
+import com.chalchitraghar.modules.bookings.dto.response.CustomerBookingSummaryResponse;
+import com.chalchitraghar.modules.bookings.dto.response.StaffBookingDetailResponse;
 import com.chalchitraghar.modules.bookings.entity.Booking;
+import com.chalchitraghar.modules.seats.dto.response.SeatResponse;
 import com.chalchitraghar.modules.seats.entity.Seat;
+import com.chalchitraghar.modules.seats.mapper.SeatMapper;
 
 import lombok.RequiredArgsConstructor;
 
-/**
- * Mapper for converting Booking entity to DTOs.
- */
+/** Centralized audience-specific booking response mapping. */
 @Component
 @RequiredArgsConstructor
 public class BookingMapper {
 
     private final SeatMapper seatMapper;
 
-    /**
-     * Converts a Booking entity with associated seats to a BookingResponse DTO.
-     *
-     * @param booking the booking entity to convert
-     * @param seats the list of seats associated with the booking
-     * @return the response DTO, or null if booking is null
-     */
-    public BookingResponse toResponseDto(Booking booking, List<Seat> seats) {
-        if (booking == null) {
-            return null;
-        }
+    public CustomerBookingSummaryResponse toCustomerSummary(Booking booking, List<Seat> seats) {
+        List<Seat> orderedSeats = orderedSeats(seats);
+        return new CustomerBookingSummaryResponse(
+                booking.getId(), booking.getStatus(), booking.getShow().getId(),
+                booking.getShow().getMovie().getTitle(), booking.getShow().getHall().getName(),
+                showDateTime(booking), orderedSeats.stream().map(Seat::getSeatCode).toList(),
+                totalPrice(orderedSeats), booking.getBookingTime());
+    }
 
-        // Map seats to response DTOs
-        List<SeatResponse> seatResponses = seats != null
-                ? seats.stream()
-                        .map(seatMapper::toResponseDto)
-                        .collect(Collectors.toList())
-                : List.of();
+    public CustomerBookingDetailResponse toCustomerDetail(Booking booking, List<Seat> seats) {
+        List<Seat> orderedSeats = orderedSeats(seats);
+        return new CustomerBookingDetailResponse(
+                booking.getId(), booking.getStatus(), booking.getShow().getId(),
+                booking.getShow().getMovie().getTitle(), booking.getShow().getHall().getName(),
+                showDateTime(booking), booking.getShow().getShowTime().toString(),
+                booking.getShow().getEndTime().toString(), mapSeats(orderedSeats),
+                totalPrice(orderedSeats), booking.getBookingTime());
+    }
 
-        // Calculate total price from individual seat prices
-        Double totalPrice = seats != null 
-                ? seats.stream()
-                        .mapToDouble(Seat::getPrice)
-                        .sum()
-                : 0.0;
+    public StaffBookingDetailResponse toStaffDetail(Booking booking, List<Seat> seats) {
+        List<Seat> orderedSeats = orderedSeats(seats);
+        return new StaffBookingDetailResponse(
+                booking.getId(), booking.getStatus(), booking.getUser().getId(),
+                booking.getUser().getName(), booking.getUser().getEmail(), booking.getShow().getId(),
+                booking.getShow().getMovie().getTitle(), booking.getShow().getHall().getName(),
+                showDateTime(booking), booking.getShow().getShowTime().toString(),
+                booking.getShow().getEndTime().toString(), mapSeats(orderedSeats),
+                totalPrice(orderedSeats), booking.getBookingTime(), booking.getCreatedAt(), booking.getUpdatedAt());
+    }
 
-        // Build response
-        BookingResponse response = new BookingResponse();
-        response.setBookingId(booking.getId());
-        response.setBookingStatus(booking.getStatus());
-        response.setShowId(booking.getShow().getId());
-        response.setMovieName(booking.getShow().getMovie().getTitle());
-        response.setHallName(booking.getShow().getHall().getName());
-        response.setShowDateTime(LocalDateTime.of(
-                booking.getShow().getShowDate(),
-                booking.getShow().getShowTime()));
-        response.setStartTime(booking.getShow().getShowTime().toString());
-        response.setEndTime(booking.getShow().getEndTime().toString());
-        response.setSelectedSeats(seatResponses);
-        response.setTotalPrice(totalPrice);
-        response.setBookingTime(booking.getBookingTime());
+    public AdminBookingDetailResponse toAdminDetail(Booking booking, List<Seat> seats) {
+        List<Seat> orderedSeats = orderedSeats(seats);
+        return new AdminBookingDetailResponse(
+                booking.getId(), booking.getStatus(), booking.getUser().getId(),
+                booking.getUser().getName(), booking.getUser().getEmail(), booking.getShow().getId(),
+                booking.getShow().getMovie().getTitle(), booking.getShow().getHall().getName(),
+                showDateTime(booking), booking.getShow().getShowTime().toString(),
+                booking.getShow().getEndTime().toString(), mapSeats(orderedSeats),
+                totalPrice(orderedSeats), booking.getBookingTime(), booking.getCreatedAt(), booking.getUpdatedAt());
+    }
 
-        return response;
+    private List<Seat> orderedSeats(List<Seat> seats) {
+        return seats == null ? List.of() : seats.stream()
+                .sorted(Comparator.comparing(Seat::getPositionIndex).thenComparing(Seat::getId))
+                .toList();
+    }
+
+    private List<SeatResponse> mapSeats(List<Seat> seats) {
+        return seats.stream().map(seatMapper::toResponseDto).toList();
+    }
+
+    private Double totalPrice(List<Seat> seats) {
+        return seats.stream().mapToDouble(Seat::getPrice).sum();
+    }
+
+    private LocalDateTime showDateTime(Booking booking) {
+        return LocalDateTime.of(booking.getShow().getShowDate(), booking.getShow().getShowTime());
     }
 }

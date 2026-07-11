@@ -94,6 +94,8 @@ Rules:
 
 Keep response DTOs separated by audience when visibility or field exposure differs. Shows use public summary/detail contracts without audit fields and admin summary/detail contracts with full administrative nested DTOs. Controllers must delegate conversion to `ShowMapper`; public and admin show reads must call their separate `ShowService` methods so public visibility rules cannot affect historical admin access.
 
+Bookings follow the same audience boundary. Customer list/detail operations use `CustomerBookingSummaryResponse` and `CustomerBookingDetailResponse` and must always enforce ownership. Staff and admin use the dedicated `StaffBookingDetailResponse` and `AdminBookingDetailResponse` contracts through `/api/staff/bookings/{bookingId}` and `/api/admin/bookings/{bookingId}`. Keep all conversions in `BookingMapper`; never restore a role bypass inside customer service reads or expose customer identity and audit timestamps through customer DTOs.
+
 Paginated show lists use `ShowSearchCriteria`, `ShowSpecification`, and the shared `PageResponse<T>`. Add new show filters in the criteria/specification rather than controllers, keep the sort-field allowlist in `ShowServiceImpl`, and apply public visibility predicates in the database query before pagination.
 
 Keep scheduling and lifecycle decisions in `ShowServiceImpl`. `SHOW_BUFFER_MINUTES` configures the cleaning gap (default 15), while `SHOW_DURATION_TOLERANCE_MINUTES` configures the movie-duration tolerance (default 5). Any lifecycle extension must update the centralized transition guard, the status endpoint documentation, and scheduling integration tests; do not bypass it by assigning `Show.status` in controllers.

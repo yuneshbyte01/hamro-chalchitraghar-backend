@@ -12,7 +12,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.chalchitraghar.modules.bookings.dto.request.BookingRequest;
-import com.chalchitraghar.modules.bookings.dto.response.BookingResponse;
+import com.chalchitraghar.modules.bookings.dto.response.AdminBookingDetailResponse;
+import com.chalchitraghar.modules.bookings.dto.response.CustomerBookingDetailResponse;
+import com.chalchitraghar.modules.bookings.dto.response.CustomerBookingSummaryResponse;
+import com.chalchitraghar.modules.bookings.dto.response.StaffBookingDetailResponse;
 import com.chalchitraghar.shared.exception.InvalidBookingStateException;
 import com.chalchitraghar.shared.exception.InvalidSeatSelectionException;
 import com.chalchitraghar.shared.exception.ResourceNotFoundException;
@@ -25,7 +28,6 @@ import com.chalchitraghar.modules.seats.entity.Seat;
 import com.chalchitraghar.modules.shows.entity.Show;
 import com.chalchitraghar.modules.users.entity.User;
 import com.chalchitraghar.modules.bookings.enums.BookingStatus;
-import com.chalchitraghar.modules.users.enums.Role;
 import com.chalchitraghar.modules.seats.enums.SeatStatus;
 import com.chalchitraghar.modules.bookings.repository.BookingRepository;
 import com.chalchitraghar.modules.bookings.repository.BookingSeatRepository;
@@ -50,7 +52,7 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     @Transactional
-    public BookingResponse createBooking(BookingRequest request, User user) {
+    public CustomerBookingDetailResponse createBooking(BookingRequest request, User user) {
         if (!request.hasNoDuplicateSeats()) {
             throw new InvalidSeatSelectionException("Seat IDs contain duplicates");
         }
@@ -93,12 +95,12 @@ public class BookingServiceImpl implements BookingService {
             seat.setLockedByUserId(null);
         }
         seatRepository.saveAll(seats);
-        return bookingMapper.toResponseDto(booking, seats);
+        return bookingMapper.toCustomerDetail(booking, seats);
     }
 
     @Override
     @Transactional
-    public BookingResponse confirmBooking(Long bookingId, User user) {
+    public CustomerBookingDetailResponse confirmBooking(Long bookingId, User user) {
         Booking booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new ResourceNotFoundException("Booking", bookingId));
         if (!booking.getUser().getId().equals(user.getId())) {
@@ -146,24 +148,24 @@ public class BookingServiceImpl implements BookingService {
         seatRepository.saveAll(seats);
         booking.setStatus(BookingStatus.CONFIRMED);
         bookingRepository.save(booking);
-        return bookingMapper.toResponseDto(booking, seats);
+        return bookingMapper.toCustomerDetail(booking, seats);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<BookingResponse> getMyBookings(User user) {
+    public List<CustomerBookingSummaryResponse> getCustomerBookings(User user) {
         return bookingRepository.findByUserIdOrderByBookingTimeDesc(user.getId()).stream()
                 .map(booking -> {
                     List<BookingSeat> bookingSeats = bookingSeatRepository.findByBookingId(booking.getId());
                     List<Seat> seats = bookingSeats.stream().map(BookingSeat::getSeat).collect(Collectors.toList());
-                    return bookingMapper.toResponseDto(booking, seats);
+                    return bookingMapper.toCustomerSummary(booking, seats);
                 })
                 .collect(Collectors.toList());
     }
 
     @Override
     @Transactional
-    public BookingResponse cancelBooking(Long bookingId, User user) {
+    public CustomerBookingDetailResponse cancelBooking(Long bookingId, User user) {
         Booking booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new ResourceNotFoundException("Booking", bookingId));
         if (!booking.getUser().getId().equals(user.getId())) {
@@ -202,22 +204,42 @@ public class BookingServiceImpl implements BookingService {
         seatRepository.saveAll(seats);
         booking.setStatus(BookingStatus.CANCELLED);
         bookingRepository.save(booking);
-        return bookingMapper.toResponseDto(booking, seats);
+        return bookingMapper.toCustomerDetail(booking, seats);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public BookingResponse getBookingById(Long bookingId, User user) {
-        Booking booking = bookingRepository.findById(bookingId)
-                .orElseThrow(() -> new ResourceNotFoundException("Booking", bookingId));
-        if (user.getRole() != Role.ADMIN && user.getRole() != Role.STAFF) {
-            if (!booking.getUser().getId().equals(user.getId())) {
-                throw new AccessDeniedException("You do not have access to this booking");
-            }
+    public CustomerBookingDetailResponse getCustomerBookingById(Long bookingId, User user) {
+        Booking booking = findBooking(bookingId);
+        if (!booking.getUser().getId().equals(user.getId())) {
+            throw new AccessDeniedException("You do not have access to this booking");
         }
-        List<BookingSeat> bookingSeats = bookingSeatRepository.findByBookingId(bookingId);
-        List<Seat> seats = bookingSeats.stream().map(BookingSeat::getSeat).collect(Collectors.toList());
-        return bookingMapper.toResponseDto(booking, seats);
+        return bookingMapper.toCustomerDetail(booking, seatsFor(bookingId));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public StaffBookingDetailResponse getStaffBookingById(Long bookingId) {
+        Booking booking = findBooking(bookingId);
+        return bookingMapper.toStaffDetail(booking, seatsFor(bookingId));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public AdminBookingDetailResponse getAdminBookingById(Long bookingId) {
+        Booking booking = findBooking(bookingId);
+        return bookingMapper.toAdminDetail(booking, seatsFor(bookingId));
+    }
+
+    private Booking findBooking(Long bookingId) {
+        return bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new ResourceNotFoundException("Booking", bookingId));
+    }
+
+    private List<Seat> seatsFor(Long bookingId) {
+        return bookingSeatRepository.findByBookingId(bookingId).stream()
+                .map(BookingSeat::getSeat)
+                .collect(Collectors.toList());
     }
 
     private void validateSeatsForBookingCreation(List<Seat> seats, Long userId) {
