@@ -3,6 +3,7 @@ package com.chalchitraghar;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 import java.math.BigDecimal;
@@ -20,6 +21,54 @@ import com.chalchitraghar.modules.users.entity.User;
 import com.chalchitraghar.modules.users.enums.Role;
 
 class PaymentApiIntegrationTest extends AbstractIntegrationTest {
+
+    @Test void initiatesFromServerAmountAndIsIdempotent() throws Exception {
+        Context c=context("init-payment@example.com");
+        String body="{\"provider\":\"LOCAL\",\"method\":\"ONLINE\",\"amount\":1,\"currency\":\"USD\"}";
+        String first=mockMvc.perform(post("/api/customer/bookings/{ref}/payments",c.booking.getBookingReference())
+                .header("Authorization",bearer(c.token)).header("Idempotency-Key"," init-key ")
+                .contentType("application/json").content(body)).andExpect(status().isCreated())
+                .andExpect(jsonPath("$.data.amount").value(500.00)).andExpect(jsonPath("$.data.currency").value("NPR"))
+                .andExpect(jsonPath("$.data.status").value("PENDING")).andExpect(jsonPath("$.data.expiresAt").exists())
+                .andReturn().getResponse().getContentAsString();
+        String ref=objectMapper.readTree(first).path("data").path("paymentReference").asText();
+        mockMvc.perform(post("/api/customer/bookings/{ref}/payments",c.booking.getBookingReference())
+                .header("Authorization",bearer(c.token)).header("Idempotency-Key","init-key")
+                .contentType("application/json").content(body)).andExpect(status().isCreated())
+                .andExpect(jsonPath("$.data.paymentReference").value(ref));
+        assertThat(paymentRepository.count()).isEqualTo(1);
+    }
+
+    @Test void initiationValidatesOwnershipStateKeysAndActiveAttempt() throws Exception {
+        Context owner=context("init-owner@example.com"), other=context("init-intruder@example.com"); String body="{\"provider\":\"LOCAL\",\"method\":\"ONLINE\"}";
+        mockMvc.perform(post("/api/customer/bookings/{ref}/payments",owner.booking.getBookingReference()).contentType("application/json").content(body)).andExpect(status().isUnauthorized());
+        mockMvc.perform(post("/api/customer/bookings/{ref}/payments",owner.booking.getBookingReference()).header("Authorization",bearer(other.token)).header("Idempotency-Key","x").contentType("application/json").content(body)).andExpect(status().isNotFound());
+        mockMvc.perform(post("/api/customer/bookings/{ref}/payments",owner.booking.getBookingReference()).header("Authorization",bearer(owner.token)).header("Idempotency-Key","   ").contentType("application/json").content(body)).andExpect(status().isBadRequest());
+        mockMvc.perform(post("/api/customer/bookings/{ref}/payments",owner.booking.getBookingReference()).header("Authorization",bearer(owner.token)).header("Idempotency-Key","a".repeat(256)).contentType("application/json").content(body)).andExpect(status().isBadRequest());
+        mockMvc.perform(post("/api/customer/bookings/{ref}/payments",owner.booking.getBookingReference()).header("Authorization",bearer(owner.token)).header("Idempotency-Key","one").contentType("application/json").content(body)).andExpect(status().isCreated());
+        mockMvc.perform(post("/api/customer/bookings/{ref}/payments",owner.booking.getBookingReference()).header("Authorization",bearer(owner.token)).header("Idempotency-Key","two").contentType("application/json").content(body)).andExpect(status().isConflict());
+        mockMvc.perform(post("/api/customer/bookings/{ref}/payments",owner.booking.getBookingReference()).header("Authorization",bearer(owner.token)).header("Idempotency-Key","one").contentType("application/json").content("{\"provider\":\"LOCAL\",\"method\":\"CASH\"}")).andExpect(status().isConflict());
+    }
+
+    @Test void localProcessSupportsSuccessFailureAndExpiryWithoutConfirmingBooking() throws Exception {
+        Context success=context("local-success@example.com"); Payment p=payment(success.booking,"PAY-20260711-LOCAL001",new BigDecimal("500")); p.setStatus(PaymentStatus.PENDING); p.setExpiresAt(LocalDateTime.now().plusMinutes(5)); paymentRepository.saveAndFlush(p);
+        mockMvc.perform(post("/api/customer/payments/{ref}/process",p.getPaymentReference()).header("Authorization",bearer(success.token)).contentType("application/json").content("{\"result\":\"SUCCESS\"}"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.status").value("SUCCESS")).andExpect(jsonPath("$.data.completedAt").exists());
+        assertThat(bookingRepository.findById(success.booking.getId()).orElseThrow().getStatus()).isEqualTo(BookingStatus.INITIATED);
+        Context failed=context("local-failed@example.com"); Payment f=payment(failed.booking,"PAY-20260711-LOCAL002",new BigDecimal("500")); f.setStatus(PaymentStatus.PENDING); f.setExpiresAt(LocalDateTime.now().plusMinutes(5)); paymentRepository.saveAndFlush(f);
+        mockMvc.perform(post("/api/customer/payments/{ref}/process",f.getPaymentReference()).header("Authorization",bearer(failed.token)).contentType("application/json").content("{\"result\":\"FAILED\"}"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.status").value("FAILED")).andExpect(jsonPath("$.data.failureMessage").exists());
+        Context expired=context("local-expired@example.com"); Payment e=payment(expired.booking,"PAY-20260711-LOCAL003",new BigDecimal("500")); e.setStatus(PaymentStatus.PENDING); e.setExpiresAt(LocalDateTime.now().minusSeconds(1)); paymentRepository.saveAndFlush(e);
+        mockMvc.perform(post("/api/customer/payments/{ref}/process",e.getPaymentReference()).header("Authorization",bearer(expired.token)).contentType("application/json").content("{\"result\":\"SUCCESS\"}")).andExpect(status().isConflict());
+        assertThat(paymentRepository.findById(e.getId()).orElseThrow().getStatus()).isEqualTo(PaymentStatus.EXPIRED);
+    }
+
+    @Test void cancellationIsOwnerOnlyIdempotentAndAllowsRetry() throws Exception {
+        Context c=context("cancel-payment@example.com"); Payment p=payment(c.booking,"PAY-20260711-CANCEL01",new BigDecimal("500")); p.setStatus(PaymentStatus.PENDING); p.setExpiresAt(LocalDateTime.now().plusMinutes(5)); paymentRepository.saveAndFlush(p);
+        mockMvc.perform(post("/api/customer/payments/{ref}/cancel",p.getPaymentReference()).header("Authorization",bearer(c.token))).andExpect(status().isOk()).andExpect(jsonPath("$.data.status").value("CANCELLED"));
+        mockMvc.perform(post("/api/customer/payments/{ref}/cancel",p.getPaymentReference()).header("Authorization",bearer(c.token))).andExpect(status().isOk());
+        mockMvc.perform(post("/api/customer/bookings/{ref}/payments",c.booking.getBookingReference()).header("Authorization",bearer(c.token)).header("Idempotency-Key","retry-after-cancel").contentType("application/json").content("{\"provider\":\"LOCAL\",\"method\":\"ONLINE\"}")).andExpect(status().isCreated());
+    }
 
     @Test void persistsExactPaymentDataAndNullableTransactionId() throws Exception {
         Context c=context("pay-persist@example.com"); Payment p=payment(c.booking,"PAY-20260711-A1B2C3D4",new BigDecimal("425.50"));

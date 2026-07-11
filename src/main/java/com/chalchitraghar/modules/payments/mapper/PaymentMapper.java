@@ -11,7 +11,7 @@ public class PaymentMapper {
             p.getAmount(), p.getCurrency(), p.getInitiatedAt(), p.getCompletedAt()); }
     public CustomerPaymentDetailResponse toCustomerDetail(Payment p) { return new CustomerPaymentDetailResponse(
             p.getPaymentReference(), p.getBooking().getBookingReference(), p.getProvider(), p.getMethod(), p.getStatus(),
-            p.getAmount(), p.getCurrency(), p.getProviderTransactionId(), p.getInitiatedAt(), p.getCompletedAt(),
+            p.getAmount(), p.getCurrency(), p.getProviderTransactionId(), p.getInitiatedAt(), p.getExpiresAt(), p.getCompletedAt(),
             p.getFailedAt(), p.getExpiredAt(), p.getCancelledAt(), p.getFailureMessage()); }
     public StaffPaymentSummaryResponse toStaffSummary(Payment p) { var u=p.getBooking().getUser(); return new StaffPaymentSummaryResponse(
             p.getPaymentReference(), p.getBooking().getBookingReference(), u.getId(), u.getName(), u.getEmail(), p.getProvider(),

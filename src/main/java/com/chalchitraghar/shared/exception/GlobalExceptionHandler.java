@@ -54,6 +54,7 @@ public class GlobalExceptionHandler {
             ShowConflictException.class,
             SeatAlreadyBookedException.class,
             SeatLockedException.class,
+            PaymentConflictException.class,
             InvalidBookingStateException.class
     })
     public ResponseEntity<ApiResponse<Void>> handleConflictExceptions(RuntimeException ex) {

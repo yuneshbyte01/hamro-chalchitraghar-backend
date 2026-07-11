@@ -404,3 +404,7 @@ The Dockerfile builds the application with Maven in a JDK image, then runs the p
 One booking may have many payment attempts. The domain defines placeholder lifecycle states and providers, but Payment-1 has no initiation, provider calls, callbacks, cash collection, verification, refund processing, reconciliation, or automatic booking confirmation. Existing `PaymentAuthorizationService` and its permissive local implementation remain unchanged until a later phase.
 
 Customer reads always constrain results to the authenticated booking owner and obscure non-owned references as `404`. Staff and admin reads expose safe operational identity fields under their existing route policies.
+
+Payment-2 adds `PaymentLifecycleService` as the transition authority and `PaymentProviderAdapter` as the provider boundary. `LocalPaymentProviderAdapter` performs no I/O and advances new attempts from `CREATED` to `PENDING`. Initiation locks the booking row to serialize the one-active-attempt rule and persists server-authoritative booking amount/currency. Future external adapter calls must occur after the validating transaction commits so database locks are never held during network I/O.
+
+Implemented transitions are `CREATED -> PENDING/CANCELLED/EXPIRED` and `PENDING -> SUCCESS/FAILED/EXPIRED/CANCELLED`; terminal states cannot reopen. `REFUNDED` remains reserved. Payment success and booking confirmation remain separate aggregates and workflows.

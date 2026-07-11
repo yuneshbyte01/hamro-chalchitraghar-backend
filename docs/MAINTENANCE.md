@@ -479,3 +479,5 @@ LOCAL user lifecycle:
 - Payment-1 endpoints are read-only. Do not create payment rows during booking confirmation.
 - Do not treat the placeholder status/provider/method enums as implemented provider behavior.
 - Never persist credentials, payment secrets, sensitive account/card data, or raw provider payloads in `payments`.
+
+Payment-2 initiation must keep `(booking_id, idempotency_key)` behavior stable, derive amount/currency only from the locked booking, and enforce at most one active `CREATED`/`PENDING` attempt. All state changes must pass through `PaymentLifecycleService`; process and cancel operations lock the payment row. Keep real provider network work outside locking transactions. `PAYMENT_LOCAL_ENABLED` must remain false in production.

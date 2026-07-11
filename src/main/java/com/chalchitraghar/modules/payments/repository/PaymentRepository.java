@@ -6,6 +6,9 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.data.jpa.repository.Lock;
+import jakarta.persistence.LockModeType;
+import com.chalchitraghar.modules.payments.enums.PaymentStatus;
 import com.chalchitraghar.modules.payments.entity.Payment;
 import com.chalchitraghar.modules.payments.enums.PaymentProvider;
 
@@ -17,4 +20,11 @@ public interface PaymentRepository extends JpaRepository<Payment, Long>, JpaSpec
     List<Payment> findByBookingUserIdOrderByCreatedAtDesc(@Param("userId") Long userId);
     boolean existsByPaymentReference(String paymentReference);
     Optional<Payment> findByProviderAndProviderTransactionId(PaymentProvider provider, String providerTransactionId);
+    boolean existsByProviderAndProviderTransactionId(PaymentProvider provider, String providerTransactionId);
+    Optional<Payment> findByBookingIdAndIdempotencyKey(Long bookingId, String idempotencyKey);
+    List<Payment> findByBookingIdAndStatusIn(Long bookingId, java.util.Collection<PaymentStatus> statuses);
+    boolean existsByBookingIdAndStatus(Long bookingId, PaymentStatus status);
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT p FROM Payment p WHERE p.paymentReference = :reference")
+    Optional<Payment> findByPaymentReferenceForUpdate(@Param("reference") String reference);
 }

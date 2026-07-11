@@ -32,6 +32,9 @@ app:
     expiry-cleanup-interval-ms: 60000
     expiry-batch-size: 100
     cancellation-cutoff-minutes: 0
+  payments:
+    attempt-expiration-minutes: 10
+    local-enabled: true
   shows:
     status-reconciliation-interval-ms: 60000
   mail:

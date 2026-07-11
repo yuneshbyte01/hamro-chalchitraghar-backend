@@ -16,7 +16,9 @@ import jakarta.validation.constraints.Size;
 import lombok.*;
 
 @Entity
-@Table(name = "payments", uniqueConstraints = @UniqueConstraint(name = "uk_payments_reference", columnNames = "payment_reference"))
+@Table(name = "payments", uniqueConstraints = {
+        @UniqueConstraint(name = "uk_payments_reference", columnNames = "payment_reference"),
+        @UniqueConstraint(name = "uk_payments_booking_idempotency", columnNames = {"booking_id", "idempotency_key"})})
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class Payment extends GenericEntity {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
@@ -46,6 +48,7 @@ public class Payment extends GenericEntity {
     @Column(name = "failure_code", length = 100) private String failureCode;
     @Column(name = "failure_message", length = 500) private String failureMessage;
     @Column(name = "initiated_at") private LocalDateTime initiatedAt;
+    @Column(name = "expires_at") private LocalDateTime expiresAt;
     @Column(name = "completed_at") private LocalDateTime completedAt;
     @Column(name = "failed_at") private LocalDateTime failedAt;
     @Column(name = "expired_at") private LocalDateTime expiredAt;

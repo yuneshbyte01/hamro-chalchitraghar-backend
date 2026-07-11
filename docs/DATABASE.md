@@ -462,3 +462,5 @@ Migration rules:
 | lifecycle timestamps | `TIMESTAMP` | Initiated/completed/failed/expired/cancelled as applicable |
 
 Indexes cover booking, status, provider/status, creation time, and provider transaction ID. Payment reference uniqueness is enforced by the database. Provider transaction IDs are not yet constrained because provider integration is outside Payment-1.
+
+Payment-2 adds `expires_at`, `(booking_id, idempotency_key)` uniqueness, and indexes on booking/status, status/expiry, and booking/idempotency. The idempotency key remains nullable for Payment-1 legacy/test rows but is mandatory for API initiation. Its exact scope is one booking; booking ownership therefore indirectly scopes it to the customer.
