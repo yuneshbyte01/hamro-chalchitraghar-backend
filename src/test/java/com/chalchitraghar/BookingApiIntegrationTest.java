@@ -46,7 +46,7 @@ class BookingApiIntegrationTest extends AbstractIntegrationTest {
         Seat expiredSeat = seatsForShow(expiredContext.show().getId()).getFirst();
         Long expiredId = createBooking(expiredContext.customerToken(), expiredContext.show().getId(), expiredSeat.getId());
         Booking due = bookingRepository.findById(expiredId).orElseThrow();
-        due.setExpiresAt(LocalDateTime.now().minusMinutes(1));
+        due.setExpiresAt(LocalDateTime.now(clock).minusMinutes(1));
         bookingRepository.save(due);
 
         TestShowContext validContext = createShowContext("scheduled-valid@example.com");
@@ -139,7 +139,7 @@ class BookingApiIntegrationTest extends AbstractIntegrationTest {
         Seat seat = seatsForShow(context.show().getId()).getFirst();
         Long bookingId = createBooking(context.customerToken(), context.show().getId(), seat.getId());
         Booking booking = bookingRepository.findById(bookingId).orElseThrow();
-        booking.setExpiresAt(LocalDateTime.now().minusMinutes(1));
+        booking.setExpiresAt(LocalDateTime.now(clock).minusMinutes(1));
         bookingRepository.save(booking);
 
         mockMvc.perform(get("/api/customer/bookings/{id}", bookingId)
@@ -572,9 +572,9 @@ class BookingApiIntegrationTest extends AbstractIntegrationTest {
         Seat first = seatsForShow(context.show().getId()).get(0);
         Seat second = seatsForShow(context.show().getId()).get(1);
         Long bookingId = createBooking(context.customerToken(), context.show().getId(), first.getId());
-        context.show().setShowDate(java.time.LocalDate.now());
-        context.show().setShowTime(java.time.LocalTime.now().minusMinutes(30));
-        context.show().setEndTime(java.time.LocalTime.now().plusMinutes(90));
+        context.show().setShowDate(java.time.LocalDate.now(clock));
+        context.show().setShowTime(java.time.LocalTime.now(clock).minusMinutes(30));
+        context.show().setEndTime(java.time.LocalTime.now(clock).plusMinutes(90));
         context.show().setStatus(ShowStatus.SCHEDULED);
         showRepository.save(context.show());
 

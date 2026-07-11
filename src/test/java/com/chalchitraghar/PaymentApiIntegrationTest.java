@@ -51,20 +51,20 @@ class PaymentApiIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test void localProcessSupportsSuccessFailureAndExpiryWithoutConfirmingBooking() throws Exception {
-        Context success=context("local-success@example.com"); Payment p=payment(success.booking,"PAY-20260711-LOCAL001",new BigDecimal("500")); p.setStatus(PaymentStatus.PENDING); p.setExpiresAt(LocalDateTime.now().plusMinutes(5)); paymentRepository.saveAndFlush(p);
+        Context success=context("local-success@example.com"); Payment p=payment(success.booking,"PAY-20260711-LOCAL001",new BigDecimal("500")); p.setStatus(PaymentStatus.PENDING); p.setExpiresAt(LocalDateTime.now(clock).plusMinutes(5)); paymentRepository.saveAndFlush(p);
         mockMvc.perform(post("/api/customer/payments/{ref}/process",p.getPaymentReference()).header("Authorization",bearer(success.token)).contentType("application/json").content("{\"result\":\"SUCCESS\"}"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.data.status").value("SUCCESS")).andExpect(jsonPath("$.data.completedAt").exists());
         assertThat(bookingRepository.findById(success.booking.getId()).orElseThrow().getStatus()).isEqualTo(BookingStatus.INITIATED);
-        Context failed=context("local-failed@example.com"); Payment f=payment(failed.booking,"PAY-20260711-LOCAL002",new BigDecimal("500")); f.setStatus(PaymentStatus.PENDING); f.setExpiresAt(LocalDateTime.now().plusMinutes(5)); paymentRepository.saveAndFlush(f);
+        Context failed=context("local-failed@example.com"); Payment f=payment(failed.booking,"PAY-20260711-LOCAL002",new BigDecimal("500")); f.setStatus(PaymentStatus.PENDING); f.setExpiresAt(LocalDateTime.now(clock).plusMinutes(5)); paymentRepository.saveAndFlush(f);
         mockMvc.perform(post("/api/customer/payments/{ref}/process",f.getPaymentReference()).header("Authorization",bearer(failed.token)).contentType("application/json").content("{\"result\":\"FAILED\"}"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.data.status").value("FAILED")).andExpect(jsonPath("$.data.failureMessage").exists());
-        Context expired=context("local-expired@example.com"); Payment e=payment(expired.booking,"PAY-20260711-LOCAL003",new BigDecimal("500")); e.setStatus(PaymentStatus.PENDING); e.setExpiresAt(LocalDateTime.now().minusSeconds(1)); paymentRepository.saveAndFlush(e);
+        Context expired=context("local-expired@example.com"); Payment e=payment(expired.booking,"PAY-20260711-LOCAL003",new BigDecimal("500")); e.setStatus(PaymentStatus.PENDING); e.setExpiresAt(LocalDateTime.now(clock).minusSeconds(1)); paymentRepository.saveAndFlush(e);
         mockMvc.perform(post("/api/customer/payments/{ref}/process",e.getPaymentReference()).header("Authorization",bearer(expired.token)).contentType("application/json").content("{\"result\":\"SUCCESS\"}")).andExpect(status().isConflict());
         assertThat(paymentRepository.findById(e.getId()).orElseThrow().getStatus()).isEqualTo(PaymentStatus.EXPIRED);
     }
 
     @Test void cancellationIsOwnerOnlyIdempotentAndAllowsRetry() throws Exception {
-        Context c=context("cancel-payment@example.com"); Payment p=payment(c.booking,"PAY-20260711-CANCEL01",new BigDecimal("500")); p.setStatus(PaymentStatus.PENDING); p.setExpiresAt(LocalDateTime.now().plusMinutes(5)); paymentRepository.saveAndFlush(p);
+        Context c=context("cancel-payment@example.com"); Payment p=payment(c.booking,"PAY-20260711-CANCEL01",new BigDecimal("500")); p.setStatus(PaymentStatus.PENDING); p.setExpiresAt(LocalDateTime.now(clock).plusMinutes(5)); paymentRepository.saveAndFlush(p);
         mockMvc.perform(post("/api/customer/payments/{ref}/cancel",p.getPaymentReference()).header("Authorization",bearer(c.token))).andExpect(status().isOk()).andExpect(jsonPath("$.data.status").value("CANCELLED"));
         mockMvc.perform(post("/api/customer/payments/{ref}/cancel",p.getPaymentReference()).header("Authorization",bearer(c.token))).andExpect(status().isOk());
         mockMvc.perform(post("/api/customer/bookings/{ref}/payments",c.booking.getBookingReference()).header("Authorization",bearer(c.token)).header("Idempotency-Key","retry-after-cancel").contentType("application/json").content("{\"provider\":\"LOCAL\",\"method\":\"ONLINE\"}")).andExpect(status().isCreated());
@@ -132,10 +132,10 @@ class PaymentApiIntegrationTest extends AbstractIntegrationTest {
         User user=saveUser(email,Role.CUSTOMER); String token=loginToken(email); String admin=tokenFor("admin-"+email,Role.ADMIN);
         Show show=saveShowWithSeats(saveMovie("Movie "+email,MovieStatus.NOW_SHOWING),saveHall("Hall "+email,Status.ACTIVE),admin);
         Booking booking=bookingRepository.save(Booking.builder().user(user).show(show).bookingReference("HCG-20260711-"+Math.abs(email.hashCode()))
-                .bookingTime(LocalDateTime.now()).status(BookingStatus.INITIATED).totalAmount(new BigDecimal("500.00"))
-                .currency("NPR").expiresAt(LocalDateTime.now().plusMinutes(15)).build());
+                .bookingTime(LocalDateTime.now(clock)).status(BookingStatus.INITIATED).totalAmount(new BigDecimal("500.00"))
+                .currency("NPR").expiresAt(LocalDateTime.now(clock).plusMinutes(15)).build());
         return new Context(user,token,booking);
     }
-    private Payment payment(Booking b,String ref,BigDecimal amount){return Payment.builder().booking(b).paymentReference(ref).provider(PaymentProvider.LOCAL).method(PaymentMethod.ONLINE).status(PaymentStatus.CREATED).amount(amount).currency("NPR").initiatedAt(LocalDateTime.now()).build();}
+    private Payment payment(Booking b,String ref,BigDecimal amount){return Payment.builder().booking(b).paymentReference(ref).provider(PaymentProvider.LOCAL).method(PaymentMethod.ONLINE).status(PaymentStatus.CREATED).amount(amount).currency("NPR").initiatedAt(LocalDateTime.now(clock)).build();}
     private record Context(User user,String token,Booking booking){}
 }

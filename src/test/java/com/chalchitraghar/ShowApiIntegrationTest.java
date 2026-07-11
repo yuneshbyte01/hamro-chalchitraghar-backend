@@ -51,7 +51,7 @@ class ShowApiIntegrationTest extends AbstractIntegrationTest {
         mockMvc.perform(get("/api/public/shows/movie/{movieId}", current.getId()))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.data.length()").value(1));
         mockMvc.perform(get("/api/public/shows").param("movieId", current.getId().toString())
-                        .param("date", LocalDate.now().plusDays(10).toString()))
+                        .param("date", LocalDate.now(clock).plusDays(10).toString()))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.data.length()").value(1));
     }
 
@@ -160,7 +160,7 @@ class ShowApiIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.data.totalElements").value(3))
                 .andExpect(jsonPath("$.data.totalPages").value(3))
                 .andExpect(jsonPath("$.data.content[0].showDate")
-                        .value(LocalDate.now().plusDays(11).toString()));
+                        .value(LocalDate.now(clock).plusDays(11).toString()));
 
         mockMvc.perform(get("/api/public/shows").param("search", "kAbAdDi"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.data.totalElements").value(2));
@@ -169,7 +169,7 @@ class ShowApiIntegrationTest extends AbstractIntegrationTest {
         mockMvc.perform(get("/api/public/shows")
                         .param("movieId", firstMovie.getId().toString())
                         .param("hallId", secondHall.getId().toString())
-                        .param("showDate", LocalDate.now().plusDays(11).toString()))
+                        .param("showDate", LocalDate.now(clock).plusDays(11).toString()))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.data.totalElements").value(1));
 
         mockMvc.perform(get("/api/public/shows").param("sortBy", "movie"))
@@ -194,7 +194,7 @@ class ShowApiIntegrationTest extends AbstractIntegrationTest {
                         .param("movieId", movie.getId().toString())
                         .param("hallId", hall.getId().toString())
                         .param("status", "cancelled")
-                        .param("showDate", LocalDate.now().plusDays(12).toString())
+                        .param("showDate", LocalDate.now(clock).plusDays(12).toString())
                         .param("sortBy", "showTime").param("sortDir", "desc"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.totalElements").value(1))
@@ -216,19 +216,19 @@ class ShowApiIntegrationTest extends AbstractIntegrationTest {
         Hall hall = saveHall("Schedule Rules Hall", Status.ACTIVE);
         postSeatLayout(hall.getId(), token);
 
-        LocalTime futureStart = LocalTime.now().plusHours(1).withSecond(0).withNano(0);
+        LocalTime futureStart = LocalTime.now(clock).plusHours(1).withSecond(0).withNano(0);
         if (!futureStart.plusHours(2).isAfter(futureStart)) {
             futureStart = LocalTime.of(20, 0);
         }
         mockMvc.perform(post("/api/admin/shows").header("Authorization", bearer(token))
                         .contentType("application/json")
-                        .content(json(scheduleRequest(movie, hall, LocalDate.now(), futureStart, futureStart.plusHours(2)))))
+                        .content(json(scheduleRequest(movie, hall, LocalDate.now(clock), futureStart, futureStart.plusHours(2)))))
                 .andExpect(status().isCreated());
 
-        assertScheduleRejected(token, movie, hall, LocalDate.now().minusDays(1), LocalTime.of(10, 0), LocalTime.of(12, 0));
-        assertScheduleRejected(token, movie, hall, LocalDate.now(), LocalTime.now().minusMinutes(1), LocalTime.now().plusMinutes(119));
-        assertScheduleRejected(token, movie, hall, LocalDate.now().plusDays(20), LocalTime.of(14, 0), LocalTime.of(14, 0));
-        assertScheduleRejected(token, movie, hall, LocalDate.now().plusDays(20), LocalTime.of(14, 0), LocalTime.of(13, 59));
+        assertScheduleRejected(token, movie, hall, LocalDate.now(clock).minusDays(1), LocalTime.of(10, 0), LocalTime.of(12, 0));
+        assertScheduleRejected(token, movie, hall, LocalDate.now(clock), LocalTime.now(clock).minusMinutes(1), LocalTime.now(clock).plusMinutes(119));
+        assertScheduleRejected(token, movie, hall, LocalDate.now(clock).plusDays(20), LocalTime.of(14, 0), LocalTime.of(14, 0));
+        assertScheduleRejected(token, movie, hall, LocalDate.now(clock).plusDays(20), LocalTime.of(14, 0), LocalTime.of(13, 59));
 
         Hall durationHall = saveHall("Duration Rules Hall", Status.ACTIVE);
         postSeatLayout(durationHall.getId(), token);
@@ -318,12 +318,14 @@ class ShowApiIntegrationTest extends AbstractIntegrationTest {
         Hall hall = saveHall("Effective Visibility Hall", Status.ACTIVE);
         Show future = saveShow(movie, hall, ShowStatus.SCHEDULED, 2);
         Show running = saveShow(movie, hall, ShowStatus.SCHEDULED, 0);
-        running.setShowTime(LocalTime.now().minusMinutes(30));
-        running.setEndTime(LocalTime.now().plusMinutes(30));
+        running.setShowDate(LocalDate.now(clock));
+        running.setShowTime(LocalTime.now(clock).minusMinutes(30));
+        running.setEndTime(LocalTime.now(clock).plusMinutes(30));
         showRepository.save(running);
         Show staleEnded = saveShow(movie, hall, ShowStatus.SCHEDULED, 0);
-        staleEnded.setShowTime(LocalTime.now().minusHours(2));
-        staleEnded.setEndTime(LocalTime.now().minusHours(1));
+        staleEnded.setShowDate(LocalDate.now(clock));
+        staleEnded.setShowTime(LocalTime.now(clock).minusHours(2));
+        staleEnded.setEndTime(LocalTime.now(clock).minusHours(1));
         showRepository.save(staleEnded);
 
         mockMvc.perform(get("/api/public/shows"))
@@ -354,7 +356,7 @@ class ShowApiIntegrationTest extends AbstractIntegrationTest {
             throws Exception {
         mockMvc.perform(post("/api/admin/shows").header("Authorization", bearer(token))
                         .contentType("application/json")
-                        .content(json(scheduleRequest(movie, hall, LocalDate.now().plusDays(day), start, end))))
+                        .content(json(scheduleRequest(movie, hall, LocalDate.now(clock).plusDays(day), start, end))))
                 .andExpect(status().isConflict());
     }
 
@@ -367,7 +369,7 @@ class ShowApiIntegrationTest extends AbstractIntegrationTest {
 
     private Show saveShow(Movie movie, Hall hall, ShowStatus status, int daysFromNow) {
         Show show = showRepository.save(Show.builder()
-                .movie(movie).hall(hall).showDate(LocalDate.now().plusDays(daysFromNow))
+                .movie(movie).hall(hall).showDate(LocalDate.now(clock).plusDays(daysFromNow))
                 .showTime(LocalTime.of(10, 0)).endTime(LocalTime.of(12, 0)).build());
         show.setStatus(status);
         return showRepository.save(show);

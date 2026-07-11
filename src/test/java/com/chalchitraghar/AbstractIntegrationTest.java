@@ -4,6 +4,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.Clock;
 import java.util.List;
 import java.util.Map;
 
@@ -42,6 +43,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 abstract class AbstractIntegrationTest {
+
+    @Autowired
+    protected Clock clock;
 
     @Autowired
     protected MockMvc mockMvc;
@@ -136,7 +140,7 @@ abstract class AbstractIntegrationTest {
                 .language("Nepali")
                 .description("Test movie")
                 .posterUrl("https://example.com/poster.jpg")
-                .releaseDate(LocalDate.now().minusDays(5))
+                .releaseDate(LocalDate.now(clock).minusDays(5))
                 .status(status)
                 .build());
     }
@@ -182,7 +186,7 @@ abstract class AbstractIntegrationTest {
                 "language", "Nepali",
                 "description", "Test movie",
                 "posterUrl", "https://example.com/poster.jpg",
-                "releaseDate", LocalDate.now().toString(),
+                "releaseDate", LocalDate.now(clock).toString(),
                 "status", status.name()
         );
     }
@@ -204,7 +208,7 @@ abstract class AbstractIntegrationTest {
         return Map.of(
                 "movieId", movieId,
                 "hallId", hallId,
-                "showDate", LocalDate.now().plusDays(daysFromNow).toString(),
+                "showDate", LocalDate.now(clock).plusDays(daysFromNow).toString(),
                 "showTime", LocalTime.parse(showTime).toString(),
                 "endTime", LocalTime.parse(endTime).toString()
         );
@@ -216,8 +220,8 @@ abstract class AbstractIntegrationTest {
 
     protected void expireLock(Seat seat) {
         seat.setSeatStatus(SeatStatus.LOCKED);
-        seat.setLockedAt(java.time.LocalDateTime.now().minusMinutes(20));
-        seat.setLockExpiresAt(java.time.LocalDateTime.now().minusMinutes(10));
+        seat.setLockedAt(java.time.LocalDateTime.now(clock).minusMinutes(20));
+        seat.setLockExpiresAt(java.time.LocalDateTime.now(clock).minusMinutes(10));
         seatRepository.save(seat);
     }
 }
