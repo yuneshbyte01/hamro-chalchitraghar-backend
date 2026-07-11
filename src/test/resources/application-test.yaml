@@ -25,6 +25,9 @@ cors:
   allowed-origins: http://localhost:4200
 
 app:
+  time-zone: Asia/Kathmandu
+  shows:
+    status-reconciliation-interval-ms: 60000
   mail:
     from: no-reply@hamrochalachitraghar.com
     enabled: false

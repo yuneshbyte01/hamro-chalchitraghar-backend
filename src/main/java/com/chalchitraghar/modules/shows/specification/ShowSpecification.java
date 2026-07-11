@@ -2,6 +2,8 @@ package com.chalchitraghar.modules.shows.specification;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.time.LocalDate;
+import java.time.LocalTime;
 
 import org.springframework.data.jpa.domain.Specification;
 
@@ -23,7 +25,9 @@ public final class ShowSpecification {
     public static Specification<Show> search(
             ShowSearchCriteria criteria,
             ShowStatus status,
-            boolean publicOnly) {
+            boolean publicOnly,
+            LocalDate currentDate,
+            LocalTime currentTime) {
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
             var movie = root.join("movie", JoinType.INNER);
@@ -51,6 +55,11 @@ public final class ShowSpecification {
                 predicates.add(cb.equal(movie.get("status"), MovieStatus.NOW_SHOWING));
                 predicates.add(cb.equal(hall.get("status"), Status.ACTIVE));
                 predicates.add(root.get("status").in(ShowStatus.SCHEDULED, ShowStatus.RUNNING));
+                predicates.add(cb.or(
+                        cb.greaterThan(root.get("showDate"), currentDate),
+                        cb.and(
+                                cb.equal(root.get("showDate"), currentDate),
+                                cb.greaterThan(root.get("endTime"), currentTime))));
             }
             return cb.and(predicates.toArray(new Predicate[0]));
         };

@@ -1,5 +1,11 @@
 # Project Report
 
+## Show lifecycle and customer safety
+
+Shows use an effective time-based lifecycle in the configured `Asia/Kathmandu` application timezone. A scheduled reconciliation job advances stale shows to `RUNNING` at start and `COMPLETED` at end, while read-time and booking-time checks cover delayed jobs. Public catalogs retain currently running shows but hide ended/cancelled shows; all new holds and booking actions close at show start.
+
+Show schedules become immutable while active seat holds or active (`INITIATED`, `PENDING`, `CONFIRMED`, `BOOKED`) bookings exist. Cancellation blocks active bookings, rejects running/completed shows, and is idempotent once cancelled. Allowed cancellation releases active locks and retains all concrete seats as historical snapshots. Payments, refunds, notifications, and customer rescheduling remain outside this phase.
+
 ## Project Introduction
 
 Hamro Chalchitraghar Backend is a Java Spring Boot REST API for managing a cinema ticket booking system. The backend supports public discovery of movies, halls, shows, and seat availability, while authenticated users can hold seats, create bookings, confirm bookings, cancel eligible bookings, and view booking history.

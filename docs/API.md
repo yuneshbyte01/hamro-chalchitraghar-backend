@@ -516,7 +516,7 @@ Response `200`: list of `PublicHallSummaryResponse`.
 | Field | Value |
 | --- | --- |
 | Authentication | Public |
-| Description | Lists publicly visible shows in a `PageResponse`. Cancelled/completed shows and shows linked to a non-now-showing movie or inactive hall are excluded. |
+| Description | Lists publicly visible shows in a `PageResponse`. Cancelled/completed/ended shows and shows linked to a non-now-showing movie or inactive hall are excluded. Running shows remain visible but are not bookable. |
 | Request body | None |
 | Validation | `page >= 0`, `size >= 1`, valid sorting and ISO `showDate` |
 
@@ -725,6 +725,8 @@ Response `200`:
 Errors: `400` validation error, wrong current password, or same password; `401` missing or invalid token.
 
 ### `POST /api/customer/bookings/hold`
+
+Seat holds, booking creation, and booking confirmation require an effectively `SCHEDULED` show whose start remains in the future, movie is `NOW_SHOWING`, and hall is `ACTIVE`. Running, completed, cancelled, stale-started, inactive-hall, and non-now-showing-movie shows return `409`.
 
 | Field | Value |
 | --- | --- |
@@ -1258,7 +1260,7 @@ Response `200`: `AdminShowDetailResponse`.
 
 Errors: `400` validation, `404` show/movie/hall not found, `409` schedule conflict or invalid movie/hall status.
 
-Only `SCHEDULED` shows can be edited through this endpoint. `RUNNING` shows permit status changes only; `COMPLETED` and `CANCELLED` shows are terminal and cannot be edited.
+Only effectively `SCHEDULED` shows can be edited through this endpoint. Movie, hall, date, start, and end changes are blocked while an active seat hold or active booking exists. Active bookings are `INITIATED`, `PENDING`, `CONFIRMED`, or `BOOKED`; cancelled/expired bookings do not block updates. `RUNNING` shows permit status changes only; `COMPLETED` and `CANCELLED` shows are terminal and cannot be edited.
 
 #### `PATCH /api/admin/shows/{id}/status`
 
@@ -1285,11 +1287,13 @@ Errors: `400` malformed/missing status, `404` show not found, `409` invalid tran
 | Field | Value |
 | --- | --- |
 | Authentication | ADMIN |
-| Description | Soft-deletes a show by setting status to `CANCELLED`. |
+| Description | Soft-cancels a scheduled show. Active bookings block cancellation; running/completed shows cannot be cancelled. Repeated cancellation is idempotent. |
 | Request body | None |
 | Validation | `id` numeric |
 
 Response `204`: empty body.
+
+Successful cancellation releases active seat locks to `AVAILABLE` and clears lock timestamps/ownership. Concrete seat rows remain as historical snapshots. No refund, notification, or automatic booking cancellation is performed.
 
 Errors: `404` show not found.
 

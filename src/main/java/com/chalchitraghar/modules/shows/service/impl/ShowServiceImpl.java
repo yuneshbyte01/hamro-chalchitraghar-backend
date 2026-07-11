@@ -5,6 +5,7 @@ import com.chalchitraghar.modules.shows.service.ShowService;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.Duration;
+import java.time.Clock;
 import java.util.List;
 import java.util.Arrays;
 import java.util.Set;
@@ -39,6 +40,9 @@ import com.chalchitraghar.modules.seats.repository.SeatRepository;
 import com.chalchitraghar.modules.bookings.repository.BookingRepository;
 import com.chalchitraghar.shared.exception.ShowConflictException;
 import com.chalchitraghar.modules.shows.specification.ShowSpecification;
+import com.chalchitraghar.modules.shows.service.ShowLifecycleService;
+import com.chalchitraghar.modules.bookings.enums.BookingStatus;
+import com.chalchitraghar.modules.seats.enums.SeatStatus;
 import com.chalchitraghar.shared.response.PageResponse;
 
 import lombok.RequiredArgsConstructor;
@@ -58,6 +62,11 @@ public class ShowServiceImpl implements ShowService {
     private final SeatGenerationService seatGenerationService;
     private final SeatRepository seatRepository;
     private final BookingRepository bookingRepository;
+    private final ShowLifecycleService lifecycleService;
+    private final Clock clock;
+
+    private static final List<BookingStatus> ACTIVE_BOOKING_STATUSES = List.of(
+            BookingStatus.INITIATED, BookingStatus.PENDING, BookingStatus.CONFIRMED, BookingStatus.BOOKED);
 
     @Value("${app.shows.buffer-minutes:15}")
     private long showBufferMinutes;
@@ -102,9 +111,13 @@ public class ShowServiceImpl implements ShowService {
 
     @Override
     public AdminShowDetailResponse updateShow(Long id, ShowRequest dto) {
-        Show show = showRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Show", id));
+        Show show = showRepository.findByIdForUpdate(id).orElseThrow(() -> new ResourceNotFoundException("Show", id));
+        lifecycleService.reconcile(show);
         if (show.getStatus() != ShowStatus.SCHEDULED) {
             throw new ShowConflictException("Only scheduled shows can be updated");
+        }
+        if (hasActiveCustomerActivity(id)) {
+            throw new ShowConflictException("Cannot update a show with active bookings or seat holds");
         }
         boolean hallChanges = !show.getHall().getId().equals(dto.getHallId());
         if (hallChanges && bookingRepository.existsByShowId(id)) {
@@ -131,21 +144,36 @@ public class ShowServiceImpl implements ShowService {
 
     @Override
     public void deleteShow(Long id) {
-        Show show = showRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Show", id));
+        Show show = showRepository.findByIdForUpdate(id).orElseThrow(() -> new ResourceNotFoundException("Show", id));
+        lifecycleService.reconcile(show);
+        if (show.getStatus() == ShowStatus.CANCELLED) {
+            return;
+        }
+        if (show.getStatus() == ShowStatus.RUNNING || show.getStatus() == ShowStatus.COMPLETED) {
+            throw new ShowConflictException("Running or completed shows cannot be cancelled");
+        }
+        if (bookingRepository.existsByShowIdAndStatusIn(id, ACTIVE_BOOKING_STATUSES)) {
+            throw new ShowConflictException("Cannot cancel a show with active bookings");
+        }
         transitionStatus(show, ShowStatus.CANCELLED);
+        List<com.chalchitraghar.modules.seats.entity.Seat> locks = seatRepository.findActiveLockedSeatsByShowId(
+                id, java.time.LocalDateTime.now(clock));
+        locks.forEach(this::clearSeatLock);
+        seatRepository.saveAll(locks);
         showRepository.save(show);
     }
 
     @Override
     public AdminShowDetailResponse updateShowStatus(Long id, ShowStatus status) {
-        Show show = showRepository.findById(id)
+        Show show = showRepository.findByIdForUpdate(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Show", id));
+        lifecycleService.reconcile(show);
         transitionStatus(show, status);
         return showMapper.toAdminDetail(showRepository.save(show));
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public PageResponse<PublicShowSummaryResponse> getPublicShows(
             ShowSearchCriteria criteria, int page, int size, String sortBy, String sortDir) {
         Page<Show> shows = searchShows(criteria, page, size, sortBy, sortDir, true);
@@ -156,8 +184,9 @@ public class ShowServiceImpl implements ShowService {
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public PublicShowDetailResponse getPublicShowById(Long id) {
+        lifecycleService.reconcilePersisted(id);
         Show show = showRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Show", id));
         if (!isPubliclyVisible(show)) {
             throw new ResourceNotFoundException("Show", id);
@@ -166,16 +195,17 @@ public class ShowServiceImpl implements ShowService {
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public List<PublicShowSummaryResponse> getPublicShowsByMovie(Long movieId) {
         return showRepository.findByMovieId(movieId).stream()
+                .peek(lifecycleService::reconcile)
                 .filter(this::isPubliclyVisible)
                 .map(showMapper::toPublicSummary)
                 .collect(Collectors.toList());
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public List<PublicShowSummaryResponse> getPublicShowsByMovieAndShowDate(Long movieId, LocalDate showDate) {
         Movie movie = movieRepository.findById(movieId)
                 .orElseThrow(() -> new ResourceNotFoundException("Movie", movieId));
@@ -183,6 +213,7 @@ public class ShowServiceImpl implements ShowService {
             return List.of();
         }
         return showRepository.findByMovieIdAndShowDate(movieId, showDate).stream()
+                .peek(lifecycleService::reconcile)
                 .filter(this::isPubliclyVisible)
                 .map(showMapper::toPublicSummary)
                 .collect(Collectors.toList());
@@ -234,7 +265,14 @@ public class ShowServiceImpl implements ShowService {
         Sort.Direction direction = parseSortDirection(sortDir);
         ShowStatus status = publicOnly ? null : parseStatus(criteria.status());
         PageRequest pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
-        return showRepository.findAll(ShowSpecification.search(criteria, status, publicOnly), pageable);
+        LocalDate today = LocalDate.now(clock);
+        LocalTime now = LocalTime.now(clock);
+        Page<Show> shows = showRepository.findAll(
+                ShowSpecification.search(criteria, status, publicOnly, today, now), pageable);
+        if (publicOnly) {
+            shows.getContent().forEach(lifecycleService::reconcile);
+        }
+        return shows;
     }
 
     private Sort.Direction parseSortDirection(String sortDir) {
@@ -260,8 +298,8 @@ public class ShowServiceImpl implements ShowService {
     }
 
     private void validateSchedule(ShowRequest request, Movie movie) {
-        LocalDate today = LocalDate.now();
-        LocalTime now = LocalTime.now();
+        LocalDate today = LocalDate.now(clock);
+        LocalTime now = LocalTime.now(clock);
         if (request.getShowDate().isBefore(today)) {
             throw new IllegalArgumentException("Show date must not be in the past");
         }
@@ -295,5 +333,18 @@ public class ShowServiceImpl implements ShowService {
                     "Invalid show status transition from " + current + " to " + target);
         }
         show.setStatus(target);
+    }
+
+    private boolean hasActiveCustomerActivity(Long showId) {
+        return bookingRepository.existsByShowIdAndStatusIn(showId, ACTIVE_BOOKING_STATUSES)
+                || seatRepository.existsByShowIdAndSeatStatusAndLockExpiresAtAfter(
+                        showId, SeatStatus.LOCKED, java.time.LocalDateTime.now(clock));
+    }
+
+    private void clearSeatLock(com.chalchitraghar.modules.seats.entity.Seat seat) {
+        seat.setSeatStatus(SeatStatus.AVAILABLE);
+        seat.setLockedAt(null);
+        seat.setLockExpiresAt(null);
+        seat.setLockedByUserId(null);
     }
 }

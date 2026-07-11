@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import com.chalchitraghar.modules.seats.entity.Seat;
+import com.chalchitraghar.modules.seats.enums.SeatStatus;
 
 import jakarta.persistence.LockModeType;
 
@@ -24,6 +25,13 @@ public interface SeatRepository extends JpaRepository<Seat, Long> {
      * @return true if seats exist for this show, false otherwise
      */
     boolean existsByShowId(Long showId);
+
+    boolean existsByShowIdAndSeatStatusAndLockExpiresAtAfter(
+            Long showId, SeatStatus seatStatus, LocalDateTime now);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT s FROM Seat s WHERE s.show.id = :showId AND s.seatStatus = 'LOCKED' AND s.lockExpiresAt > :now")
+    List<Seat> findActiveLockedSeatsByShowId(@Param("showId") Long showId, @Param("now") LocalDateTime now);
 
     long countByShowId(Long showId);
 

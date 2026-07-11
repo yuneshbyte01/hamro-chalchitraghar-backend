@@ -3,6 +3,7 @@ package com.chalchitraghar.modules.shows.repository;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
@@ -11,11 +12,19 @@ import java.util.List;
 
 import com.chalchitraghar.modules.shows.enums.ShowStatus;
 import com.chalchitraghar.modules.shows.entity.Show;
+import jakarta.persistence.LockModeType;
+import java.util.Optional;
 
 /**
  * Repository interface for Show entity persistence operations.
  */
 public interface ShowRepository extends JpaRepository<Show, Long>, JpaSpecificationExecutor<Show> {
+
+    List<Show> findByStatusIn(List<ShowStatus> statuses);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT s FROM Show s WHERE s.id = :id")
+    Optional<Show> findByIdForUpdate(@Param("id") Long id);
 
     boolean existsByHallId(Long hallId);
 

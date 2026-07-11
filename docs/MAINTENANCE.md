@@ -98,6 +98,8 @@ Paginated show lists use `ShowSearchCriteria`, `ShowSpecification`, and the shar
 
 Keep scheduling and lifecycle decisions in `ShowServiceImpl`. `SHOW_BUFFER_MINUTES` configures the cleaning gap (default 15), while `SHOW_DURATION_TOLERANCE_MINUTES` configures the movie-duration tolerance (default 5). Any lifecycle extension must update the centralized transition guard, the status endpoint documentation, and scheduling integration tests; do not bypass it by assigning `Show.status` in controllers.
 
+Use the injected application `Clock` and `ShowLifecycleService` for time-based show decisions; do not add independent `now()` checks to booking or seat workflows. `SHOW_STATUS_RECONCILIATION_INTERVAL_MS` controls the forward-only reconciliation job and `APP_TIME_ZONE` defines the single cinema timezone. Keep the active booking status list centralized in show management when changing dependency policy.
+
 Place request DTOs under:
 
 ```text

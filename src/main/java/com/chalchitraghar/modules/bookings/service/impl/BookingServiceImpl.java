@@ -2,6 +2,7 @@ package com.chalchitraghar.modules.bookings.service.impl;
 
 import com.chalchitraghar.modules.bookings.service.BookingService;
 import java.time.LocalDateTime;
+import java.time.Clock;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -30,8 +31,8 @@ import com.chalchitraghar.modules.bookings.repository.BookingRepository;
 import com.chalchitraghar.modules.bookings.repository.BookingSeatRepository;
 import com.chalchitraghar.modules.seats.repository.SeatRepository;
 import com.chalchitraghar.modules.shows.repository.ShowRepository;
-import com.chalchitraghar.modules.shows.enums.ShowStatus;
 import com.chalchitraghar.shared.exception.ShowConflictException;
+import com.chalchitraghar.modules.shows.service.ShowLifecycleService;
 
 import lombok.RequiredArgsConstructor;
 
@@ -44,6 +45,8 @@ public class BookingServiceImpl implements BookingService {
     private final ShowRepository showRepository;
     private final SeatRepository seatRepository;
     private final BookingMapper bookingMapper;
+    private final ShowLifecycleService showLifecycleService;
+    private final Clock clock;
 
     @Override
     @Transactional
@@ -53,9 +56,7 @@ public class BookingServiceImpl implements BookingService {
         }
         Show show = showRepository.findById(request.getShowId())
                 .orElseThrow(() -> new ResourceNotFoundException("Show", request.getShowId()));
-        if (show.getStatus() == ShowStatus.CANCELLED || show.getStatus() == ShowStatus.COMPLETED) {
-            throw new ShowConflictException("Booking is not allowed for a cancelled or completed show");
-        }
+        showLifecycleService.assertBookable(show);
         List<Seat> seats = seatRepository.findByShowIdAndSeatIdsWithLock(
                 request.getShowId(), request.getSeatIds());
         if (seats.size() != request.getSeatIds().size()) {
@@ -76,7 +77,7 @@ public class BookingServiceImpl implements BookingService {
         Booking booking = Booking.builder()
                 .user(user)
                 .show(show)
-                .bookingTime(LocalDateTime.now())
+                .bookingTime(LocalDateTime.now(clock))
                 .status(BookingStatus.INITIATED)
                 .build();
         booking = bookingRepository.save(booking);
@@ -135,6 +136,7 @@ public class BookingServiceImpl implements BookingService {
             throw new SeatAlreadyBookedException(
                     String.format("Seats %s are no longer reserved for confirmation", invalidSeatIds));
         }
+        showLifecycleService.assertBookable(booking.getShow());
         for (Seat seat : seats) {
             seat.setSeatStatus(SeatStatus.BOOKED);
             seat.setLockedAt(null);
@@ -175,7 +177,7 @@ public class BookingServiceImpl implements BookingService {
         }
         Show show = booking.getShow();
         LocalDateTime showDateTime = LocalDateTime.of(show.getShowDate(), show.getShowTime());
-        if (LocalDateTime.now().isAfter(showDateTime) || LocalDateTime.now().isEqual(showDateTime)) {
+        if (LocalDateTime.now(clock).isAfter(showDateTime) || LocalDateTime.now(clock).isEqual(showDateTime)) {
             throw new InvalidBookingStateException(
                     String.format("Booking %d cannot be cancelled. Show time has passed or is in progress. Show time: %s",
                             bookingId, showDateTime));
@@ -219,7 +221,7 @@ public class BookingServiceImpl implements BookingService {
     }
 
     private void validateSeatsForBookingCreation(List<Seat> seats, Long userId) {
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(clock);
         for (Seat seat : seats) {
             if (seat.getSeatStatus() == SeatStatus.LOCKED) {
                 if (isLockExpired(seat, now)) {

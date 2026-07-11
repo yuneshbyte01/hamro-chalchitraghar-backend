@@ -2,6 +2,7 @@ package com.chalchitraghar.modules.seats.service.impl;
 
 import com.chalchitraghar.modules.seats.service.SeatLockService;
 import java.time.LocalDateTime;
+import java.time.Clock;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -19,9 +20,8 @@ import com.chalchitraghar.modules.seats.enums.SeatStatus;
 import com.chalchitraghar.modules.seats.repository.SeatRepository;
 import com.chalchitraghar.modules.shows.repository.ShowRepository;
 import com.chalchitraghar.modules.shows.entity.Show;
-import com.chalchitraghar.modules.shows.enums.ShowStatus;
 import com.chalchitraghar.shared.exception.ResourceNotFoundException;
-import com.chalchitraghar.shared.exception.ShowConflictException;
+import com.chalchitraghar.modules.shows.service.ShowLifecycleService;
 
 import lombok.RequiredArgsConstructor;
 
@@ -33,14 +33,14 @@ public class SeatLockServiceImpl implements SeatLockService {
     private static final int LOCK_DURATION_MINUTES = 10;
     private final SeatRepository seatRepository;
     private final ShowRepository showRepository;
+    private final ShowLifecycleService showLifecycleService;
+    private final Clock clock;
 
     @Override
     public SeatHoldResponse holdSeats(Long showId, List<Long> seatIds, Long userId) {
         Show show = showRepository.findById(showId)
                 .orElseThrow(() -> new ResourceNotFoundException("Show", showId));
-        if (show.getStatus() == ShowStatus.CANCELLED || show.getStatus() == ShowStatus.COMPLETED) {
-            throw new ShowConflictException("Seats cannot be held for a cancelled or completed show");
-        }
+        showLifecycleService.assertBookable(show);
         if (seatIds == null || seatIds.isEmpty()) {
             throw new InvalidSeatSelectionException("At least one seat must be selected");
         }
@@ -56,7 +56,7 @@ public class SeatLockServiceImpl implements SeatLockService {
         if (!seats.stream().allMatch(seat -> seat.getShow().getId().equals(showId))) {
             throw new InvalidSeatSelectionException("All seats must belong to the same show");
         }
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(clock);
         LocalDateTime holdExpiresAt = now.plusMinutes(LOCK_DURATION_MINUTES);
         for (Seat seat : seats) {
             if (seat.getSeatStatus() == SeatStatus.LOCKED) {
@@ -107,7 +107,7 @@ public class SeatLockServiceImpl implements SeatLockService {
 
     @Override
     public int releaseExpiredSeatLocks() {
-        List<Seat> seats = seatRepository.findExpiredLockedSeats(LocalDateTime.now());
+        List<Seat> seats = seatRepository.findExpiredLockedSeats(LocalDateTime.now(clock));
         for (Seat seat : seats) {
             clearLock(seat);
         }

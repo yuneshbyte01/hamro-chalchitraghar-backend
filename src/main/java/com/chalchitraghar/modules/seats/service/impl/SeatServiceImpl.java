@@ -16,6 +16,8 @@ import com.chalchitraghar.modules.seats.entity.Seat;
 import com.chalchitraghar.modules.seats.enums.SeatStatus;
 import com.chalchitraghar.shared.exception.ResourceNotFoundException;
 import java.time.LocalDateTime;
+import java.time.Clock;
+import com.chalchitraghar.modules.shows.service.ShowLifecycleService;
 
 import lombok.RequiredArgsConstructor;
 
@@ -26,16 +28,20 @@ public class SeatServiceImpl implements SeatService {
     private final SeatRepository seatRepository;
     private final SeatMapper seatMapper;
     private final ShowRepository showRepository;
+    private final ShowLifecycleService showLifecycleService;
+    private final Clock clock;
 
     @Override
     @Transactional
     public List<SeatResponse> getAllSeatsForShow(Long showId) {
         Show show = showRepository.findById(showId)
                 .orElseThrow(() -> new ResourceNotFoundException("Show", showId));
-        if (show.getStatus() == ShowStatus.CANCELLED || show.getStatus() == ShowStatus.COMPLETED) {
+        ShowStatus effectiveStatus = showLifecycleService.effectiveStatus(show);
+        if (effectiveStatus == ShowStatus.CANCELLED || effectiveStatus == ShowStatus.COMPLETED) {
             throw new ResourceNotFoundException("Show", showId);
         }
-        List<Seat> expiredLocks = seatRepository.findExpiredLockedSeatsByShowId(showId, LocalDateTime.now());
+        showLifecycleService.assertBookable(show);
+        List<Seat> expiredLocks = seatRepository.findExpiredLockedSeatsByShowId(showId, LocalDateTime.now(clock));
         expiredLocks.forEach(seat -> {
             seat.setSeatStatus(SeatStatus.AVAILABLE);
             seat.setLockedAt(null);

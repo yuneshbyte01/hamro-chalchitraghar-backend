@@ -312,6 +312,31 @@ class ShowApiIntegrationTest extends AbstractIntegrationTest {
         }
     }
 
+    @Test
+    void publicVisibilityUsesEffectiveTimeAndKeepsRunningShowsVisible() throws Exception {
+        Movie movie = saveMovie("Effective Visibility Movie", MovieStatus.NOW_SHOWING);
+        Hall hall = saveHall("Effective Visibility Hall", Status.ACTIVE);
+        Show future = saveShow(movie, hall, ShowStatus.SCHEDULED, 2);
+        Show running = saveShow(movie, hall, ShowStatus.SCHEDULED, 0);
+        running.setShowTime(LocalTime.now().minusMinutes(30));
+        running.setEndTime(LocalTime.now().plusMinutes(30));
+        showRepository.save(running);
+        Show staleEnded = saveShow(movie, hall, ShowStatus.SCHEDULED, 0);
+        staleEnded.setShowTime(LocalTime.now().minusHours(2));
+        staleEnded.setEndTime(LocalTime.now().minusHours(1));
+        showRepository.save(staleEnded);
+
+        mockMvc.perform(get("/api/public/shows"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.totalElements").value(2));
+        mockMvc.perform(get("/api/public/shows/{id}", future.getId())).andExpect(status().isOk());
+        mockMvc.perform(get("/api/public/shows/{id}", running.getId()))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.status").value("RUNNING"));
+        mockMvc.perform(get("/api/public/shows/{id}", staleEnded.getId())).andExpect(status().isNotFound());
+        org.assertj.core.api.Assertions.assertThat(showRepository.findById(staleEnded.getId()).orElseThrow().getStatus())
+                .isEqualTo(ShowStatus.COMPLETED);
+    }
+
     private java.util.Map<String, Object> scheduleRequest(
             Movie movie, Hall hall, LocalDate date, LocalTime start, LocalTime end) {
         return java.util.Map.of("movieId", movie.getId(), "hallId", hall.getId(),

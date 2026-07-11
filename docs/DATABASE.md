@@ -323,6 +323,8 @@ This category pricing is owned by the shared `SeatPricingPolicy` used during sho
 
 Concrete show seats are immutable snapshots of the hall templates at show creation time. Cancelling a show retains these records for history; show status controls public availability. `SeatStatus.CANCELLED` remains defined but is currently unused.
 
+Safe show cancellation releases active `LOCKED` seats to `AVAILABLE` and clears `locked_at`, `lock_expires_at`, and `locked_by_user_id`; seat rows are never deleted. Active booking dependency checks include `INITIATED`, `PENDING`, `CONFIRMED`, and `BOOKED`, while `CANCELLED` and `EXPIRED` do not block show updates or cancellation.
+
 ### `bookings`
 
 Stores a booking record for one user and one show.

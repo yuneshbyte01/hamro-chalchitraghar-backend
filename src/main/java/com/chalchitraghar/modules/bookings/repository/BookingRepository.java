@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import com.chalchitraghar.modules.bookings.entity.Booking;
+import com.chalchitraghar.modules.bookings.enums.BookingStatus;
 
 /**
  * Repository interface for Booking entity persistence operations.
@@ -14,6 +15,10 @@ import com.chalchitraghar.modules.bookings.entity.Booking;
 public interface BookingRepository extends JpaRepository<Booking, Long> {
 
     boolean existsByShowId(Long showId);
+
+    boolean existsByShowIdAndStatusIn(Long showId, List<BookingStatus> statuses);
+
+    long countByShowIdAndStatusIn(Long showId, List<BookingStatus> statuses);
     
     /**
      * Finds all bookings for a specific user, ordered by booking time descending (most recent first).

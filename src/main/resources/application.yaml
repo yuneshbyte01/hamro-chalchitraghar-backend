@@ -21,6 +21,8 @@ spring:
     baseline-version: 8
 
 app:
+  time-zone: ${APP_TIME_ZONE:Asia/Kathmandu}
   shows:
     buffer-minutes: ${SHOW_BUFFER_MINUTES:15}
     duration-tolerance-minutes: ${SHOW_DURATION_TOLERANCE_MINUTES:5}
+    status-reconciliation-interval-ms: ${SHOW_STATUS_RECONCILIATION_INTERVAL_MS:60000}
