@@ -22,7 +22,7 @@ public class PaymentController {
     public ResponseEntity<ApiResponse<List<CustomerPaymentSummaryResponse>>> byBooking(@PathVariable String reference) { return ResponseEntity.ok(ApiResponse.success("Payments fetched successfully", service.getMyPaymentsByBookingReference(reference,user()))); }
     @PostMapping("/bookings/{reference}/payments")
     @Operation(summary="Initiate a payment attempt", description="Amount/currency and ownership are server-authoritative. Idempotent per booking and key; one active attempt is allowed. Payment success does not confirm the booking.")
-    public ResponseEntity<ApiResponse<CustomerPaymentDetailResponse>> initiate(@PathVariable String reference,
+    public ResponseEntity<ApiResponse<Object>> initiate(@PathVariable String reference,
             @Parameter(required=true,description="Client-generated key, unique per booking; maximum 255 characters") @RequestHeader("Idempotency-Key") String key,
             @Valid @RequestBody PaymentInitiationRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success("Payment initiated successfully",service.initiate(reference,key,request,user())));

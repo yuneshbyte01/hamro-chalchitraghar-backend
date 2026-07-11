@@ -28,6 +28,10 @@ import com.chalchitraghar.modules.movies.entity.Movie;
 import com.chalchitraghar.modules.movies.enums.MovieStatus;
 import com.chalchitraghar.modules.movies.repository.MovieRepository;
 import com.chalchitraghar.modules.payments.repository.PaymentRepository;
+import com.chalchitraghar.modules.payments.entity.Payment;
+import com.chalchitraghar.modules.payments.enums.PaymentProvider;
+import com.chalchitraghar.modules.payments.enums.PaymentMethod;
+import com.chalchitraghar.modules.payments.enums.PaymentStatus;
 import com.chalchitraghar.modules.seats.entity.Seat;
 import com.chalchitraghar.modules.seats.enums.SeatStatus;
 import com.chalchitraghar.modules.seats.repository.SeatRepository;
@@ -223,5 +227,13 @@ abstract class AbstractIntegrationTest {
         seat.setLockedAt(java.time.LocalDateTime.now(clock).minusMinutes(20));
         seat.setLockExpiresAt(java.time.LocalDateTime.now(clock).minusMinutes(10));
         seatRepository.save(seat);
+    }
+
+    protected Payment saveSuccessfulPayment(com.chalchitraghar.modules.bookings.entity.Booking booking) {
+        String reference = "PAY-TEST-" + booking.getId() + "-" + System.nanoTime();
+        return paymentRepository.save(Payment.builder().booking(booking).paymentReference(reference)
+                .provider(PaymentProvider.ESEWA).method(PaymentMethod.ONLINE).status(PaymentStatus.SUCCESS)
+                .amount(booking.getTotalAmount()).currency(booking.getCurrency()).providerTransactionId(reference)
+                .initiatedAt(java.time.LocalDateTime.now(clock)).completedAt(java.time.LocalDateTime.now(clock)).build());
     }
 }

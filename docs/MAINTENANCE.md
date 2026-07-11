@@ -481,3 +481,4 @@ LOCAL user lifecycle:
 - Never persist credentials, payment secrets, sensitive account/card data, or raw provider payloads in `payments`.
 
 Payment-2 initiation must keep `(booking_id, idempotency_key)` behavior stable, derive amount/currency only from the locked booking, and enforce at most one active `CREATED`/`PENDING` attempt. All state changes must pass through `PaymentLifecycleService`; process and cancel operations lock the payment row. Keep real provider network work outside locking transactions. `PAYMENT_LOCAL_ENABLED` must remain false in production.
+For eSewa, never log `ESEWA_SECRET_KEY`, never accept merchant/form fields from customers, and never hold database locks during status HTTP calls. Keep request signed fields ordered as `total_amount,transaction_uuid,product_code`. Any verified late success must remain `SUCCESS` with manual review instead of modifying an ineligible booking.

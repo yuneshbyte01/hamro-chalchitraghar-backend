@@ -5,4 +5,5 @@ import com.chalchitraghar.modules.payments.enums.*; import io.swagger.v3.oas.ann
 public record CustomerPaymentDetailResponse(String paymentReference, String bookingReference, PaymentProvider provider,
         PaymentMethod method, PaymentStatus status, BigDecimal amount, String currency, String providerTransactionId,
         LocalDateTime initiatedAt, LocalDateTime expiresAt, LocalDateTime completedAt, LocalDateTime failedAt, LocalDateTime expiredAt,
-        LocalDateTime cancelledAt, String failureMessage) {}
+        LocalDateTime cancelledAt, String failureMessage, String providerStatus, LocalDateTime verificationTime,
+        boolean manualReviewRequired) {}

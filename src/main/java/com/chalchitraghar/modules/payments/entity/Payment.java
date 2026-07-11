@@ -44,6 +44,11 @@ public class Payment extends GenericEntity {
     @NotNull @Size(min = 3, max = 3) private String currency;
 
     @Column(name = "provider_transaction_id", length = 255) private String providerTransactionId;
+    @Column(name = "provider_reference", length = 255) private String providerReference;
+    @Column(name = "provider_status", length = 50) private String providerStatus;
+    @Column(name = "verification_time") private LocalDateTime verificationTime;
+    @Column(name = "manual_review_required", nullable = false) @Builder.Default private boolean manualReviewRequired = false;
+    @Column(name = "manual_review_reason", length = 500) private String manualReviewReason;
     @Column(name = "idempotency_key", length = 255) private String idempotencyKey;
     @Column(name = "failure_code", length = 100) private String failureCode;
     @Column(name = "failure_message", length = 500) private String failureMessage;

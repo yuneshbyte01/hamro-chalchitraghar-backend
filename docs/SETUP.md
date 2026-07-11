@@ -235,3 +235,6 @@ Current migrations:
 | Docker app exits on startup | Inspect logs with `docker compose logs app` |
 | PostgreSQL container unhealthy | Inspect logs with `docker compose logs postgres` |
 | Port already in use | Change host port mapping in `docker-compose.yml` or stop the conflicting process |
+## eSewa Sandbox
+
+Enable with the `ESEWA_*` variables in `.env.example`. Official sandbox merchant code is `EPAYTEST`. Published test wallet IDs are `9711111111`, `9711111112`, `9711111113`, and `9711111114`; password `Nepal@123`, token `123456`, and MPIN `1122`. These customer credentials are for sandbox testing only and must never be production configuration. Production requires merchant-issued product code and secret.

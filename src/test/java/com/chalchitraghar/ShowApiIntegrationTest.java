@@ -216,13 +216,13 @@ class ShowApiIntegrationTest extends AbstractIntegrationTest {
         Hall hall = saveHall("Schedule Rules Hall", Status.ACTIVE);
         postSeatLayout(hall.getId(), token);
 
-        LocalTime futureStart = LocalTime.now(clock).plusHours(1).withSecond(0).withNano(0);
+        LocalTime futureStart = LocalTime.of(10, 0);
         if (!futureStart.plusHours(2).isAfter(futureStart)) {
             futureStart = LocalTime.of(20, 0);
         }
         mockMvc.perform(post("/api/admin/shows").header("Authorization", bearer(token))
                         .contentType("application/json")
-                        .content(json(scheduleRequest(movie, hall, LocalDate.now(clock), futureStart, futureStart.plusHours(2)))))
+                        .content(json(scheduleRequest(movie, hall, LocalDate.now(clock).plusDays(1), futureStart, futureStart.plusHours(2)))))
                 .andExpect(status().isCreated());
 
         assertScheduleRejected(token, movie, hall, LocalDate.now(clock).minusDays(1), LocalTime.of(10, 0), LocalTime.of(12, 0));

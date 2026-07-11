@@ -22,6 +22,8 @@ import com.chalchitraghar.modules.shows.service.ShowLifecycleService;
 import java.time.*;
 import org.springframework.beans.factory.annotation.Value;
 import lombok.RequiredArgsConstructor;
+import com.chalchitraghar.modules.payments.esewa.EsewaPayloadFactory;
+import com.chalchitraghar.modules.payments.config.EsewaProperties;
 
 @Service @RequiredArgsConstructor @Transactional(readOnly = true)
 public class PaymentServiceImpl implements PaymentService {
@@ -33,6 +35,8 @@ public class PaymentServiceImpl implements PaymentService {
     private final ShowLifecycleService showLifecycleService;
     private final List<PaymentProviderAdapter> providerAdapters;
     private final Clock clock;
+    private final EsewaPayloadFactory esewaPayloadFactory;
+    private final EsewaProperties esewaProperties;
     @Value("${app.payments.attempt-expiration-minutes:10}") private long expirationMinutes;
 
     public List<CustomerPaymentSummaryResponse> getMyPayments(User user) {
@@ -57,13 +61,13 @@ public class PaymentServiceImpl implements PaymentService {
         Booking booking=findBooking(reference); return paymentRepository.findByBookingIdOrderByCreatedAtDesc(booking.getId()).stream().map(mapper::toAdminSummary).toList();
     }
     @Transactional
-    public CustomerPaymentDetailResponse initiate(String reference, String rawKey, PaymentInitiationRequest request, User user) {
+    public Object initiate(String reference, String rawKey, PaymentInitiationRequest request, User user) {
         String key=validateKey(rawKey);
         Booking booking=bookingRepository.findByIdForUpdate(findBooking(reference).getId()).orElseThrow(() -> bookingNotFound(reference));
         if (!booking.getUser().getId().equals(user.getId())) throw bookingNotFound(reference);
         Payment prior=paymentRepository.findByBookingIdAndIdempotencyKey(booking.getId(),key).orElse(null);
         if (prior!=null) {
-            if (prior.getProvider()==request.provider() && prior.getMethod()==request.method()) return mapper.toCustomerDetail(prior);
+            if (prior.getProvider()==request.provider() && prior.getMethod()==request.method()) return initiationResponse(prior);
             throw new PaymentConflictException("Idempotency key was already used with different payment parameters");
         }
         if (booking.getStatus()!=BookingStatus.INITIATED) throw new PaymentConflictException("Only INITIATED bookings can start payment");
@@ -75,13 +79,15 @@ public class PaymentServiceImpl implements PaymentService {
         PaymentProviderAdapter adapter=providerAdapters.stream().filter(a->a.supports(request.provider())).findFirst()
                 .orElseThrow(()->new PaymentConflictException("Payment provider is not available"));
         if (request.method()!=PaymentMethod.ONLINE) throw new PaymentConflictException("Payment method is not available");
+        if(request.provider()==PaymentProvider.ESEWA && !esewaProperties.enabled()) throw new PaymentConflictException("eSewa payments are disabled");
         LocalDateTime now=LocalDateTime.now(clock);
         Payment payment=Payment.builder().booking(booking).paymentReference(referenceGenerator.generate()).provider(request.provider())
                 .method(request.method()).status(PaymentStatus.CREATED).amount(booking.getTotalAmount()).currency(booking.getCurrency())
                 .idempotencyKey(key).initiatedAt(now).expiresAt(now.plusMinutes(expirationMinutes)).build();
         adapter.initiate(payment);
-        return mapper.toCustomerDetail(paymentRepository.save(payment));
+        return initiationResponse(paymentRepository.save(payment));
     }
+    private Object initiationResponse(Payment p){return p.getProvider()==PaymentProvider.ESEWA?esewaPayloadFactory.create(p):mapper.toCustomerDetail(p);}
     @Transactional
     public CustomerPaymentDetailResponse cancel(String reference, User user) {
         Payment p=findPaymentForUpdate(reference,user); lifecycle.reconcileExpiry(p);

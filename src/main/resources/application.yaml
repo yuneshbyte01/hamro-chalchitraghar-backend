@@ -31,6 +31,17 @@ app:
   payments:
     attempt-expiration-minutes: ${PAYMENT_ATTEMPT_EXPIRATION_MINUTES:10}
     local-enabled: ${PAYMENT_LOCAL_ENABLED:false}
+    esewa:
+      enabled: ${ESEWA_ENABLED:false}
+      environment: ${ESEWA_ENVIRONMENT:SANDBOX}
+      product-code: ${ESEWA_PRODUCT_CODE:EPAYTEST}
+      secret-key: ${ESEWA_SECRET_KEY:disabled-placeholder}
+      payment-url: ${ESEWA_PAYMENT_URL:https://rc-epay.esewa.com.np/api/epay/main/v2/form}
+      status-check-url: ${ESEWA_STATUS_CHECK_URL:https://rc.esewa.com.np/api/epay/transaction/status/}
+      success-url: ${ESEWA_SUCCESS_URL:http://localhost:4200/payment/esewa/success}
+      failure-url: ${ESEWA_FAILURE_URL:http://localhost:4200/payment/esewa/failure}
+      connect-timeout-ms: ${ESEWA_CONNECT_TIMEOUT_MS:5000}
+      read-timeout-ms: ${ESEWA_READ_TIMEOUT_MS:10000}
   shows:
     buffer-minutes: ${SHOW_BUFFER_MINUTES:15}
     duration-tolerance-minutes: ${SHOW_DURATION_TOLERANCE_MINUTES:5}

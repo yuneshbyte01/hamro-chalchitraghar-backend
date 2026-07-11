@@ -100,6 +100,7 @@ public class SecurityConfig {
                     ).permitAll()
                     .requestMatchers("/api/auth/**").permitAll()
                     .requestMatchers("/api/public/**").permitAll()
+                    .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/payments/esewa/verify").permitAll()
                     .requestMatchers("/api/customer/**").hasAnyRole("CUSTOMER", "STAFF", "ADMIN")
                     .requestMatchers("/api/staff/**").hasAnyRole("STAFF", "ADMIN")
                     .requestMatchers("/api/admin/**").hasRole("ADMIN")

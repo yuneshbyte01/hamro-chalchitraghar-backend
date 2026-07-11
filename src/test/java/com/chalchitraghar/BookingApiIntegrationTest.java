@@ -399,6 +399,7 @@ class BookingApiIntegrationTest extends AbstractIntegrationTest {
         TestShowContext context = createShowContext("confirm-booking@example.com");
         Seat seat = seatsForShow(context.show().getId()).get(0);
         Long bookingId = createBooking(context.customerToken(), context.show().getId(), seat.getId());
+        saveSuccessfulPayment(bookingRepository.findById(bookingId).orElseThrow());
 
         mockMvc.perform(post("/api/customer/bookings/{bookingId}/confirm", bookingId)
                         .header("Authorization", bearer(context.customerToken())))
@@ -558,6 +559,7 @@ class BookingApiIntegrationTest extends AbstractIntegrationTest {
         String confirmedAdmin = loginToken("admin-confirmed-dependency@example.com");
         Long confirmedId = createBooking(confirmed.customerToken(), confirmed.show().getId(),
                 seatsForShow(confirmed.show().getId()).getFirst().getId());
+        saveSuccessfulPayment(bookingRepository.findById(confirmedId).orElseThrow());
         mockMvc.perform(post("/api/customer/bookings/{bookingId}/confirm", confirmedId)
                         .header("Authorization", bearer(confirmed.customerToken())))
                 .andExpect(status().isOk());

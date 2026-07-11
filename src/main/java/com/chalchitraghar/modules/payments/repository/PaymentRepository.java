@@ -24,6 +24,7 @@ public interface PaymentRepository extends JpaRepository<Payment, Long>, JpaSpec
     Optional<Payment> findByBookingIdAndIdempotencyKey(Long bookingId, String idempotencyKey);
     List<Payment> findByBookingIdAndStatusIn(Long bookingId, java.util.Collection<PaymentStatus> statuses);
     boolean existsByBookingIdAndStatus(Long bookingId, PaymentStatus status);
+    java.util.Optional<Payment> findFirstByBookingIdAndStatusOrderByCompletedAtDesc(Long bookingId, PaymentStatus status);
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT p FROM Payment p WHERE p.paymentReference = :reference")
     Optional<Payment> findByPaymentReferenceForUpdate(@Param("reference") String reference);

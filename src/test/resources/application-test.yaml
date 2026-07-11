@@ -35,6 +35,17 @@ app:
   payments:
     attempt-expiration-minutes: 10
     local-enabled: true
+    esewa:
+      enabled: true
+      environment: SANDBOX
+      product-code: EPAYTEST
+      secret-key: 8gBm/:&EnhH.1/q
+      payment-url: https://rc-epay.esewa.com.np/api/epay/main/v2/form
+      status-check-url: http://localhost:1/api/epay/transaction/status/
+      success-url: http://localhost:4200/payment/esewa/success
+      failure-url: http://localhost:4200/payment/esewa/failure
+      connect-timeout-ms: 100
+      read-timeout-ms: 100
   shows:
     status-reconciliation-interval-ms: 60000
   mail:

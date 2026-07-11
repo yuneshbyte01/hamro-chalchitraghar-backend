@@ -6,4 +6,6 @@ public record StaffPaymentDetailResponse(String paymentReference, String booking
         String customerName, String customerEmail, PaymentProvider provider, PaymentMethod method, PaymentStatus status,
         BigDecimal amount, String currency, LocalDateTime initiatedAt, LocalDateTime completedAt,
         String providerTransactionId, String failureCode, String failureMessage, LocalDateTime failedAt,
-        LocalDateTime expiredAt, LocalDateTime cancelledAt, LocalDateTime createdAt, LocalDateTime updatedAt) {}
+        LocalDateTime expiredAt, LocalDateTime cancelledAt, LocalDateTime createdAt, LocalDateTime updatedAt,
+        String providerReference, String providerStatus, LocalDateTime verificationTime, boolean manualReviewRequired,
+        String manualReviewReason) {}

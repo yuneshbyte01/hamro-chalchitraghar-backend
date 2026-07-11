@@ -22,6 +22,21 @@ import com.chalchitraghar.modules.users.enums.Role;
 
 class PaymentApiIntegrationTest extends AbstractIntegrationTest {
 
+    @Test void initiatesEsewaSignedFormWithServerValues() throws Exception {
+        Context c=context("esewa-init@example.com");
+        mockMvc.perform(post("/api/customer/bookings/{ref}/payments",c.booking.getBookingReference())
+                .header("Authorization",bearer(c.token)).header("Idempotency-Key","esewa-init")
+                .contentType("application/json").content("{\"provider\":\"ESEWA\",\"method\":\"ONLINE\"}"))
+                .andExpect(status().isCreated()).andExpect(jsonPath("$.data.amount").value("500"))
+                .andExpect(jsonPath("$.data.taxAmount").value("0"))
+                .andExpect(jsonPath("$.data.productServiceCharge").value("0"))
+                .andExpect(jsonPath("$.data.productDeliveryCharge").value("0"))
+                .andExpect(jsonPath("$.data.productCode").value("EPAYTEST"))
+                .andExpect(jsonPath("$.data.signedFieldNames").value("total_amount,transaction_uuid,product_code"))
+                .andExpect(jsonPath("$.data.transactionUuid").value(org.hamcrest.Matchers.startsWith("PAY-")))
+                .andExpect(jsonPath("$.data.signature").isNotEmpty());
+    }
+
     @Test void initiatesFromServerAmountAndIsIdempotent() throws Exception {
         Context c=context("init-payment@example.com");
         String body="{\"provider\":\"LOCAL\",\"method\":\"ONLINE\",\"amount\":1,\"currency\":\"USD\"}";

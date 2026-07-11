@@ -45,8 +45,8 @@ import com.chalchitraghar.modules.bookings.repository.BookingRepository;
 import com.chalchitraghar.modules.bookings.repository.BookingSeatRepository;
 import com.chalchitraghar.modules.bookings.service.BookingLifecycleService;
 import com.chalchitraghar.modules.bookings.service.BookingReferenceGenerator;
-import com.chalchitraghar.modules.bookings.service.PaymentAuthorizationService;
 import com.chalchitraghar.modules.bookings.enums.ConfirmationSource;
+import com.chalchitraghar.modules.payments.repository.PaymentRepository;
 import com.chalchitraghar.modules.bookings.specification.BookingSpecification;
 import com.chalchitraghar.modules.seats.repository.SeatRepository;
 import com.chalchitraghar.modules.shows.repository.ShowRepository;
@@ -71,7 +71,7 @@ public class BookingServiceImpl implements BookingService {
     private final ShowLifecycleService showLifecycleService;
     private final BookingLifecycleService bookingLifecycleService;
     private final BookingReferenceGenerator bookingReferenceGenerator;
-    private final PaymentAuthorizationService paymentAuthorizationService;
+    private final PaymentRepository paymentRepository;
     private final Clock clock;
 
     @Value("${app.bookings.initiated-expiration-minutes:15}")
@@ -184,8 +184,9 @@ public class BookingServiceImpl implements BookingService {
                     String.format("Seats %s are no longer reserved for confirmation", invalidSeatIds));
         }
         showLifecycleService.assertBookable(booking.getShow());
-        if (!paymentAuthorizationService.authorize(booking)) {
-            throw new InvalidBookingStateException("Booking confirmation was not authorized");
+        if (paymentRepository.findFirstByBookingIdAndStatusOrderByCompletedAtDesc(
+                bookingId, com.chalchitraghar.modules.payments.enums.PaymentStatus.SUCCESS).isEmpty()) {
+            throw new InvalidBookingStateException("Successful payment is required before booking confirmation");
         }
         for (Seat seat : seats) {
             seat.setSeatStatus(SeatStatus.BOOKED);

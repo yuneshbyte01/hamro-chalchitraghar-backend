@@ -11,7 +11,7 @@ public interface PaymentService {
     List<StaffPaymentSummaryResponse> getStaffPaymentsByBookingReference(String bookingReference);
     AdminPaymentDetailResponse getAdminPaymentByReference(String reference);
     List<AdminPaymentSummaryResponse> getAdminPaymentsByBookingReference(String bookingReference);
-    CustomerPaymentDetailResponse initiate(String bookingReference, String idempotencyKey, PaymentInitiationRequest request, User user);
+    Object initiate(String bookingReference, String idempotencyKey, PaymentInitiationRequest request, User user);
     CustomerPaymentDetailResponse cancel(String paymentReference, User user);
     CustomerPaymentDetailResponse processLocal(String paymentReference, LocalPaymentProcessRequest request, User user);
 }

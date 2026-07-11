@@ -1625,3 +1625,6 @@ Customer DTOs omit customer identity, internal IDs, internal failure codes, and 
 When `PAYMENT_LOCAL_ENABLED=true`, `POST /api/customer/payments/{paymentReference}/process` accepts `{ "result": "SUCCESS" }` or `FAILED` for owned LOCAL payments. This simulator is intended only for development/tests and is absent by default in production. Success does not confirm the booking.
 
 Payment attempts expire after `PAYMENT_ATTEMPT_EXPIRATION_MINUTES` (default 10). Customer-submitted unknown amount/currency fields are ignored by the current Jackson configuration and never used.
+## eSewa ePay v2 sandbox flow
+
+Customers initiate an ESEWA/ONLINE attempt with `POST /api/customer/bookings/{bookingReference}/payments`. The backend returns a signed form payload; the frontend must POST every returned form field to `paymentUrl`. After eSewa redirects to the frontend success route with Base64 `data`, the frontend calls public `POST /api/payments/esewa/verify`. The backend verifies the response signature and independently checks eSewa status before changing state. `POST /api/admin/payments/{paymentReference}/reconcile` recovers missed redirects. Verified success confirms an eligible booking and books its seats; late success remains financially successful but is flagged for manual review.
