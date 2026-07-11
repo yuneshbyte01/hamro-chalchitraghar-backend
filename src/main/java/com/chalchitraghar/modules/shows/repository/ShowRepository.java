@@ -38,14 +38,14 @@ public interface ShowRepository extends JpaRepository<Show, Long>, JpaSpecificat
         WHERE s.hall.id = :hallId
           AND s.showDate = :showDate
           AND s.status <> 'CANCELLED'
-          AND (:showTime < s.endTime AND :endTime > s.showTime)
+          AND (:bufferedShowTime < s.endTime AND :bufferedEndTime > s.showTime)
           AND (:excludeShowId IS NULL OR s.id != :excludeShowId)
     """)
     boolean existsOverlappingShow(
             @Param("hallId") Long hallId,
             @Param("showDate") LocalDate showDate,
-            @Param("showTime") LocalTime showTime,
-            @Param("endTime") LocalTime endTime,
+            @Param("bufferedShowTime") LocalTime bufferedShowTime,
+            @Param("bufferedEndTime") LocalTime bufferedEndTime,
             @Param("excludeShowId") Long excludeShowId
     );
 

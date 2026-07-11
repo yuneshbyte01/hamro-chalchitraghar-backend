@@ -4,6 +4,7 @@ import com.chalchitraghar.modules.shows.service.SeatGenerationService;
 import com.chalchitraghar.modules.shows.service.ShowService;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.Duration;
 import java.util.List;
 import java.util.Arrays;
 import java.util.Set;
@@ -12,6 +13,7 @@ import java.util.stream.Collectors;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -57,11 +59,24 @@ public class ShowServiceImpl implements ShowService {
     private final SeatRepository seatRepository;
     private final BookingRepository bookingRepository;
 
+    @Value("${app.shows.buffer-minutes:15}")
+    private long showBufferMinutes;
+
+    @Value("${app.shows.duration-tolerance-minutes:5}")
+    private long durationToleranceMinutes;
+
     private void validateHallAvailability(Long hallId, LocalDate showDate, LocalTime showTime, LocalTime endTime, Long excludeShowId) {
-        if (showRepository.existsOverlappingShow(hallId, showDate, showTime, endTime, excludeShowId)) {
+        LocalTime bufferedShowTime = showTime.isBefore(LocalTime.MIN.plusMinutes(showBufferMinutes))
+                ? LocalTime.MIN
+                : showTime.minusMinutes(showBufferMinutes);
+        LocalTime bufferedEndTime = endTime.isAfter(LocalTime.MAX.minusMinutes(showBufferMinutes))
+                ? LocalTime.MAX
+                : endTime.plusMinutes(showBufferMinutes);
+        if (showRepository.existsOverlappingShow(
+                hallId, showDate, bufferedShowTime, bufferedEndTime, excludeShowId)) {
             throw new HallConflictException(
-                    "Hall is already booked for another show during this time period. " +
-                    "Only one show can be scheduled per hall at a time.");
+                    "Hall is already booked for another show during this time period, including the "
+                            + showBufferMinutes + "-minute cleaning buffer.");
         }
     }
 
@@ -72,6 +87,7 @@ public class ShowServiceImpl implements ShowService {
         if (movie.getStatus() != MovieStatus.NOW_SHOWING) {
             throw new HallConflictException("Shows can only be scheduled for movies with status NOW_SHOWING");
         }
+        validateSchedule(dto, movie);
         Hall hall = hallRepository.findById(dto.getHallId())
                 .orElseThrow(() -> new ResourceNotFoundException("Hall", dto.getHallId()));
         if (hall.getStatus() == Status.INACTIVE) {
@@ -87,6 +103,9 @@ public class ShowServiceImpl implements ShowService {
     @Override
     public AdminShowDetailResponse updateShow(Long id, ShowRequest dto) {
         Show show = showRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Show", id));
+        if (show.getStatus() != ShowStatus.SCHEDULED) {
+            throw new ShowConflictException("Only scheduled shows can be updated");
+        }
         boolean hallChanges = !show.getHall().getId().equals(dto.getHallId());
         if (hallChanges && bookingRepository.existsByShowId(id)) {
             throw new ShowConflictException("Cannot change show hall after bookings exist");
@@ -99,6 +118,7 @@ public class ShowServiceImpl implements ShowService {
         if (movie.getStatus() != MovieStatus.NOW_SHOWING) {
             throw new HallConflictException("Shows can only be scheduled for movies with status NOW_SHOWING");
         }
+        validateSchedule(dto, movie);
         Hall hall = hallRepository.findById(dto.getHallId())
                 .orElseThrow(() -> new ResourceNotFoundException("Hall", dto.getHallId()));
         if (hall.getStatus() == Status.INACTIVE) {
@@ -112,8 +132,16 @@ public class ShowServiceImpl implements ShowService {
     @Override
     public void deleteShow(Long id) {
         Show show = showRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Show", id));
-        show.setStatus(ShowStatus.CANCELLED);
+        transitionStatus(show, ShowStatus.CANCELLED);
         showRepository.save(show);
+    }
+
+    @Override
+    public AdminShowDetailResponse updateShowStatus(Long id, ShowStatus status) {
+        Show show = showRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Show", id));
+        transitionStatus(show, status);
+        return showMapper.toAdminDetail(showRepository.save(show));
     }
 
     @Override
@@ -229,5 +257,43 @@ public class ShowServiceImpl implements ShowService {
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Invalid status. Allowed values: "
                                 + String.join(", ", Arrays.stream(ShowStatus.values()).map(Enum::name).toList())));
+    }
+
+    private void validateSchedule(ShowRequest request, Movie movie) {
+        LocalDate today = LocalDate.now();
+        LocalTime now = LocalTime.now();
+        if (request.getShowDate().isBefore(today)) {
+            throw new IllegalArgumentException("Show date must not be in the past");
+        }
+        if (request.getShowDate().isEqual(today) && !request.getShowTime().isAfter(now)) {
+            throw new IllegalArgumentException("Same-day show time must be in the future");
+        }
+        if (!request.getEndTime().isAfter(request.getShowTime())) {
+            throw new IllegalArgumentException(
+                    "End time must be after show time; zero-length and overnight shows are not supported");
+        }
+
+        long actualDurationSeconds = Duration.between(request.getShowTime(), request.getEndTime()).getSeconds();
+        long expectedDurationSeconds = movie.getDurationMinutes() * 60L;
+        long toleranceSeconds = durationToleranceMinutes * 60L;
+        if (Math.abs(actualDurationSeconds - expectedDurationSeconds) > toleranceSeconds) {
+            LocalTime expectedEndTime = request.getShowTime().plusMinutes(movie.getDurationMinutes());
+            throw new ShowConflictException(
+                    "Show end time must be within " + durationToleranceMinutes
+                            + " minutes of the movie duration; expected approximately " + expectedEndTime);
+        }
+    }
+
+    private void transitionStatus(Show show, ShowStatus target) {
+        ShowStatus current = show.getStatus();
+        boolean allowed = (current == ShowStatus.SCHEDULED
+                && (target == ShowStatus.RUNNING || target == ShowStatus.CANCELLED))
+                || (current == ShowStatus.RUNNING
+                && (target == ShowStatus.COMPLETED || target == ShowStatus.CANCELLED));
+        if (!allowed) {
+            throw new ShowConflictException(
+                    "Invalid show status transition from " + current + " to " + target);
+        }
+        show.setStatus(target);
     }
 }

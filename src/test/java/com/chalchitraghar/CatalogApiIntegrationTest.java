@@ -1697,7 +1697,7 @@ class CatalogApiIntegrationTest extends AbstractIntegrationTest {
                         .content(json(showRequest(nowShowing.getId(), activeHall.getId(), 7, "11:00", "13:00"))))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.message").value("Hall is already booked for another show during this time period. Only one show can be scheduled per hall at a time."))
+                .andExpect(jsonPath("$.message").value("Hall is already booked for another show during this time period, including the 15-minute cleaning buffer."))
                 .andExpect(jsonPath("$.errors").isArray());
     }
 

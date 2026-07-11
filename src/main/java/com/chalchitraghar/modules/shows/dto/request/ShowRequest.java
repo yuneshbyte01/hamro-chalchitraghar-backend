@@ -6,7 +6,6 @@ import lombok.NoArgsConstructor;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Future;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -28,7 +27,6 @@ public class ShowRequest {
     private Long hallId;
 
     @NotNull(message = "Show date is required")
-    @Future(message = "Show date must be in the future")
     @Schema(example = "2026-08-20")
     private LocalDate showDate;
 

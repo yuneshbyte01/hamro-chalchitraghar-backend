@@ -289,7 +289,7 @@ Stores scheduled screenings.
 | `show_time`  | `TIME`         | No       | Start time                                                    | `showTime`   |
 | `end_time`   | `TIME`         | No       | End time                                                      | `endTime`    |
 
-The service prevents overlapping non-canceled shows in the same hall on the same date.
+The service prevents overlapping non-cancelled shows in the same hall on the same date and reserves a configurable cleaning buffer (15 minutes by default) on both sides of a candidate interval. Scheduling validation also rejects past starts, non-positive/overnight intervals, and end times outside the configured five-minute tolerance from the movie duration. These remain service-level rules; there is no database exclusion constraint or concurrency-locking redesign.
 
 ### `seats`
 

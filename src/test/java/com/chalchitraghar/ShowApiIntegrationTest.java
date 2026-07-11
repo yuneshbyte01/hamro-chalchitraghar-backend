@@ -3,6 +3,7 @@ package com.chalchitraghar;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -206,6 +207,137 @@ class ShowApiIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.data.size").value(2))
                 .andExpect(jsonPath("$.data.totalElements").value(3))
                 .andExpect(jsonPath("$.data.last").value(true));
+    }
+
+    @Test
+    void schedulingValidatesDatesTimesDurationBufferAndCancelledOverlap() throws Exception {
+        String token = tokenFor("show-schedule-admin@example.com", Role.ADMIN);
+        Movie movie = saveMovie("Schedule Rules Movie", MovieStatus.NOW_SHOWING);
+        Hall hall = saveHall("Schedule Rules Hall", Status.ACTIVE);
+        postSeatLayout(hall.getId(), token);
+
+        LocalTime futureStart = LocalTime.now().plusHours(1).withSecond(0).withNano(0);
+        if (!futureStart.plusHours(2).isAfter(futureStart)) {
+            futureStart = LocalTime.of(20, 0);
+        }
+        mockMvc.perform(post("/api/admin/shows").header("Authorization", bearer(token))
+                        .contentType("application/json")
+                        .content(json(scheduleRequest(movie, hall, LocalDate.now(), futureStart, futureStart.plusHours(2)))))
+                .andExpect(status().isCreated());
+
+        assertScheduleRejected(token, movie, hall, LocalDate.now().minusDays(1), LocalTime.of(10, 0), LocalTime.of(12, 0));
+        assertScheduleRejected(token, movie, hall, LocalDate.now(), LocalTime.now().minusMinutes(1), LocalTime.now().plusMinutes(119));
+        assertScheduleRejected(token, movie, hall, LocalDate.now().plusDays(20), LocalTime.of(14, 0), LocalTime.of(14, 0));
+        assertScheduleRejected(token, movie, hall, LocalDate.now().plusDays(20), LocalTime.of(14, 0), LocalTime.of(13, 59));
+
+        Hall durationHall = saveHall("Duration Rules Hall", Status.ACTIVE);
+        postSeatLayout(durationHall.getId(), token);
+        mockMvc.perform(post("/api/admin/shows").header("Authorization", bearer(token))
+                        .contentType("application/json")
+                        .content(json(scheduleRequest(movie, durationHall, LocalDate.now().plusDays(21),
+                                LocalTime.of(10, 0), LocalTime.of(12, 5)))))
+                .andExpect(status().isCreated());
+        mockMvc.perform(post("/api/admin/shows").header("Authorization", bearer(token))
+                        .contentType("application/json")
+                        .content(json(scheduleRequest(movie, durationHall, LocalDate.now().plusDays(22),
+                                LocalTime.of(10, 0), LocalTime.of(12, 6)))))
+                .andExpect(status().isConflict());
+
+        Show existing = saveShow(movie, hall, ShowStatus.SCHEDULED, 30);
+        existing.setShowTime(LocalTime.of(10, 0));
+        existing.setEndTime(LocalTime.of(12, 0));
+        showRepository.save(existing);
+        assertConflict(token, movie, hall, 30, LocalTime.of(11, 0), LocalTime.of(13, 0));
+        assertConflict(token, movie, hall, 30, LocalTime.of(12, 14), LocalTime.of(14, 14));
+
+        Hall bufferHall = saveHall("Buffer Gap Hall", Status.ACTIVE);
+        postSeatLayout(bufferHall.getId(), token);
+        Show buffered = saveShow(movie, bufferHall, ShowStatus.SCHEDULED, 31);
+        buffered.setShowTime(LocalTime.of(10, 0));
+        buffered.setEndTime(LocalTime.of(12, 0));
+        showRepository.save(buffered);
+        mockMvc.perform(post("/api/admin/shows").header("Authorization", bearer(token))
+                        .contentType("application/json")
+                        .content(json(scheduleRequest(movie, bufferHall, LocalDate.now().plusDays(31),
+                                LocalTime.of(12, 15), LocalTime.of(14, 15)))))
+                .andExpect(status().isCreated());
+
+        Hall cancelledHall = saveHall("Cancelled Gap Hall", Status.ACTIVE);
+        postSeatLayout(cancelledHall.getId(), token);
+        Show cancelled = saveShow(movie, cancelledHall, ShowStatus.CANCELLED, 32);
+        cancelled.setShowTime(LocalTime.of(10, 0));
+        cancelled.setEndTime(LocalTime.of(12, 0));
+        showRepository.save(cancelled);
+        mockMvc.perform(post("/api/admin/shows").header("Authorization", bearer(token))
+                        .contentType("application/json")
+                        .content(json(scheduleRequest(movie, cancelledHall, LocalDate.now().plusDays(32),
+                                LocalTime.of(10, 0), LocalTime.of(12, 0)))))
+                .andExpect(status().isCreated());
+    }
+
+    @Test
+    void statusEndpointEnforcesLifecycleAndScheduleUpdateRestrictions() throws Exception {
+        String token = tokenFor("show-lifecycle-admin@example.com", Role.ADMIN);
+        Movie movie = saveMovie("Lifecycle Movie", MovieStatus.NOW_SHOWING);
+        Hall hall = saveHall("Lifecycle Hall", Status.ACTIVE);
+        Show runningPath = saveShow(movie, hall, ShowStatus.SCHEDULED, 40);
+
+        patchStatus(token, runningPath.getId(), "RUNNING", 200);
+        mockMvc.perform(put("/api/admin/shows/{id}", runningPath.getId())
+                        .header("Authorization", bearer(token)).contentType("application/json")
+                        .content(json(showRequest(movie.getId(), hall.getId(), 41, "10:00", "12:00"))))
+                .andExpect(status().isConflict());
+        patchStatus(token, runningPath.getId(), "COMPLETED", 200);
+        patchStatus(token, runningPath.getId(), "CANCELLED", 409);
+
+        Show scheduledCancel = saveShow(movie, hall, ShowStatus.SCHEDULED, 42);
+        patchStatus(token, scheduledCancel.getId(), "CANCELLED", 200);
+        patchStatus(token, scheduledCancel.getId(), "RUNNING", 409);
+
+        Show runningCancel = saveShow(movie, hall, ShowStatus.RUNNING, 43);
+        patchStatus(token, runningCancel.getId(), "CANCELLED", 200);
+
+        Show scheduledUpdate = saveShow(movie, hall, ShowStatus.SCHEDULED, 44);
+        mockMvc.perform(put("/api/admin/shows/{id}", scheduledUpdate.getId())
+                        .header("Authorization", bearer(token)).contentType("application/json")
+                        .content(json(showRequest(movie.getId(), hall.getId(), 45, "10:00", "12:00"))))
+                .andExpect(status().isOk());
+        for (Show terminal : new Show[] {
+                saveShow(movie, hall, ShowStatus.COMPLETED, 46),
+                saveShow(movie, hall, ShowStatus.CANCELLED, 47) }) {
+            mockMvc.perform(put("/api/admin/shows/{id}", terminal.getId())
+                            .header("Authorization", bearer(token)).contentType("application/json")
+                            .content(json(showRequest(movie.getId(), hall.getId(), 48, "10:00", "12:00"))))
+                    .andExpect(status().isConflict());
+        }
+    }
+
+    private java.util.Map<String, Object> scheduleRequest(
+            Movie movie, Hall hall, LocalDate date, LocalTime start, LocalTime end) {
+        return java.util.Map.of("movieId", movie.getId(), "hallId", hall.getId(),
+                "showDate", date.toString(), "showTime", start.toString(), "endTime", end.toString());
+    }
+
+    private void assertScheduleRejected(String token, Movie movie, Hall hall, LocalDate date, LocalTime start, LocalTime end)
+            throws Exception {
+        mockMvc.perform(post("/api/admin/shows").header("Authorization", bearer(token))
+                        .contentType("application/json").content(json(scheduleRequest(movie, hall, date, start, end))))
+                .andExpect(status().isBadRequest());
+    }
+
+    private void assertConflict(String token, Movie movie, Hall hall, int day, LocalTime start, LocalTime end)
+            throws Exception {
+        mockMvc.perform(post("/api/admin/shows").header("Authorization", bearer(token))
+                        .contentType("application/json")
+                        .content(json(scheduleRequest(movie, hall, LocalDate.now().plusDays(day), start, end))))
+                .andExpect(status().isConflict());
+    }
+
+    private void patchStatus(String token, Long showId, String target, int expectedStatus) throws Exception {
+        mockMvc.perform(patch("/api/admin/shows/{id}/status", showId)
+                        .header("Authorization", bearer(token)).contentType("application/json")
+                        .content(json(java.util.Map.of("status", target))))
+                .andExpect(status().is(expectedStatus));
     }
 
     private Show saveShow(Movie movie, Hall hall, ShowStatus status, int daysFromNow) {

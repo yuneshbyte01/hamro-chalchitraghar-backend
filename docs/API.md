@@ -1235,10 +1235,11 @@ Validation:
 | --- | --- |
 | `movieId` | Required; movie must exist and have status `NOW_SHOWING` |
 | `hallId` | Required; hall must exist and not be `INACTIVE` |
-| `showDate` | Required; must be in the future |
-| `showTime` | Required |
-| `endTime` | Required |
-| Schedule | Must not overlap another non-cancelled show in the same hall/date |
+| `showDate` | Required; must be today or later |
+| `showTime` | Required; for today, must be later than the current time |
+| `endTime` | Required; must be after `showTime`; overnight and zero-length shows are rejected |
+| Duration | End time must be within five minutes of `showTime + movie.durationMinutes` |
+| Schedule | Must not overlap another non-cancelled show or its configured 15-minute cleaning buffer in the same hall/date |
 | Seat templates | The hall must already have seat templates |
 
 Response `201`: `AdminShowDetailResponse`.
@@ -1256,6 +1257,28 @@ Errors: `400` validation, `404` movie/hall/seat template not found, `409` inacti
 Response `200`: `AdminShowDetailResponse`.
 
 Errors: `400` validation, `404` show/movie/hall not found, `409` schedule conflict or invalid movie/hall status.
+
+Only `SCHEDULED` shows can be edited through this endpoint. `RUNNING` shows permit status changes only; `COMPLETED` and `CANCELLED` shows are terminal and cannot be edited.
+
+#### `PATCH /api/admin/shows/{id}/status`
+
+| Field | Value |
+| --- | --- |
+| Authentication | ADMIN |
+| Description | Applies a validated show lifecycle transition. |
+| Validation | `id` numeric and `status` required |
+
+Request:
+
+```json
+{ "status": "RUNNING" }
+```
+
+Allowed transitions are `SCHEDULED -> RUNNING`, `SCHEDULED -> CANCELLED`, `RUNNING -> COMPLETED`, and `RUNNING -> CANCELLED`. Completed and cancelled shows cannot transition or reopen.
+
+Response `200`: `AdminShowDetailResponse`.
+
+Errors: `400` malformed/missing status, `404` show not found, `409` invalid transition.
 
 #### `DELETE /api/admin/shows/{id}`
 

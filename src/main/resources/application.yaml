@@ -19,3 +19,8 @@ spring:
     locations: classpath:db/migration
     baseline-on-migrate: true
     baseline-version: 8
+
+app:
+  shows:
+    buffer-minutes: ${SHOW_BUFFER_MINUTES:15}
+    duration-tolerance-minutes: ${SHOW_DURATION_TOLERANCE_MINUTES:5}

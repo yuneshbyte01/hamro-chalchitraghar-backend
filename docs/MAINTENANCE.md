@@ -96,6 +96,8 @@ Keep response DTOs separated by audience when visibility or field exposure diffe
 
 Paginated show lists use `ShowSearchCriteria`, `ShowSpecification`, and the shared `PageResponse<T>`. Add new show filters in the criteria/specification rather than controllers, keep the sort-field allowlist in `ShowServiceImpl`, and apply public visibility predicates in the database query before pagination.
 
+Keep scheduling and lifecycle decisions in `ShowServiceImpl`. `SHOW_BUFFER_MINUTES` configures the cleaning gap (default 15), while `SHOW_DURATION_TOLERANCE_MINUTES` configures the movie-duration tolerance (default 5). Any lifecycle extension must update the centralized transition guard, the status endpoint documentation, and scheduling integration tests; do not bypass it by assigning `Show.status` in controllers.
+
 Place request DTOs under:
 
 ```text

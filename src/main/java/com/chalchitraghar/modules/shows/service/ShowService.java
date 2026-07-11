@@ -20,6 +20,8 @@ public interface ShowService {
 
     AdminShowDetailResponse updateShow(Long id, ShowRequest dto);
 
+    AdminShowDetailResponse updateShowStatus(Long id, com.chalchitraghar.modules.shows.enums.ShowStatus status);
+
     void deleteShow(Long id);
 
     PageResponse<PublicShowSummaryResponse> getPublicShows(

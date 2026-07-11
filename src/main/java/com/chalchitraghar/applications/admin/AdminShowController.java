@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -17,6 +18,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import com.chalchitraghar.modules.shows.dto.request.ShowRequest;
 import com.chalchitraghar.modules.shows.dto.request.ShowSearchCriteria;
+import com.chalchitraghar.modules.shows.dto.request.ShowStatusUpdateRequest;
 import com.chalchitraghar.modules.shows.dto.response.AdminShowDetailResponse;
 import com.chalchitraghar.modules.shows.dto.response.AdminShowSummaryResponse;
 import com.chalchitraghar.modules.shows.service.ShowService;
@@ -80,6 +82,18 @@ public class AdminShowController {
     @Operation(summary = "Update a show")
     public ResponseEntity<ApiResponse<AdminShowDetailResponse>> updateShow(@PathVariable Long id, @Valid @RequestBody ShowRequest dto) {
         return ResponseEntity.ok(ApiResponse.success("Show updated successfully", showService.updateShow(id, dto)));
+    }
+
+    @PatchMapping("/{id}/status")
+    @Operation(
+            summary = "Update show status",
+            description = "Transitions SCHEDULED to RUNNING/CANCELLED or RUNNING to COMPLETED/CANCELLED. Terminal shows cannot transition.")
+    public ResponseEntity<ApiResponse<AdminShowDetailResponse>> updateShowStatus(
+            @PathVariable Long id,
+            @Valid @RequestBody ShowStatusUpdateRequest request) {
+        return ResponseEntity.ok(ApiResponse.success(
+                "Show status updated successfully",
+                showService.updateShowStatus(id, request.getStatus())));
     }
 
     @DeleteMapping("/{id}")
