@@ -45,6 +45,8 @@ import com.chalchitraghar.modules.bookings.repository.BookingRepository;
 import com.chalchitraghar.modules.bookings.repository.BookingSeatRepository;
 import com.chalchitraghar.modules.bookings.service.BookingLifecycleService;
 import com.chalchitraghar.modules.bookings.service.BookingReferenceGenerator;
+import com.chalchitraghar.modules.bookings.service.PaymentAuthorizationService;
+import com.chalchitraghar.modules.bookings.enums.ConfirmationSource;
 import com.chalchitraghar.modules.bookings.specification.BookingSpecification;
 import com.chalchitraghar.modules.seats.repository.SeatRepository;
 import com.chalchitraghar.modules.shows.repository.ShowRepository;
@@ -69,6 +71,7 @@ public class BookingServiceImpl implements BookingService {
     private final ShowLifecycleService showLifecycleService;
     private final BookingLifecycleService bookingLifecycleService;
     private final BookingReferenceGenerator bookingReferenceGenerator;
+    private final PaymentAuthorizationService paymentAuthorizationService;
     private final Clock clock;
 
     @Value("${app.bookings.initiated-expiration-minutes:15}")
@@ -76,6 +79,9 @@ public class BookingServiceImpl implements BookingService {
 
     @Value("${app.bookings.currency:NPR}")
     private String bookingCurrency;
+
+    @Value("${app.bookings.cancellation-cutoff-minutes:0}")
+    private long cancellationCutoffMinutes;
 
     @Override
     @Transactional
@@ -86,8 +92,8 @@ public class BookingServiceImpl implements BookingService {
         Show show = showRepository.findById(request.getShowId())
                 .orElseThrow(() -> new ResourceNotFoundException("Show", request.getShowId()));
         showLifecycleService.assertBookable(show);
-        List<Seat> seats = seatRepository.findByShowIdAndSeatIdsWithLock(
-                request.getShowId(), request.getSeatIds());
+        List<Long> orderedSeatIds = request.getSeatIds().stream().sorted().toList();
+        List<Seat> seats = seatRepository.findByShowIdAndSeatIdsWithLock(request.getShowId(), orderedSeatIds);
         if (seats.size() != request.getSeatIds().size()) {
             List<Long> foundSeatIds = seats.stream().map(Seat::getId).collect(Collectors.toList());
             List<Long> missingSeatIds = request.getSeatIds().stream()
@@ -134,11 +140,14 @@ public class BookingServiceImpl implements BookingService {
     @Override
     @Transactional
     public CustomerBookingDetailResponse confirmBooking(Long bookingId, User user) {
-        Booking booking = bookingRepository.findById(bookingId)
+        Booking booking = bookingRepository.findByIdForUpdate(bookingId)
                 .orElseThrow(() -> new ResourceNotFoundException("Booking", bookingId));
         if (!booking.getUser().getId().equals(user.getId())) {
             throw new AccessDeniedException(
                     String.format("Booking %d does not belong to user %d", bookingId, user.getId()));
+        }
+        if (booking.getStatus() == BookingStatus.CONFIRMED) {
+            return bookingMapper.toCustomerDetail(booking, seatsFor(bookingId));
         }
         if (bookingLifecycleService.reconcileExpiry(booking)) {
             throw new InvalidBookingStateException("Booking has expired and cannot be confirmed");
@@ -151,7 +160,7 @@ public class BookingServiceImpl implements BookingService {
         if (bookingSeats.isEmpty()) {
             throw new ResourceNotFoundException(String.format("No seats found for booking %d", bookingId));
         }
-        List<Long> seatIds = bookingSeats.stream().map(bs -> bs.getSeat().getId()).collect(Collectors.toList());
+        List<Long> seatIds = bookingSeats.stream().map(bs -> bs.getSeat().getId()).sorted().toList();
         List<Seat> seats = seatRepository.findByShowIdAndSeatIdsWithLock(booking.getShow().getId(), seatIds);
         if (seats.size() != seatIds.size()) {
             List<Long> foundSeatIds = seats.stream().map(Seat::getId).collect(Collectors.toList());
@@ -175,6 +184,9 @@ public class BookingServiceImpl implements BookingService {
                     String.format("Seats %s are no longer reserved for confirmation", invalidSeatIds));
         }
         showLifecycleService.assertBookable(booking.getShow());
+        if (!paymentAuthorizationService.authorize(booking)) {
+            throw new InvalidBookingStateException("Booking confirmation was not authorized");
+        }
         for (Seat seat : seats) {
             seat.setSeatStatus(SeatStatus.BOOKED);
             seat.setLockedAt(null);
@@ -184,6 +196,7 @@ public class BookingServiceImpl implements BookingService {
         seatRepository.saveAll(seats);
         booking.setStatus(BookingStatus.CONFIRMED);
         booking.setConfirmedAt(LocalDateTime.now(clock));
+        booking.setConfirmationSource(ConfirmationSource.CUSTOMER);
         bookingRepository.save(booking);
         return bookingMapper.toCustomerDetail(booking, bookingSeats);
     }
@@ -205,6 +218,9 @@ public class BookingServiceImpl implements BookingService {
             throw new AccessDeniedException(
                     String.format("Booking %d does not belong to user %d", bookingId, user.getId()));
         }
+        if (booking.getStatus() == BookingStatus.CANCELLED) {
+            return bookingMapper.toCustomerDetail(booking, seatsFor(bookingId));
+        }
         bookingLifecycleService.reconcileExpiry(booking);
         if (booking.getStatus() != BookingStatus.INITIATED) {
             throw new InvalidBookingStateException(
@@ -213,7 +229,8 @@ public class BookingServiceImpl implements BookingService {
         }
         Show show = booking.getShow();
         LocalDateTime showDateTime = LocalDateTime.of(show.getShowDate(), show.getShowTime());
-        if (LocalDateTime.now(clock).isAfter(showDateTime) || LocalDateTime.now(clock).isEqual(showDateTime)) {
+        LocalDateTime cancellationDeadline = showDateTime.minusMinutes(cancellationCutoffMinutes);
+        if (!LocalDateTime.now(clock).isBefore(cancellationDeadline)) {
             throw new InvalidBookingStateException(
                     String.format("Booking %d cannot be cancelled. Show time has passed or is in progress. Show time: %s",
                             bookingId, showDateTime));
@@ -222,7 +239,7 @@ public class BookingServiceImpl implements BookingService {
         if (bookingSeats.isEmpty()) {
             throw new ResourceNotFoundException(String.format("No seats found for booking %d", bookingId));
         }
-        List<Long> seatIds = bookingSeats.stream().map(bs -> bs.getSeat().getId()).collect(Collectors.toList());
+        List<Long> seatIds = bookingSeats.stream().map(bs -> bs.getSeat().getId()).sorted().toList();
         List<Seat> seats = seatRepository.findByShowIdAndSeatIdsWithLock(booking.getShow().getId(), seatIds);
         if (seats.size() != seatIds.size()) {
             List<Long> foundSeatIds = seats.stream().map(Seat::getId).collect(Collectors.toList());
@@ -361,7 +378,7 @@ public class BookingServiceImpl implements BookingService {
     }
 
     private Booking findBooking(Long bookingId) {
-        Booking booking = bookingRepository.findById(bookingId)
+        Booking booking = bookingRepository.findByIdForUpdate(bookingId)
                 .orElseThrow(() -> new ResourceNotFoundException("Booking", bookingId));
         bookingLifecycleService.reconcileExpiry(booking);
         return booking;

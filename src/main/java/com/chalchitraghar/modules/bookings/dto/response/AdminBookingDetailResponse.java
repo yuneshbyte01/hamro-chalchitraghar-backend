@@ -5,6 +5,7 @@ import java.util.List;
 import java.math.BigDecimal;
 
 import com.chalchitraghar.modules.bookings.enums.BookingStatus;
+import com.chalchitraghar.modules.bookings.enums.ConfirmationSource;
 import com.chalchitraghar.modules.seats.dto.response.SeatResponse;
 
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -35,6 +36,7 @@ public class AdminBookingDetailResponse {
     private LocalDateTime bookingTime;
     private LocalDateTime expiresAt;
     private LocalDateTime confirmedAt;
+    private ConfirmationSource confirmationSource;
     private LocalDateTime cancelledAt;
     private LocalDateTime expiredAt;
     private LocalDateTime createdAt;

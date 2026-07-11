@@ -246,3 +246,5 @@ Hamro Chalchitraghar Backend is complete as a Spring Boot REST API with:
 # Booking identity, pricing, and expiry
 
 Bookings now receive immutable `HCG-YYYYMMDD-XXXXXXXX` references with owner-only customer lookup and management lookup routes. Monetary values use exact `BigDecimal` snapshots in NPR: booking seats retain unit prices and bookings retain totals. Initiated reservations have a configurable expiry deadline; lazy lifecycle reconciliation transitions stale records to `EXPIRED`, records lifecycle timestamps, and safely releases eligible reserved seats. Payment, refunds, and confirmed-booking cancellation remain outside the current scope.
+
+Booking reliability now includes batched scheduled expiry, pessimistic booking-row transitions, deterministic seat locking, idempotent confirmation/cancellation, and automatic initiated-booking cancellation when a show is cancelled. A permissive local payment authorization adapter defines the integration boundary for a future gateway without adding payment-provider behavior today. Confirmed bookings still block show cancellation because refunds are not implemented.

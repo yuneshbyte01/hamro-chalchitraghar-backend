@@ -53,7 +53,8 @@ public class GlobalExceptionHandler {
             MovieConflictException.class,
             ShowConflictException.class,
             SeatAlreadyBookedException.class,
-            SeatLockedException.class
+            SeatLockedException.class,
+            InvalidBookingStateException.class
     })
     public ResponseEntity<ApiResponse<Void>> handleConflictExceptions(RuntimeException ex) {
         logger.warn("Conflict: {}", ex.getMessage());
@@ -62,7 +63,6 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler({
             InvalidSeatSelectionException.class,
-            InvalidBookingStateException.class,
             IllegalArgumentException.class
     })
     public ResponseEntity<ApiResponse<Void>> handleBadRequestExceptions(RuntimeException ex) {

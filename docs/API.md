@@ -889,6 +889,8 @@ Requires authentication and the `ADMIN` role. Returns any booking as `AdminBooki
 
 Booking reference lookup is available at `GET /api/customer/bookings/reference/{bookingReference}`, `GET /api/staff/bookings/reference/{bookingReference}`, and `GET /api/admin/bookings/reference/{bookingReference}`. Customer lookup is authenticated and owner-only; a non-owner receives `404`. References use `HCG-YYYYMMDD-XXXXXXXX`. Booking totals and selected-seat prices are immutable NPR snapshots. `INITIATED` bookings expose `expiresAt` and expire after the configured deadline.
 
+Confirmation and cancellation lock the booking row before evaluating state. Repeated confirmation of `CONFIRMED` and repeated cancellation of `CANCELLED` are idempotent successes; incompatible terminal states return `409`/the established invalid-state response. Confirmation passes through `PaymentAuthorizationService`; the current local implementation preserves existing behavior without contacting a payment provider. Confirmed customer cancellation remains unsupported. Initiated cancellation is allowed until the configured pre-show cutoff.
+
 ### `GET /api/admin/bookings`
 
 Requires `ADMIN`. Returns `PageResponse<AdminBookingSummaryResponse>` and supports the same filters and safe search fields as the staff list. Allowed booking list sort fields are `id`, `bookingTime`, `status`, `createdAt`, and `updatedAt`; directions are `asc` and `desc`. Invalid statuses, formats, ranges, or sort values return `400`.

@@ -13,12 +13,17 @@ import java.util.List;
 import java.util.Map;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import com.chalchitraghar.modules.bookings.entity.Booking;
 import com.chalchitraghar.modules.bookings.enums.BookingStatus;
+import com.chalchitraghar.modules.bookings.enums.ConfirmationSource;
+import com.chalchitraghar.modules.bookings.service.ExpiredBookingCleanupJob;
 import com.chalchitraghar.modules.halls.entity.Hall;
 import com.chalchitraghar.modules.halls.enums.Status;
 import com.chalchitraghar.modules.movies.entity.Movie;
@@ -31,6 +36,55 @@ import com.chalchitraghar.modules.users.enums.Role;
 import com.fasterxml.jackson.databind.JsonNode;
 
 class BookingApiIntegrationTest extends AbstractIntegrationTest {
+
+    @Autowired
+    private ExpiredBookingCleanupJob expiredBookingCleanupJob;
+
+    @Test
+    void scheduledCleanupExpiresOnlyDueInitiatedBookingsAndIsRepeatable() throws Exception {
+        TestShowContext expiredContext = createShowContext("scheduled-expired@example.com");
+        Seat expiredSeat = seatsForShow(expiredContext.show().getId()).getFirst();
+        Long expiredId = createBooking(expiredContext.customerToken(), expiredContext.show().getId(), expiredSeat.getId());
+        Booking due = bookingRepository.findById(expiredId).orElseThrow();
+        due.setExpiresAt(LocalDateTime.now().minusMinutes(1));
+        bookingRepository.save(due);
+
+        TestShowContext validContext = createShowContext("scheduled-valid@example.com");
+        Long validId = createBooking(validContext.customerToken(), validContext.show().getId(),
+                seatsForShow(validContext.show().getId()).getFirst().getId());
+
+        assertThat(expiredBookingCleanupJob.expireBatch()).isEqualTo(1);
+        assertThat(expiredBookingCleanupJob.expireBatch()).isZero();
+        assertThat(bookingRepository.findById(expiredId).orElseThrow().getStatus()).isEqualTo(BookingStatus.EXPIRED);
+        assertThat(bookingRepository.findById(validId).orElseThrow().getStatus()).isEqualTo(BookingStatus.INITIATED);
+        assertThat(seatRepository.findById(expiredSeat.getId()).orElseThrow().getSeatStatus())
+                .isEqualTo(SeatStatus.AVAILABLE);
+    }
+
+    @Test
+    void concurrentCustomersCannotCreateTwoBookingsForTheSameSeat() throws Exception {
+        TestShowContext context = createShowContext("concurrent-owner@example.com");
+        String otherToken = tokenFor("concurrent-other@example.com", Role.CUSTOMER);
+        Seat seat = seatsForShow(context.show().getId()).getFirst();
+        String body = json(Map.of("showId", context.show().getId(), "seatIds", List.of(seat.getId())));
+        CountDownLatch start = new CountDownLatch(1);
+        try (var executor = Executors.newFixedThreadPool(2)) {
+            var first = executor.submit(() -> {
+                start.await();
+                return mockMvc.perform(post("/api/customer/bookings").header("Authorization", bearer(context.customerToken()))
+                        .contentType("application/json").content(body)).andReturn().getResponse().getStatus();
+            });
+            var second = executor.submit(() -> {
+                start.await();
+                return mockMvc.perform(post("/api/customer/bookings").header("Authorization", bearer(otherToken))
+                        .contentType("application/json").content(body)).andReturn().getResponse().getStatus();
+            });
+            start.countDown();
+            assertThat(List.of(first.get(), second.get())).containsExactlyInAnyOrder(201, 409);
+        }
+        assertThat(bookingSeatRepository.findBySeatIds(List.of(seat.getId()))).hasSize(1);
+        assertThat(seatRepository.findById(seat.getId()).orElseThrow().getSeatStatus()).isEqualTo(SeatStatus.RESERVED);
+    }
 
     @Test
     void bookingReferenceSupportsOwnedAndManagementLookups() throws Exception {
@@ -95,9 +149,9 @@ class BookingApiIntegrationTest extends AbstractIntegrationTest {
         assertThat(expired.getExpiredAt()).isNotNull();
         assertThat(seatRepository.findById(seat.getId()).orElseThrow().getSeatStatus()).isEqualTo(SeatStatus.AVAILABLE);
         mockMvc.perform(post("/api/customer/bookings/{id}/confirm", bookingId)
-                        .header("Authorization", bearer(context.customerToken()))).andExpect(status().isBadRequest());
+                        .header("Authorization", bearer(context.customerToken()))).andExpect(status().isConflict());
         mockMvc.perform(post("/api/customer/bookings/{id}/cancel", bookingId)
-                        .header("Authorization", bearer(context.customerToken()))).andExpect(status().isBadRequest());
+                        .header("Authorization", bearer(context.customerToken()))).andExpect(status().isConflict());
     }
 
     @Test
@@ -356,7 +410,11 @@ class BookingApiIntegrationTest extends AbstractIntegrationTest {
         Booking booking = bookingRepository.findById(bookingId).orElseThrow();
         assertThat(booking.getStatus()).isEqualTo(BookingStatus.CONFIRMED);
         assertThat(booking.getConfirmedAt()).isNotNull();
+        assertThat(booking.getConfirmationSource()).isEqualTo(ConfirmationSource.CUSTOMER);
         assertThat(seatRepository.findById(seat.getId()).orElseThrow().getSeatStatus()).isEqualTo(SeatStatus.BOOKED);
+        mockMvc.perform(post("/api/customer/bookings/{bookingId}/confirm", bookingId)
+                        .header("Authorization", bearer(context.customerToken())))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.bookingStatus").value("CONFIRMED"));
     }
 
     @Test
@@ -376,6 +434,9 @@ class BookingApiIntegrationTest extends AbstractIntegrationTest {
         assertThat(booking.getStatus()).isEqualTo(BookingStatus.CANCELLED);
         assertThat(booking.getCancelledAt()).isNotNull();
         assertThat(seatRepository.findById(seat.getId()).orElseThrow().getSeatStatus()).isEqualTo(SeatStatus.AVAILABLE);
+        mockMvc.perform(post("/api/customer/bookings/{bookingId}/cancel", bookingId)
+                        .header("Authorization", bearer(context.customerToken())))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.bookingStatus").value("CANCELLED"));
     }
 
     @Test
@@ -470,29 +531,28 @@ class BookingApiIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void activeBookingsBlockShowUpdateAndCancellationButCancelledBookingDoesNot() throws Exception {
+    void showCancellationCancelsInitiatedBookingButConfirmedBookingStillBlocks() throws Exception {
         TestShowContext initiated = createShowContext("initiated-dependency@example.com");
         String initiatedAdmin = loginToken("admin-initiated-dependency@example.com");
         Seat initiatedSeat = seatsForShow(initiated.show().getId()).getFirst();
         Long bookingId = createBooking(initiated.customerToken(), initiated.show().getId(), initiatedSeat.getId());
 
-        mockMvc.perform(delete("/api/admin/shows/{id}", initiated.show().getId())
-                        .header("Authorization", bearer(initiatedAdmin)))
-                .andExpect(status().isConflict());
         mockMvc.perform(put("/api/admin/shows/{id}", initiated.show().getId())
                         .header("Authorization", bearer(initiatedAdmin)).contentType("application/json")
                         .content(json(showRequest(initiated.show().getMovie().getId(), initiated.show().getHall().getId(),
                                 11, "10:00", "12:00"))))
                 .andExpect(status().isConflict());
 
-        mockMvc.perform(post("/api/customer/bookings/{bookingId}/cancel", bookingId)
+        mockMvc.perform(delete("/api/admin/shows/{id}", initiated.show().getId())
+                        .header("Authorization", bearer(initiatedAdmin)))
+                .andExpect(status().isNoContent());
+        assertThat(bookingRepository.findById(bookingId).orElseThrow().getStatus()).isEqualTo(BookingStatus.CANCELLED);
+        assertThat(bookingRepository.findById(bookingId).orElseThrow().getCancelledAt()).isNotNull();
+        assertThat(seatRepository.findById(initiatedSeat.getId()).orElseThrow().getSeatStatus())
+                .isEqualTo(SeatStatus.AVAILABLE);
+        mockMvc.perform(get("/api/customer/bookings/{bookingId}", bookingId)
                         .header("Authorization", bearer(initiated.customerToken())))
-                .andExpect(status().isOk());
-        mockMvc.perform(put("/api/admin/shows/{id}", initiated.show().getId())
-                        .header("Authorization", bearer(initiatedAdmin)).contentType("application/json")
-                        .content(json(showRequest(initiated.show().getMovie().getId(), initiated.show().getHall().getId(),
-                                11, "10:00", "12:00"))))
-                .andExpect(status().isOk());
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.bookingStatus").value("CANCELLED"));
 
         TestShowContext confirmed = createShowContext("confirmed-dependency@example.com");
         String confirmedAdmin = loginToken("admin-confirmed-dependency@example.com");

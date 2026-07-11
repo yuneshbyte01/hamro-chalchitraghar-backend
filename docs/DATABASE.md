@@ -397,6 +397,8 @@ Bookings have an immutable unique `booking_reference` in `HCG-YYYYMMDD-XXXXXXXX`
 
 The active lifecycle is `INITIATED -> CONFIRMED`, `INITIATED -> CANCELLED`, or `INITIATED -> EXPIRED`. Initiated bookings receive a configured expiry deadline. Lazy reconciliation before reads and confirmation marks stale bookings `EXPIRED`, records `expired_at`, and releases only still-reserved seats without another active booking claim. `PENDING` and `BOOKED` remain enum values for compatibility but are unused by this phase.
 
+`confirmation_source` records `CUSTOMER`, `STAFF`, or `SYSTEM`; current API confirmation writes `CUSTOMER`. The `(status, expires_at)` index supports bounded scheduled cleanup. State-changing lookup uses a pessimistic booking-row lock, while seat locks are acquired in ascending ID order. The unique booking-seat pair remains the database backstop against duplicate claims within one booking.
+
 1. A show is created by admin.
 2. Seats are generated from the hall's seat templates.
 3. A customer may hold available seats, changing `seats.seat_status` to `LOCKED`.

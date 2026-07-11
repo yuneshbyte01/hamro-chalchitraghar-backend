@@ -50,7 +50,7 @@ public interface SeatRepository extends JpaRepository<Seat, Long> {
      * @return list of locked seats
      */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @Query("SELECT s FROM Seat s WHERE s.id IN :seatIds")
+    @Query("SELECT s FROM Seat s WHERE s.id IN :seatIds ORDER BY s.id")
     List<Seat> findByIdsWithLock(@Param("seatIds") List<Long> seatIds);
 
     /**
@@ -62,7 +62,7 @@ public interface SeatRepository extends JpaRepository<Seat, Long> {
      * @return list of locked seats belonging to the specified show
      */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @Query("SELECT s FROM Seat s WHERE s.show.id = :showId AND s.id IN :seatIds")
+    @Query("SELECT s FROM Seat s WHERE s.show.id = :showId AND s.id IN :seatIds ORDER BY s.id")
     List<Seat> findByShowIdAndSeatIdsWithLock(@Param("showId") Long showId, @Param("seatIds") List<Long> seatIds);
 
     /**

@@ -10,6 +10,7 @@ import java.time.LocalDateTime;
 import java.math.BigDecimal;
 
 import com.chalchitraghar.modules.bookings.enums.BookingStatus;
+import com.chalchitraghar.modules.bookings.enums.ConfirmationSource;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -84,6 +85,9 @@ public class Booking extends GenericEntity {
 
     private LocalDateTime expiresAt;
     private LocalDateTime confirmedAt;
+    @Enumerated(EnumType.STRING)
+    @Column(length = 20)
+    private ConfirmationSource confirmationSource;
     private LocalDateTime cancelledAt;
     private LocalDateTime expiredAt;
 

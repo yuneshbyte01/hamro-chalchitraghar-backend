@@ -42,6 +42,7 @@ import com.chalchitraghar.shared.exception.ShowConflictException;
 import com.chalchitraghar.modules.shows.specification.ShowSpecification;
 import com.chalchitraghar.modules.shows.service.ShowLifecycleService;
 import com.chalchitraghar.modules.bookings.enums.BookingStatus;
+import com.chalchitraghar.modules.bookings.service.BookingLifecycleService;
 import com.chalchitraghar.modules.seats.enums.SeatStatus;
 import com.chalchitraghar.shared.response.PageResponse;
 
@@ -64,9 +65,12 @@ public class ShowServiceImpl implements ShowService {
     private final BookingRepository bookingRepository;
     private final ShowLifecycleService lifecycleService;
     private final Clock clock;
+    private final BookingLifecycleService bookingLifecycleService;
 
     private static final List<BookingStatus> ACTIVE_BOOKING_STATUSES = List.of(
             BookingStatus.INITIATED, BookingStatus.PENDING, BookingStatus.CONFIRMED, BookingStatus.BOOKED);
+    private static final List<BookingStatus> SHOW_CANCELLATION_BLOCKING_STATUSES = List.of(
+            BookingStatus.PENDING, BookingStatus.CONFIRMED, BookingStatus.BOOKED);
 
     @Value("${app.shows.buffer-minutes:15}")
     private long showBufferMinutes;
@@ -152,9 +156,10 @@ public class ShowServiceImpl implements ShowService {
         if (show.getStatus() == ShowStatus.RUNNING || show.getStatus() == ShowStatus.COMPLETED) {
             throw new ShowConflictException("Running or completed shows cannot be cancelled");
         }
-        if (bookingRepository.existsByShowIdAndStatusIn(id, ACTIVE_BOOKING_STATUSES)) {
-            throw new ShowConflictException("Cannot cancel a show with active bookings");
+        if (bookingRepository.existsByShowIdAndStatusIn(id, SHOW_CANCELLATION_BLOCKING_STATUSES)) {
+            throw new ShowConflictException("Cannot cancel a show with confirmed or payment-pending bookings");
         }
+        bookingLifecycleService.cancelInitiatedBookingsForShow(id);
         transitionStatus(show, ShowStatus.CANCELLED);
         List<com.chalchitraghar.modules.seats.entity.Seat> locks = seatRepository.findActiveLockedSeatsByShowId(
                 id, java.time.LocalDateTime.now(clock));

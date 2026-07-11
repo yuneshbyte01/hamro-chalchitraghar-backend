@@ -25,6 +25,9 @@ app:
   bookings:
     initiated-expiration-minutes: ${BOOKING_INITIATED_EXPIRATION_MINUTES:15}
     currency: ${BOOKING_CURRENCY:NPR}
+    expiry-cleanup-interval-ms: ${BOOKING_EXPIRY_CLEANUP_INTERVAL_MS:60000}
+    expiry-batch-size: ${BOOKING_EXPIRY_BATCH_SIZE:100}
+    cancellation-cutoff-minutes: ${BOOKING_CANCELLATION_CUTOFF_MINUTES:0}
   shows:
     buffer-minutes: ${SHOW_BUFFER_MINUTES:15}
     duration-tolerance-minutes: ${SHOW_DURATION_TOLERANCE_MINUTES:5}

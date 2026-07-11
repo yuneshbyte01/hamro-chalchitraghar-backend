@@ -62,7 +62,7 @@ public class BookingMapper {
                 b.getUser().getName(), b.getUser().getEmail(), b.getShow().getId(), b.getShow().getMovie().getTitle(),
                 b.getShow().getHall().getName(), showDateTime(b), b.getShow().getShowTime().toString(),
                 b.getShow().getEndTime().toString(), mapSeats(seats), b.getTotalAmount(), b.getCurrency(),
-                b.getBookingTime(), b.getExpiresAt(), b.getConfirmedAt(), b.getCancelledAt(), b.getExpiredAt(),
+                b.getBookingTime(), b.getExpiresAt(), b.getConfirmedAt(), b.getConfirmationSource(), b.getCancelledAt(), b.getExpiredAt(),
                 b.getCreatedAt(), b.getUpdatedAt());
     }
 
@@ -71,7 +71,7 @@ public class BookingMapper {
                 b.getUser().getName(), b.getUser().getEmail(), b.getShow().getId(), b.getShow().getMovie().getTitle(),
                 b.getShow().getHall().getName(), showDateTime(b), b.getShow().getShowTime().toString(),
                 b.getShow().getEndTime().toString(), mapSeats(seats), b.getTotalAmount(), b.getCurrency(),
-                b.getBookingTime(), b.getExpiresAt(), b.getConfirmedAt(), b.getCancelledAt(), b.getExpiredAt(),
+                b.getBookingTime(), b.getExpiresAt(), b.getConfirmedAt(), b.getConfirmationSource(), b.getCancelledAt(), b.getExpiredAt(),
                 b.getCreatedAt(), b.getUpdatedAt());
     }
 
