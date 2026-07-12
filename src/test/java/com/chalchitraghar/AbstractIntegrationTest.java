@@ -41,6 +41,7 @@ import com.chalchitraghar.modules.users.entity.User;
 import com.chalchitraghar.modules.users.enums.Role;
 import com.chalchitraghar.modules.users.repository.UserRepository;
 import com.chalchitraghar.modules.tickets.repository.TicketRepository;
+import com.chalchitraghar.modules.tickets.repository.TicketValidationRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -93,9 +94,11 @@ abstract class AbstractIntegrationTest {
 
     @Autowired
     protected TicketRepository ticketRepository;
+    @Autowired protected TicketValidationRepository ticketValidationRepository;
 
     @BeforeEach
     void cleanDatabase() {
+        ticketValidationRepository.deleteAll();
         ticketRepository.deleteAll();
         paymentRepository.deleteAll();
         bookingSeatRepository.deleteAll();

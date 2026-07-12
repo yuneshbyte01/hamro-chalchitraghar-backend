@@ -500,3 +500,9 @@ SHA-256 lookup hash. Never log plaintext tokens, ciphertext, hashes, or encrypti
 authenticated key/version metadata, owner-only QR rendering, and `private, no-store` responses. Key rotation and
 token regeneration require an explicit future workflow; do not overwrite existing ticket material during reads or
 idempotent issuance.
+
+Admission must remain an online, single-transaction operation using the locked QR-hash lookup. Never split state
+validation, `CHECKED_IN` mutation, and validation-history creation across transactions. Preserve the only supported
+transitions from `ISSUED` to `CHECKED_IN`, `REVOKED`, or `EXPIRED`; all destination states are terminal. Use the
+injected `Clock` and configured entry/grace windows. Every expected rejection—including unknown tokens and replay—
+must create a validation record without changing the ticket.

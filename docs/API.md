@@ -1648,4 +1648,17 @@ Each ticket receives a 256-bit opaque QR token during first issuance. The QR con
 booking, customer, seat, or payment data. `GET /api/customer/tickets/{ticketReference}/qr` is owner-only and returns
 an on-demand `image/png` with private/no-store caching. `GET /api/customer/tickets/{ticketReference}/qr-data`
 returns only the ticket reference, QR version, and QR issuance time. Neither endpoint exposes plaintext tokens,
-hashes, ciphertext, IVs, or key material. Scanning and check-in are not implemented.
+hashes, ciphertext, IVs, or key material. QR retrieval itself never performs check-in.
+
+### Staff ticket admission
+
+`POST /api/staff/tickets/scan` accepts only `{ "qrToken": "<opaque token>" }` and requires `STAFF` or `ADMIN`.
+Optional `X-Device-ID`, `X-Location`, and `X-Request-ID` headers are retained in validation history. The server
+hashes the token, locks the ticket row, checks ticket/booking/show state and the configured admission window, then
+atomically records either `SUCCESS` or a rejection result. A successful scan changes `ISSUED` to `CHECKED_IN`;
+repeated scans return `ALREADY_USED` and never admit again. Expected validation failures return `200` with
+`admitted=false` and a result/reason so admission clients can distinguish operational outcomes.
+
+Admission is permitted from `showStart - TICKET_ENTRY_WINDOW_MINUTES` through
+`showEnd + TICKET_POST_SHOW_GRACE_MINUTES`, inclusive. Customer detail exposes only `checkedIn` and `checkedInAt`.
+Staff/admin ticket detail includes newest-first validation history.

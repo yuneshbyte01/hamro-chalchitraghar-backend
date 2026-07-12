@@ -3,6 +3,7 @@ package com.chalchitraghar;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 import java.math.BigDecimal;
@@ -18,6 +19,13 @@ import com.google.zxing.client.j2se.BufferedImageLuminanceSource;
 import com.google.zxing.common.HybridBinarizer;
 import javax.imageio.ImageIO;
 import java.io.ByteArrayInputStream;
+import com.chalchitraghar.modules.tickets.service.TicketValidationService;
+import com.chalchitraghar.modules.tickets.dto.request.TicketScanRequest;
+import com.chalchitraghar.modules.tickets.enums.ValidationResult;
+import com.chalchitraghar.modules.tickets.enums.TicketStatus;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.util.concurrent.Executors;
 
 import com.chalchitraghar.modules.bookings.entity.Booking;
 import com.chalchitraghar.modules.bookings.entity.BookingSeat;
@@ -32,6 +40,7 @@ import com.chalchitraghar.shared.exception.InvalidBookingStateException;
 class TicketApiIntegrationTest extends AbstractIntegrationTest {
     @Autowired TicketIssuanceService issuance;
     @Autowired QrTokenService qrTokens;
+    @Autowired TicketValidationService validationService;
 
     @Test
     void confirmedTwoSeatBookingIssuesExactlyOneTicketPerSeatIdempotently() throws Exception {
@@ -142,6 +151,67 @@ class TicketApiIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(status().isNotFound());
         mockMvc.perform(get("/api/customer/tickets/{ref}/qr",ticket.getTicketReference())).andExpect(status().isUnauthorized());
     }
+
+    @Test
+    void staffScanChecksInAtomicallyPreventsReplayAndCreatesHistory() throws Exception {
+        Context c=context("scan-owner@example.com",1,BookingStatus.CONFIRMED); makeCurrent(c.booking());
+        var ticket=issuance.issueTicketsForConfirmedBooking(c.booking()).getFirst(); String raw=qrTokens.decryptToken(ticket);
+        String staffToken=tokenFor("scanner@example.com",Role.STAFF);
+        String body=json(java.util.Map.of("qrToken",raw));
+        mockMvc.perform(post("/api/staff/tickets/scan").header("Authorization",bearer(staffToken))
+                        .header("X-Device-ID","gate-1").header("X-Location","main entrance").header("X-Request-ID","scan-1")
+                        .contentType("application/json").content(body))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.result").value("SUCCESS"))
+                .andExpect(jsonPath("$.data.admitted").value(true));
+        mockMvc.perform(post("/api/staff/tickets/scan").header("Authorization",bearer(staffToken))
+                        .contentType("application/json").content(body))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.result").value("ALREADY_USED"))
+                .andExpect(jsonPath("$.data.admitted").value(false));
+        var checked=ticketRepository.findById(ticket.getId()).orElseThrow();
+        assertThat(checked.getStatus()).isEqualTo(TicketStatus.CHECKED_IN);assertThat(checked.getCheckedInAt()).isNotNull();assertThat(checked.getCheckedInBy().getId()).isEqualTo(userRepository.findByEmail("scanner@example.com").orElseThrow().getId());
+        assertThat(ticketValidationRepository.findByTicketIdOrderByValidationTimeDesc(ticket.getId())).extracting(v->v.getResult())
+                .containsExactly(ValidationResult.ALREADY_USED,ValidationResult.SUCCESS);
+        mockMvc.perform(get("/api/staff/tickets/{ref}",ticket.getTicketReference()).header("Authorization",bearer(staffToken)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.validationHistory.length()").value(2));
+        mockMvc.perform(get("/api/customer/tickets/{ref}",ticket.getTicketReference()).header("Authorization",bearer(c.token())))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.checkedIn").value(true)).andExpect(jsonPath("$.data.checkedInAt").exists())
+                .andExpect(jsonPath("$.data.checkedInBy").doesNotExist());
+    }
+
+    @Test
+    void scanRejectsLifecycleTimingAuthorizationAndUnknownTokens() throws Exception {
+        String staff=tokenFor("rules-scanner@example.com",Role.STAFF);
+        Context early=context("early@example.com",1,BookingStatus.CONFIRMED);var earlyTicket=issuance.issueTicketsForConfirmedBooking(early.booking()).getFirst();
+        scan(staff,qrTokens.decryptToken(earlyTicket)).andExpect(jsonPath("$.data.result").value("TOO_EARLY"));
+        Context cancelled=context("cancelled-show@example.com",1,BookingStatus.CONFIRMED);cancelled.booking().getShow().setStatus(com.chalchitraghar.modules.shows.enums.ShowStatus.CANCELLED);showRepository.save(cancelled.booking().getShow());var cancelledTicket=issuance.issueTicketsForConfirmedBooking(cancelled.booking()).getFirst();
+        scan(staff,qrTokens.decryptToken(cancelledTicket)).andExpect(jsonPath("$.data.result").value("SHOW_CANCELLED"));
+        Context revoked=context("revoked@example.com",1,BookingStatus.CONFIRMED);makeCurrent(revoked.booking());var revokedTicket=issuance.issueTicketsForConfirmedBooking(revoked.booking()).getFirst();revokedTicket.setStatus(TicketStatus.REVOKED);ticketRepository.save(revokedTicket);
+        scan(staff,qrTokens.decryptToken(revokedTicket)).andExpect(jsonPath("$.data.result").value("REVOKED"));
+        Context expired=context("expired-ticket@example.com",1,BookingStatus.CONFIRMED);makeCurrent(expired.booking());var expiredTicket=issuance.issueTicketsForConfirmedBooking(expired.booking()).getFirst();expiredTicket.setStatus(TicketStatus.EXPIRED);ticketRepository.save(expiredTicket);
+        scan(staff,qrTokens.decryptToken(expiredTicket)).andExpect(jsonPath("$.data.result").value("EXPIRED"));
+        Context bookingCancelled=context("booking-cancelled@example.com",1,BookingStatus.CONFIRMED);makeCurrent(bookingCancelled.booking());var bookingCancelledTicket=issuance.issueTicketsForConfirmedBooking(bookingCancelled.booking()).getFirst();bookingCancelled.booking().setStatus(BookingStatus.CANCELLED);bookingRepository.save(bookingCancelled.booking());
+        scan(staff,qrTokens.decryptToken(bookingCancelledTicket)).andExpect(jsonPath("$.data.result").value("BOOKING_CANCELLED"));
+        Context late=context("late-ticket@example.com",1,BookingStatus.CONFIRMED);var lateTicket=issuance.issueTicketsForConfirmedBooking(late.booking()).getFirst();var lateShow=late.booking().getShow();lateShow.setShowDate(LocalDate.now(clock).minusDays(1));lateShow.setStatus(com.chalchitraghar.modules.shows.enums.ShowStatus.COMPLETED);showRepository.save(lateShow);
+        scan(staff,qrTokens.decryptToken(lateTicket)).andExpect(jsonPath("$.data.result").value("TOO_LATE"));
+        scan(staff,"unknown-opaque-token").andExpect(jsonPath("$.data.result").value("INVALID"));
+        assertThat(ticketValidationRepository.findAll()).extracting(v->v.getResult()).contains(ValidationResult.TOO_EARLY,ValidationResult.SHOW_CANCELLED,ValidationResult.REVOKED,ValidationResult.EXPIRED,ValidationResult.BOOKING_CANCELLED,ValidationResult.TOO_LATE,ValidationResult.INVALID);
+        mockMvc.perform(post("/api/staff/tickets/scan").header("Authorization",bearer(early.token())).contentType("application/json").content(json(java.util.Map.of("qrToken",qrTokens.decryptToken(earlyTicket))))).andExpect(status().isForbidden());
+        mockMvc.perform(post("/api/staff/tickets/scan").contentType("application/json").content(json(java.util.Map.of("qrToken","x")))).andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void concurrentScansProduceOneSuccessAndOneAlreadyUsed() throws Exception {
+        Context c=context("concurrent-scan@example.com",1,BookingStatus.CONFIRMED);makeCurrent(c.booking());var ticket=issuance.issueTicketsForConfirmedBooking(c.booking()).getFirst();String raw=qrTokens.decryptToken(ticket);User staff=saveUser("concurrent-staff@example.com",Role.STAFF);
+        try(var pool=Executors.newFixedThreadPool(2)){
+            var tasks=List.of((java.util.concurrent.Callable<ValidationResult>)()->validationService.scan(new TicketScanRequest(raw),staff,null,null,"a").result(),()->validationService.scan(new TicketScanRequest(raw),staff,null,null,"b").result());
+            var results=pool.invokeAll(tasks).stream().map(f->{try{return f.get();}catch(Exception e){throw new RuntimeException(e);}}).toList();
+            assertThat(results).containsExactlyInAnyOrder(ValidationResult.SUCCESS,ValidationResult.ALREADY_USED);
+        }
+        assertThat(ticketValidationRepository.findByTicketIdOrderByValidationTimeDesc(ticket.getId())).hasSize(2);
+    }
+
+    private org.springframework.test.web.servlet.ResultActions scan(String token,String raw) throws Exception{return mockMvc.perform(post("/api/staff/tickets/scan").header("Authorization",bearer(token)).contentType("application/json").content(json(java.util.Map.of("qrToken",raw)))).andExpect(status().isOk());}
+    private void makeCurrent(Booking booking){var show=booking.getShow();show.setShowDate(LocalDate.now(clock));show.setShowTime(LocalTime.now(clock).minusMinutes(30));show.setEndTime(LocalTime.now(clock).plusMinutes(90));show.setStatus(com.chalchitraghar.modules.shows.enums.ShowStatus.RUNNING);showRepository.save(show);}
 
     private Context context(String email, int seatCount, BookingStatus status) throws Exception {
         User user = saveUser(email, Role.CUSTOMER);

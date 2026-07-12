@@ -426,3 +426,9 @@ Ticket-2 uses `QrTokenService` for 256-bit URL-safe opaque tokens and SHA-256 ha
 for ZXing PNG rendering with error correction H. The ciphertext structure is versioned and authenticated with the
 configured key ID as associated data. Issuance stores ciphertext and hash atomically; authorized QR retrieval
 decrypts transiently and renders on demand. No domain information is encoded in the QR.
+
+Ticket-3 admission hashes the submitted opaque token and performs a pessimistic-write lookup by hash. Within one
+transaction it validates terminal ticket state, confirmed booking state, show cancellation, and the configured
+entry/grace window. The first valid scan writes `CHECKED_IN`, `checkedInAt`, and `checkedInBy` and records a
+`SUCCESS`; a concurrent or repeated scan observes the committed terminal state and records `ALREADY_USED`.
+`TicketValidation` is the operational history for this workflow rather than the future general audit-log module.

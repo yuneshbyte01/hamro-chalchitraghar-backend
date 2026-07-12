@@ -56,3 +56,5 @@ app:
       token-version: ${TICKET_QR_TOKEN_VERSION:1}
       image-size: ${TICKET_QR_IMAGE_SIZE:400}
       image-margin: ${TICKET_QR_IMAGE_MARGIN:2}
+    entry-window-minutes: ${TICKET_ENTRY_WINDOW_MINUTES:60}
+    post-show-grace-minutes: ${TICKET_POST_SHOW_GRACE_MINUTES:30}

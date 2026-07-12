@@ -270,3 +270,9 @@ authorized on-demand rendering and a unique SHA-256 hash for future scanner look
 400x400 PNG images with high error correction without storing image files. QR payloads contain no booking, ticket,
 customer, seat, or payment information. Scanning, replay prevention, check-in, rotation, PDF, and delivery remain
 deferred.
+
+Ticket-3 adds the staff admission workflow. Raw scanner tokens are hashed for indexed lookup, ticket rows are locked
+for atomic check-in, and every attempt is recorded with its actor and operational outcome. Configurable pre-show and
+post-show windows constrain admission. Terminal ticket states, cancelled/unconfirmed bookings, cancelled shows,
+early/late arrival, unknown tokens, and replay are rejected; concurrent scans produce exactly one admission.
+Customer APIs reveal only check-in state, while staff/admin detail includes validation history.

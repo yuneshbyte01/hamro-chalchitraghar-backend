@@ -479,3 +479,11 @@ Ticket-2 adds `qr_token_encrypted` (AES-256-GCM versioned ciphertext), `qr_token
 hash), `qr_token_version`, `qr_key_id`, and `qr_issued_at`. The random 256-bit raw token is never persisted. PNG
 images are derived on demand and are not stored. Future scanners will hash submitted opaque tokens and use the
 unique hash index; encrypted ciphertext is never searched.
+
+### `ticket_validations`
+
+Every online scan attempt creates a validation record containing the nullable resolved ticket, required staff/admin
+actor, validation time, result, safe reason, and optional device/location/request identifiers. A nullable ticket is
+required so unknown opaque tokens can still be audited as `INVALID`. Indexed fields are `ticket_id`,
+`validation_time`, and `result`. Results are `SUCCESS`, `ALREADY_USED`, `REVOKED`, `EXPIRED`, `TOO_EARLY`,
+`TOO_LATE`, `INVALID`, `SHOW_CANCELLED`, `BOOKING_CANCELLED`, and `SYSTEM_ERROR`.

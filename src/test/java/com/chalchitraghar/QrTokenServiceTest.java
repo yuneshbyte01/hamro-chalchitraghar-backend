@@ -10,7 +10,7 @@ import com.chalchitraghar.modules.tickets.service.impl.QrTokenServiceImpl;
 class QrTokenServiceTest {
     private TicketQrProperties properties() {
         return new TicketQrProperties(Base64.getEncoder().encodeToString("0123456789ABCDEF0123456789ABCDEF".getBytes()),
-                "qr-test-v1",1,400,2);
+                "qr-test-v1",1,400,2,60,30);
     }
 
     @Test void tokensHaveAtLeast256BitsAndAreUniqueAndHashMatches() {
@@ -30,12 +30,12 @@ class QrTokenServiceTest {
         String[] parts=first.split("\\."); byte[] changed=Base64.getUrlDecoder().decode(parts[3]); changed[0]^=1;
         String tampered=parts[0]+"."+parts[1]+"."+parts[2]+"."+Base64.getUrlEncoder().withoutPadding().encodeToString(changed);
         assertThatThrownBy(()->service.decrypt(tampered)).isInstanceOf(IllegalStateException.class);
-        var wrong=new TicketQrProperties(Base64.getEncoder().encodeToString("FEDCBA9876543210FEDCBA9876543210".getBytes()),"qr-test-v1",1,400,2);
+        var wrong=new TicketQrProperties(Base64.getEncoder().encodeToString("FEDCBA9876543210FEDCBA9876543210".getBytes()),"qr-test-v1",1,400,2,60,30);
         assertThatThrownBy(()->new QrTokenEncryptionServiceImpl(wrong).decrypt(first)).isInstanceOf(IllegalStateException.class);
     }
 
     @Test void invalidKeyConfigurationFailsFast() {
-        assertThatThrownBy(()->new TicketQrProperties("c2hvcnQ=","key",1,400,2))
+        assertThatThrownBy(()->new TicketQrProperties("c2hvcnQ=","key",1,400,2,60,30))
                 .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("32 bytes");
     }
 }

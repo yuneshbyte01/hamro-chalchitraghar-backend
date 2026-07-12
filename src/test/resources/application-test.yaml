@@ -55,6 +55,8 @@ app:
       token-version: 1
       image-size: 400
       image-margin: 2
+    entry-window-minutes: 60
+    post-show-grace-minutes: 30
   mail:
     from: no-reply@hamrochalachitraghar.com
     enabled: false
