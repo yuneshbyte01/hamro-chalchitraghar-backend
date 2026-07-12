@@ -276,3 +276,9 @@ for atomic check-in, and every attempt is recorded with its actor and operationa
 post-show windows constrain admission. Terminal ticket states, cancelled/unconfirmed bookings, cancelled shows,
 early/late arrival, unknown tokens, and replay are rejected; concurrent scans produce exactly one admission.
 Customer APIs reveal only check-in state, while staff/admin detail includes validation history.
+
+Ticket-4 completes the online ticket lifecycle with admin revocation and QR rotation, scheduled expiry, protected
+single/bundle PDF downloads, booking-level after-commit email delivery and retry persistence, paginated operational
+search, state/validation metrics, and consistency detection. PDFs are generated with OpenPDF and embedded ZXing QR
+images entirely in memory. Cancellation revokes issued tickets while preserving checked-in tickets for manual
+review. Offline validation, external storage, SMS/push, and generic audit logging remain outside scope.

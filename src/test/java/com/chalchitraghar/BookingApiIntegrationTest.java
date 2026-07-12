@@ -532,7 +532,7 @@ class BookingApiIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void showCancellationCancelsInitiatedBookingButConfirmedBookingStillBlocks() throws Exception {
+    void showCancellationCancelsInitiatedBookingAndRevokesConfirmedTickets() throws Exception {
         TestShowContext initiated = createShowContext("initiated-dependency@example.com");
         String initiatedAdmin = loginToken("admin-initiated-dependency@example.com");
         Seat initiatedSeat = seatsForShow(initiated.show().getId()).getFirst();
@@ -565,7 +565,9 @@ class BookingApiIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(status().isOk());
         mockMvc.perform(delete("/api/admin/shows/{id}", confirmed.show().getId())
                         .header("Authorization", bearer(confirmedAdmin)))
-                .andExpect(status().isConflict());
+                .andExpect(status().isNoContent());
+        assertThat(ticketRepository.findByBookingIdOrderByIssuedAtAsc(confirmedId)).allSatisfy(ticket ->
+                assertThat(ticket.getStatus()).isEqualTo(com.chalchitraghar.modules.tickets.enums.TicketStatus.REVOKED));
     }
 
     @Test

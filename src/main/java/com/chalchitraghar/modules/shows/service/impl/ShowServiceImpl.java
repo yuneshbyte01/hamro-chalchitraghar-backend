@@ -66,6 +66,7 @@ public class ShowServiceImpl implements ShowService {
     private final ShowLifecycleService lifecycleService;
     private final Clock clock;
     private final BookingLifecycleService bookingLifecycleService;
+    private final com.chalchitraghar.modules.tickets.service.TicketOperationsService ticketOperationsService;
 
     private static final List<BookingStatus> ACTIVE_BOOKING_STATUSES = List.of(
             BookingStatus.INITIATED, BookingStatus.PENDING, BookingStatus.CONFIRMED, BookingStatus.BOOKED);
@@ -156,9 +157,7 @@ public class ShowServiceImpl implements ShowService {
         if (show.getStatus() == ShowStatus.RUNNING || show.getStatus() == ShowStatus.COMPLETED) {
             throw new ShowConflictException("Running or completed shows cannot be cancelled");
         }
-        if (bookingRepository.existsByShowIdAndStatusIn(id, SHOW_CANCELLATION_BLOCKING_STATUSES)) {
-            throw new ShowConflictException("Cannot cancel a show with confirmed or payment-pending bookings");
-        }
+        ticketOperationsService.revokeForShow(id, "SHOW_CANCELLED", null);
         bookingLifecycleService.cancelInitiatedBookingsForShow(id);
         transitionStatus(show, ShowStatus.CANCELLED);
         List<com.chalchitraghar.modules.seats.entity.Seat> locks = seatRepository.findActiveLockedSeatsByShowId(
@@ -173,6 +172,10 @@ public class ShowServiceImpl implements ShowService {
         Show show = showRepository.findByIdForUpdate(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Show", id));
         lifecycleService.reconcile(show);
+        if (status == ShowStatus.CANCELLED) {
+            ticketOperationsService.revokeForShow(id, "SHOW_CANCELLED", null);
+            bookingLifecycleService.cancelInitiatedBookingsForShow(id);
+        }
         transitionStatus(show, status);
         return showMapper.toAdminDetail(showRepository.save(show));
     }

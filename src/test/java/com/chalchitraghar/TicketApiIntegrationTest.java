@@ -26,6 +26,10 @@ import com.chalchitraghar.modules.tickets.enums.TicketStatus;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.concurrent.Executors;
+import com.chalchitraghar.modules.tickets.service.TicketOperationsService;
+import com.chalchitraghar.modules.tickets.service.ExpiredTicketCleanupJob;
+import com.lowagie.text.pdf.PdfReader;
+import com.lowagie.text.pdf.parser.PdfTextExtractor;
 
 import com.chalchitraghar.modules.bookings.entity.Booking;
 import com.chalchitraghar.modules.bookings.entity.BookingSeat;
@@ -41,6 +45,8 @@ class TicketApiIntegrationTest extends AbstractIntegrationTest {
     @Autowired TicketIssuanceService issuance;
     @Autowired QrTokenService qrTokens;
     @Autowired TicketValidationService validationService;
+    @Autowired TicketOperationsService operations;
+    @Autowired ExpiredTicketCleanupJob expiryJob;
 
     @Test
     void confirmedTwoSeatBookingIssuesExactlyOneTicketPerSeatIdempotently() throws Exception {
@@ -78,9 +84,9 @@ class TicketApiIntegrationTest extends AbstractIntegrationTest {
         var foreign = issuance.issueTicketsForConfirmedBooking(other.booking()).getFirst();
 
         mockMvc.perform(get("/api/customer/tickets").header("Authorization", bearer(owner.token())))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.data.length()").value(2))
-                .andExpect(jsonPath("$.data[0].customerId").doesNotExist())
-                .andExpect(jsonPath("$.data[0].qrTokenVersion").doesNotExist());
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.content.length()").value(2))
+                .andExpect(jsonPath("$.data.content[0].customerId").doesNotExist())
+                .andExpect(jsonPath("$.data.content[0].qrTokenVersion").doesNotExist());
         mockMvc.perform(get("/api/customer/tickets/{ref}", owned.getFirst().getTicketReference())
                         .header("Authorization", bearer(owner.token())))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.data.seatCode").exists())
@@ -208,6 +214,30 @@ class TicketApiIntegrationTest extends AbstractIntegrationTest {
             assertThat(results).containsExactlyInAnyOrder(ValidationResult.SUCCESS,ValidationResult.ALREADY_USED);
         }
         assertThat(ticketValidationRepository.findByTicketIdOrderByValidationTimeDesc(ticket.getId())).hasSize(2);
+    }
+
+    @Test
+    void adminRevokesAndReissuesWhilePdfDownloadsRemainOwnerOnly() throws Exception {
+        Context c=context("ticket4-owner@example.com",2,BookingStatus.CONFIRMED);var issued=issuance.issueTicketsForConfirmedBooking(c.booking());var first=issued.getFirst();String old=qrTokens.decryptToken(first);String adminToken=tokenFor("ticket4-admin@example.com",Role.ADMIN);User admin=userRepository.findByEmail("ticket4-admin@example.com").orElseThrow();
+        mockMvc.perform(post("/api/admin/tickets/{ref}/reissue",first.getTicketReference()).header("Authorization",bearer(adminToken)).contentType("application/json").content("{\"reason\":\"QR exposed\"}"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.ticketReference").value(first.getTicketReference()));
+        var rotated=ticketRepository.findById(first.getId()).orElseThrow();assertThat(rotated.getQrTokenVersion()).isEqualTo(2);assertThat(qrTokens.decryptToken(rotated)).isNotEqualTo(old);assertThat(ticketRepository.findByQrTokenHash(qrTokens.hashToken(old))).isEmpty();
+        mockMvc.perform(post("/api/admin/tickets/{ref}/revoke",rotated.getTicketReference()).header("Authorization",bearer(adminToken)).contentType("application/json").content("{\"reason\":\"Administrative cancellation\"}"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.status").value("REVOKED"));
+        var revoked=ticketRepository.findById(first.getId()).orElseThrow();assertThat(revoked.getRevokedAt()).isNotNull();assertThat(revoked.getRevokedBy().getId()).isEqualTo(admin.getId());assertThat(revoked.getRevocationReason()).isEqualTo("Administrative cancellation");
+        byte[] pdf=mockMvc.perform(get("/api/customer/tickets/{ref}/pdf",first.getTicketReference()).header("Authorization",bearer(c.token())))
+                .andExpect(status().isOk()).andExpect(content().contentType("application/pdf")).andReturn().getResponse().getContentAsByteArray();
+        PdfReader reader=new PdfReader(pdf);assertThat(reader.getNumberOfPages()).isEqualTo(1);String text=new PdfTextExtractor(reader).getTextFromPage(1);assertThat(text).contains("Hamro Chalchitraghar",first.getTicketReference(),"REVOKED").doesNotContain(rotated.getQrTokenHash(),rotated.getQrTokenEncrypted());reader.close();
+        byte[] bundle=mockMvc.perform(get("/api/customer/bookings/{ref}/tickets/pdf",c.booking().getBookingReference()).header("Authorization",bearer(c.token())))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsByteArray();PdfReader bundled=new PdfReader(bundle);assertThat(bundled.getNumberOfPages()).isEqualTo(2);bundled.close();
+        Context other=context("ticket4-other@example.com",1,BookingStatus.CONFIRMED);mockMvc.perform(get("/api/customer/tickets/{ref}/pdf",first.getTicketReference()).header("Authorization",bearer(other.token()))).andExpect(status().isNotFound());
+    }
+
+    @Test
+    void expiryJobExpiresOnlyIssuedTicketsAndDeliveryIsIdempotentlyQueued() throws Exception {
+        Context c=context("expiry-delivery@example.com",2,BookingStatus.CONFIRMED);var list=issuance.issueTicketsForConfirmedBooking(c.booking());var show=c.booking().getShow();show.setShowDate(LocalDate.now(clock).minusDays(1));showRepository.save(show);list.get(1).setStatus(TicketStatus.REVOKED);ticketRepository.save(list.get(1));
+        assertThat(expiryJob.run()).isEqualTo(1);assertThat(expiryJob.run()).isZero();assertThat(ticketRepository.findById(list.get(0).getId()).orElseThrow().getStatus()).isEqualTo(TicketStatus.EXPIRED);assertThat(ticketRepository.findById(list.get(1).getId()).orElseThrow().getStatus()).isEqualTo(TicketStatus.REVOKED);
+        issuance.issueTicketsForConfirmedBooking(c.booking());assertThat(ticketDeliveryRepository.count()).isEqualTo(1);
     }
 
     private org.springframework.test.web.servlet.ResultActions scan(String token,String raw) throws Exception{return mockMvc.perform(post("/api/staff/tickets/scan").header("Authorization",bearer(token)).contentType("application/json").content(json(java.util.Map.of("qrToken",raw)))).andExpect(status().isOk());}

@@ -75,6 +75,7 @@ public class BookingServiceImpl implements BookingService {
     private final PaymentRepository paymentRepository;
     private final Clock clock;
     private final TicketIssuanceService ticketIssuanceService;
+    private final com.chalchitraghar.modules.tickets.service.TicketOperationsService ticketOperationsService;
 
     @Value("${app.bookings.initiated-expiration-minutes:15}")
     private long initiatedExpirationMinutes;
@@ -263,6 +264,7 @@ public class BookingServiceImpl implements BookingService {
         booking.setStatus(BookingStatus.CANCELLED);
         booking.setCancelledAt(LocalDateTime.now(clock));
         bookingRepository.save(booking);
+        ticketOperationsService.revokeForBooking(bookingId, "BOOKING_CANCELLED", user);
         return bookingMapper.toCustomerDetail(booking, bookingSeats);
     }
 

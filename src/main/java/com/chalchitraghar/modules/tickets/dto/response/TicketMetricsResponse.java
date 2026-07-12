@@ -1,0 +1,1 @@
+package com.chalchitraghar.modules.tickets.dto.response; public record TicketMetricsResponse(long totalIssued,long totalCheckedIn,long totalRevoked,long totalExpired,double checkInRate,long uniqueBookings,long ticketsTooEarlyAttempts,long ticketsAlreadyUsedAttempts,long validationFailureCount) {}

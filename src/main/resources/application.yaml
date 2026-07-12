@@ -58,3 +58,12 @@ app:
       image-margin: ${TICKET_QR_IMAGE_MARGIN:2}
     entry-window-minutes: ${TICKET_ENTRY_WINDOW_MINUTES:60}
     post-show-grace-minutes: ${TICKET_POST_SHOW_GRACE_MINUTES:30}
+    expiry-reconciliation-interval-ms: ${TICKET_EXPIRY_RECONCILIATION_INTERVAL_MS:60000}
+    expiry-batch-size: ${TICKET_EXPIRY_BATCH_SIZE:100}
+    pdf-enabled: ${TICKET_PDF_ENABLED:true}
+    email:
+      enabled: ${TICKET_EMAIL_ENABLED:false}
+      from: ${TICKET_EMAIL_FROM:}
+      max-attempts: ${TICKET_EMAIL_MAX_ATTEMPTS:3}
+      retry-interval-ms: ${TICKET_EMAIL_RETRY_INTERVAL_MS:60000}
+      retry-batch-size: ${TICKET_EMAIL_RETRY_BATCH_SIZE:50}

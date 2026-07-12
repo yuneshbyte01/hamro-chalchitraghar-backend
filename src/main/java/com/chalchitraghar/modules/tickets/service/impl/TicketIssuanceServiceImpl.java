@@ -8,6 +8,7 @@ import java.util.List;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.context.ApplicationEventPublisher;
 
 import com.chalchitraghar.modules.bookings.entity.Booking;
 import com.chalchitraghar.modules.bookings.enums.BookingStatus;
@@ -33,6 +34,7 @@ public class TicketIssuanceServiceImpl implements TicketIssuanceService {
     private final TicketReferenceGenerator references;
     private final Clock clock;
     private final com.chalchitraghar.modules.tickets.service.QrTokenService qrTokens;
+    private final ApplicationEventPublisher events;
 
     @Override
     @Transactional
@@ -63,6 +65,7 @@ public class TicketIssuanceServiceImpl implements TicketIssuanceService {
                     .qrTokenHash(qr.tokenHash()).qrTokenVersion(qr.version()).qrKeyId(qr.keyId()).qrIssuedAt(issuedAt).build()));
         }
         tickets.flush();
+        events.publishEvent(new com.chalchitraghar.modules.tickets.service.TicketsIssuedEvent(booking.getId()));
         return result;
     }
 

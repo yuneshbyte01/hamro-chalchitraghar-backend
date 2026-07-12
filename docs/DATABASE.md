@@ -487,3 +487,8 @@ actor, validation time, result, safe reason, and optional device/location/reques
 required so unknown opaque tokens can still be audited as `INVALID`. Indexed fields are `ticket_id`,
 `validation_time`, and `result`. Results are `SUCCESS`, `ALREADY_USED`, `REVOKED`, `EXPIRED`, `TOO_EARLY`,
 `TOO_LATE`, `INVALID`, `SHOW_CANCELLED`, `BOOKING_CANCELLED`, and `SYSTEM_ERROR`.
+
+Ticket-4 adds ticket reissue metadata (`reissued_at`, actor, and reason) and operational indexes. The
+`ticket_deliveries` table stores one unique booking/channel delivery with recipient, status, attempt count, safe
+failure message, and attempt/sent timestamps. It stores neither SMTP credentials nor PDF bytes. Delivery statuses
+are `PENDING`, `SENT`, and `FAILED`; the only current channel is `EMAIL`.

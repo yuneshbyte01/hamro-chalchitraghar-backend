@@ -57,6 +57,15 @@ app:
       image-margin: 2
     entry-window-minutes: 60
     post-show-grace-minutes: 30
+    expiry-reconciliation-interval-ms: 60000
+    expiry-batch-size: 100
+    pdf-enabled: true
+    email:
+      enabled: false
+      from: tickets@test.local
+      max-attempts: 3
+      retry-interval-ms: 60000
+      retry-batch-size: 50
   mail:
     from: no-reply@hamrochalachitraghar.com
     enabled: false

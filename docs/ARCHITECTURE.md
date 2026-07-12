@@ -432,3 +432,9 @@ transaction it validates terminal ticket state, confirmed booking state, show ca
 entry/grace window. The first valid scan writes `CHECKED_IN`, `checkedInAt`, and `checkedInBy` and records a
 `SUCCESS`; a concurrent or repeated scan observes the committed terminal state and records `ALREADY_USED`.
 `TicketValidation` is the operational history for this workflow rather than the future general audit-log module.
+
+Ticket-4 adds locked revocation and QR rotation, batched expiry reconciliation, OpenPDF in-memory ticket/bundle
+rendering, and after-commit delivery events. `TicketDelivery` supplies the idempotency boundary of one issuance email
+per booking/channel; retries never touch a sent record. Search specifications apply customer ownership inside the
+database query and expose only allowlisted sort fields. Metrics aggregate ticket states and validation outcomes, and
+the consistency service reports broken relationships without destructive auto-repair.

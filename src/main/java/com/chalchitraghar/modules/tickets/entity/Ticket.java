@@ -82,4 +82,7 @@ public class Ticket extends GenericEntity {
 
     @Column(nullable = false)
     private LocalDateTime qrIssuedAt;
+    private LocalDateTime reissuedAt;
+    @ManyToOne(fetch=FetchType.LAZY) @JoinColumn(name="reissued_by_user_id") private User reissuedBy;
+    @Column(length=500) private String reissueReason;
 }

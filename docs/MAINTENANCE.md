@@ -506,3 +506,10 @@ validation, `CHECKED_IN` mutation, and validation-history creation across transa
 transitions from `ISSUED` to `CHECKED_IN`, `REVOKED`, or `EXPIRED`; all destination states are terminal. Use the
 injected `Clock` and configured entry/grace windows. Every expected rejection—including unknown tokens and replay—
 must create a validation record without changing the ticket.
+
+Revocation and reissue must retain row locks and terminal-state rules. Never create a second ticket during reissue;
+rotate ciphertext/hash in place and preserve the reference. Keep all show cancellation paths routed through ticket
+orchestration. Expiry processes only `ISSUED` rows in bounded batches while scan-time checks remain authoritative.
+PDFs and QR images remain memory-only. Delivery is triggered after commit, uniquely keyed by booking/channel, and
+must never roll back payment, confirmation, or issuance. Search sorts must stay allowlisted, and consistency findings
+must not be silently repaired.

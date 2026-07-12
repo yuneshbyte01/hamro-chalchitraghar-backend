@@ -1662,3 +1662,18 @@ repeated scans return `ALREADY_USED` and never admit again. Expected validation 
 Admission is permitted from `showStart - TICKET_ENTRY_WINDOW_MINUTES` through
 `showEnd + TICKET_POST_SHOW_GRACE_MINUTES`, inclusive. Customer detail exposes only `checkedIn` and `checkedInAt`.
 Staff/admin ticket detail includes newest-first validation history.
+
+## Ticket completion operations
+
+- `POST /api/admin/tickets/{ticketReference}/revoke` requires an admin and a non-blank reason. It atomically changes
+  `ISSUED` to `REVOKED`; repeats are idempotent, while checked-in/expired tickets conflict.
+- `POST /api/admin/tickets/{ticketReference}/reissue` rotates only an `ISSUED` ticket's encrypted opaque token and
+  hash, increments its QR version, and preserves its ticket reference. The previous QR stops resolving immediately.
+- `GET /api/customer/tickets/{ticketReference}/pdf` downloads one owner-only PDF.
+- `GET /api/customer/bookings/{bookingReference}/tickets/pdf` downloads an owner-only, seat-ordered multi-page bundle.
+- Customer/staff/admin ticket list routes are paginated and safely sorted. Admin routes also expose `metrics`,
+  `validation-summary`, and `inconsistencies` operational views.
+
+Issued tickets expire after the show-end grace window. Show cancellation revokes issued tickets through one shared
+orchestration path; checked-in tickets cause an operational conflict rather than silent revocation. PDFs are
+generated in memory and include the QR image but never token text, ciphertext, hashes, credentials, or database IDs.

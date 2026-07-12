@@ -101,6 +101,14 @@ SPRING_PROFILES_ACTIVE=dev
 | `TICKET_QR_IMAGE_MARGIN` | ZXing QR quiet-zone margin, default `2` |
 | `TICKET_ENTRY_WINDOW_MINUTES` | Minutes before show start when online check-in opens, default `60` |
 | `TICKET_POST_SHOW_GRACE_MINUTES` | Minutes after show end when online check-in closes, default `30` |
+| `TICKET_EXPIRY_RECONCILIATION_INTERVAL_MS` | Issued-ticket expiry job delay, default `60000` |
+| `TICKET_EXPIRY_BATCH_SIZE` | Maximum tickets reconciled per expiry run, default `100` |
+| `TICKET_PDF_ENABLED` | Enables in-memory PDF downloads/attachments |
+| `TICKET_EMAIL_ENABLED` | Enables ticket issuance email attempts; disabling never blocks issuance |
+| `TICKET_EMAIL_FROM` | Required production sender for ticket delivery |
+| `TICKET_EMAIL_MAX_ATTEMPTS` | Maximum delivery attempts, default `3` |
+| `TICKET_EMAIL_RETRY_INTERVAL_MS` | Failed/pending delivery retry delay, default `60000` |
+| `TICKET_EMAIL_RETRY_BATCH_SIZE` | Delivery retry batch size, default `50` |
 
 Generate and manage `TICKET_QR_ENCRYPTION_KEY` as a deployment secret; never commit a production key. Production
 startup fails if it is absent, invalid Base64, or not exactly 32 bytes. Changing the key without a future key-ring

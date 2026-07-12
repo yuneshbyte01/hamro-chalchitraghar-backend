@@ -10,6 +10,7 @@ import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import jakarta.persistence.LockModeType;
+import org.springframework.data.domain.Pageable;
 
 import com.chalchitraghar.modules.tickets.entity.Ticket;
 
@@ -38,4 +39,8 @@ public interface TicketRepository extends JpaRepository<Ticket, Long>, JpaSpecif
     @EntityGraph(attributePaths = {"booking", "booking.user", "booking.show", "booking.show.movie", "booking.show.hall", "bookingSeat", "bookingSeat.seat"})
     @Query("select t from Ticket t where t.qrTokenHash=:hash")
     Optional<Ticket> findByQrTokenHashForUpdate(@Param("hash") String hash);
+    @Lock(LockModeType.PESSIMISTIC_WRITE) @Query("select t from Ticket t where t.ticketReference=:ref") Optional<Ticket> findByTicketReferenceForUpdate(@Param("ref") String ref);
+    @Lock(LockModeType.PESSIMISTIC_WRITE) @Query("select t from Ticket t where t.booking.id=:id") List<Ticket> findByBookingIdForUpdate(@Param("id") Long id);
+    @Lock(LockModeType.PESSIMISTIC_WRITE) @Query("select t from Ticket t where t.booking.show.id=:id") List<Ticket> findByBookingShowIdForUpdate(@Param("id") Long id);
+    @Query("select t from Ticket t where t.status='ISSUED' and t.booking.show.showDate <= :date order by t.issuedAt") List<Ticket> findIssuedDueForExpiry(@Param("date") java.time.LocalDate date,Pageable pageable);
 }
