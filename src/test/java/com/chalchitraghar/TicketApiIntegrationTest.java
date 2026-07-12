@@ -11,6 +11,13 @@ import java.util.List;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import com.chalchitraghar.modules.tickets.service.QrTokenService;
+import com.google.zxing.BinaryBitmap;
+import com.google.zxing.MultiFormatReader;
+import com.google.zxing.client.j2se.BufferedImageLuminanceSource;
+import com.google.zxing.common.HybridBinarizer;
+import javax.imageio.ImageIO;
+import java.io.ByteArrayInputStream;
 
 import com.chalchitraghar.modules.bookings.entity.Booking;
 import com.chalchitraghar.modules.bookings.entity.BookingSeat;
@@ -24,6 +31,7 @@ import com.chalchitraghar.shared.exception.InvalidBookingStateException;
 
 class TicketApiIntegrationTest extends AbstractIntegrationTest {
     @Autowired TicketIssuanceService issuance;
+    @Autowired QrTokenService qrTokens;
 
     @Test
     void confirmedTwoSeatBookingIssuesExactlyOneTicketPerSeatIdempotently() throws Exception {
@@ -97,6 +105,42 @@ class TicketApiIntegrationTest extends AbstractIntegrationTest {
         mockMvc.perform(get("/api/customer/tickets")).andExpect(status().isUnauthorized());
         mockMvc.perform(get("/api/customer/tickets").header("Authorization", "Bearer invalid"))
                 .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void ownerRetrievesDeterministicOpaqueQrPngAndSafeMetadata() throws Exception {
+        Context owner=context("qr-owner@example.com",1,BookingStatus.CONFIRMED);
+        Context other=context("qr-other@example.com",1,BookingStatus.CONFIRMED);
+        var ticket=issuance.issueTicketsForConfirmedBooking(owner.booking()).getFirst();
+        String raw=qrTokens.decryptToken(ticket);
+        assertThat(ticket.getQrTokenEncrypted()).isNotEqualTo(raw);
+        assertThat(ticket.getQrTokenHash()).isNotEqualTo(raw);
+        assertThat(qrTokens.matches(raw,ticket.getQrTokenHash())).isTrue();
+        assertThat(ticketRepository.findByQrTokenHash(ticket.getQrTokenHash())).isPresent();
+
+        byte[] first=mockMvc.perform(get("/api/customer/tickets/{ref}/qr",ticket.getTicketReference())
+                        .header("Authorization",bearer(owner.token())))
+                .andExpect(status().isOk()).andExpect(content().contentType("image/png"))
+                .andExpect(header().string("Cache-Control","private, no-store"))
+                .andReturn().getResponse().getContentAsByteArray();
+        byte[] second=mockMvc.perform(get("/api/customer/tickets/{ref}/qr",ticket.getTicketReference())
+                        .header("Authorization",bearer(owner.token())))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsByteArray();
+        assertThat(first).isEqualTo(second);
+        var image=ImageIO.read(new ByteArrayInputStream(first));
+        assertThat(image).isNotNull(); assertThat(image.getWidth()).isEqualTo(400); assertThat(image.getHeight()).isEqualTo(400);
+        String decoded=new MultiFormatReader().decode(new BinaryBitmap(new HybridBinarizer(new BufferedImageLuminanceSource(image)))).getText();
+        assertThat(decoded).isEqualTo(raw).doesNotContain(ticket.getTicketReference(),ticket.getBooking().getBookingReference());
+
+        mockMvc.perform(get("/api/customer/tickets/{ref}/qr-data",ticket.getTicketReference())
+                        .header("Authorization",bearer(owner.token())))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.qrVersion").value(1))
+                .andExpect(jsonPath("$.data.qrTokenHash").doesNotExist())
+                .andExpect(jsonPath("$.data.qrTokenEncrypted").doesNotExist());
+        mockMvc.perform(get("/api/customer/tickets/{ref}/qr",ticket.getTicketReference())
+                        .header("Authorization",bearer(other.token())))
+                .andExpect(status().isNotFound());
+        mockMvc.perform(get("/api/customer/tickets/{ref}/qr",ticket.getTicketReference())).andExpect(status().isUnauthorized());
     }
 
     private Context context(String email, int seatCount, BookingStatus status) throws Exception {

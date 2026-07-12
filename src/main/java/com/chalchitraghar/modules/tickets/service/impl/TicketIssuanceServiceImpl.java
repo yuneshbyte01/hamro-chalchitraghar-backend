@@ -32,6 +32,7 @@ public class TicketIssuanceServiceImpl implements TicketIssuanceService {
     private final BookingSeatRepository bookingSeats;
     private final TicketReferenceGenerator references;
     private final Clock clock;
+    private final com.chalchitraghar.modules.tickets.service.QrTokenService qrTokens;
 
     @Override
     @Transactional
@@ -55,8 +56,11 @@ public class TicketIssuanceServiceImpl implements TicketIssuanceService {
             if (existing != null) { result.add(existing); continue; }
             String reference;
             do reference = references.generate(); while (tickets.existsByTicketReference(reference));
+            com.chalchitraghar.modules.tickets.service.QrTokenService.PreparedQrToken qr;
+            do qr = qrTokens.prepareToken(); while (tickets.existsByQrTokenHash(qr.tokenHash()));
             result.add(tickets.save(Ticket.builder().booking(booking).bookingSeat(claim).ticketReference(reference)
-                    .status(TicketStatus.ISSUED).issuedAt(issuedAt).qrTokenVersion(1).build()));
+                    .status(TicketStatus.ISSUED).issuedAt(issuedAt).qrTokenEncrypted(qr.encryptedToken())
+                    .qrTokenHash(qr.tokenHash()).qrTokenVersion(qr.version()).qrKeyId(qr.keyId()).qrIssuedAt(issuedAt).build()));
         }
         tickets.flush();
         return result;

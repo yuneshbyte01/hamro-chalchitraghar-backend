@@ -494,3 +494,9 @@ the internal `backfillConfirmedBooking` service method; do not create tickets si
 Ticket response changes must preserve customer/staff/admin DTO separation. Do not expose database IDs, customer
 identity in customer responses, QR internals, authentication data, or payment credentials. QR generation, scanning,
 check-in, revocation transitions, PDF, and email delivery are outside Ticket-1.
+
+QR tokens must remain opaque, random, and free of domain data. Persist only AES-256-GCM ciphertext and a unique
+SHA-256 lookup hash. Never log plaintext tokens, ciphertext, hashes, or encryption keys. Preserve random IVs,
+authenticated key/version metadata, owner-only QR rendering, and `private, no-store` responses. Key rotation and
+token regeneration require an explicit future workflow; do not overwrite existing ticket material during reads or
+idempotent issuance.

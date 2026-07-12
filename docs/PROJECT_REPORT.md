@@ -264,3 +264,9 @@ transactional and idempotent across customer confirmation, verified eSewa comple
 the same finalizer. Customer APIs are owner-only, while staff and admin receive separate operational read models.
 Ticket-1 intentionally does not include QR generation/signing, scanning, check-in, revocation behavior, PDF, or
 email delivery; those admission and delivery capabilities remain future work.
+
+Ticket-2 assigns each ticket a random 256-bit opaque QR token. The database stores an AES-256-GCM encrypted form for
+authorized on-demand rendering and a unique SHA-256 hash for future scanner lookup, never plaintext. ZXing produces
+400x400 PNG images with high error correction without storing image files. QR payloads contain no booking, ticket,
+customer, seat, or payment information. Scanning, replay prevention, check-in, rotation, PDF, and delivery remain
+deferred.

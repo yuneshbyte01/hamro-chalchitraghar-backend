@@ -94,6 +94,15 @@ SPRING_PROFILES_ACTIVE=dev
 | `MAIL_FROM` | From address for password reset email |
 | `MAIL_ENABLED` | `false` disables SMTP delivery in dev/test; `true` sends through SMTP |
 | `PASSWORD_RESET_OTP_EXPIRATION_MINUTES` | Password reset OTP validity window |
+| `TICKET_QR_ENCRYPTION_KEY` | Required Base64 value decoding to exactly 32 bytes; AES-256-GCM ticket QR key |
+| `TICKET_QR_KEY_ID` | QR encryption key identifier, default `qr-key-v1`; retained for future rotation |
+| `TICKET_QR_TOKEN_VERSION` | Opaque QR token format version, default `1` |
+| `TICKET_QR_IMAGE_SIZE` | On-demand square PNG size, default `400` |
+| `TICKET_QR_IMAGE_MARGIN` | ZXing QR quiet-zone margin, default `2` |
+
+Generate and manage `TICKET_QR_ENCRYPTION_KEY` as a deployment secret; never commit a production key. Production
+startup fails if it is absent, invalid Base64, or not exactly 32 bytes. Changing the key without a future key-ring
+migration makes existing QR ciphertext unreadable. The committed test/development default is non-production only.
 | `PASSWORD_RESET_MAX_ATTEMPTS` | Maximum failed OTP verification attempts |
 | `GOOGLE_CLIENT_ID` | Google OAuth client ID used as the expected ID token audience |
 | `GOOGLE_CLIENT_SECRET` | Google OAuth client secret; loaded from configuration and never hardcoded |

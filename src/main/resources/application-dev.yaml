@@ -26,6 +26,9 @@ app:
   time-zone: ${APP_TIME_ZONE:Asia/Kathmandu}
   shows:
     status-reconciliation-interval-ms: ${SHOW_STATUS_RECONCILIATION_INTERVAL_MS:60000}
+  tickets:
+    qr:
+      encryption-key: ${TICKET_QR_ENCRYPTION_KEY:MDEyMzQ1Njc4OUFCQ0RFRjAxMjM0NTY3ODlBQkNERUY=}
   mail:
     from: ${MAIL_FROM}
     enabled: ${MAIL_ENABLED}

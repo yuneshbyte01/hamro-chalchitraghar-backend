@@ -49,3 +49,10 @@ app:
     buffer-minutes: ${SHOW_BUFFER_MINUTES:15}
     duration-tolerance-minutes: ${SHOW_DURATION_TOLERANCE_MINUTES:5}
     status-reconciliation-interval-ms: ${SHOW_STATUS_RECONCILIATION_INTERVAL_MS:60000}
+  tickets:
+    qr:
+      encryption-key: ${TICKET_QR_ENCRYPTION_KEY}
+      key-id: ${TICKET_QR_KEY_ID:qr-key-v1}
+      token-version: ${TICKET_QR_TOKEN_VERSION:1}
+      image-size: ${TICKET_QR_IMAGE_SIZE:400}
+      image-margin: ${TICKET_QR_IMAGE_MARGIN:2}

@@ -420,3 +420,9 @@ review does not issue tickets. An internal idempotent backfill method is availab
 
 Customer, staff, and admin controllers expose separate response contracts. Customer ownership is enforced during
 repository lookup. Ticket-1 is read-only after issuance; QR and admission workflows are deferred to Ticket-2.
+
+Ticket-2 uses `QrTokenService` for 256-bit URL-safe opaque tokens and SHA-256 hashes,
+`QrTokenEncryptionService` for AES-256-GCM authenticated encryption with a random 96-bit IV, and `QrImageService`
+for ZXing PNG rendering with error correction H. The ciphertext structure is versioned and authenticated with the
+configured key ID as associated data. Issuance stores ciphertext and hash atomically; authorized QR retrieval
+decrypts transiently and renders on demand. No domain information is encoded in the QR.

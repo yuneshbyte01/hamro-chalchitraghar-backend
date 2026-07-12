@@ -71,6 +71,15 @@ public class Ticket extends GenericEntity {
     private String revocationReason;
     private Integer qrTokenVersion;
 
-    @Column(length = 100)
+    @Column(nullable = false, length = 100)
     private String qrKeyId;
+
+    @Column(nullable = false, columnDefinition = "TEXT")
+    private String qrTokenEncrypted;
+
+    @Column(nullable = false, unique = true, length = 128)
+    private String qrTokenHash;
+
+    @Column(nullable = false)
+    private LocalDateTime qrIssuedAt;
 }

@@ -48,6 +48,13 @@ app:
       read-timeout-ms: 100
   shows:
     status-reconciliation-interval-ms: 60000
+  tickets:
+    qr:
+      encryption-key: MDEyMzQ1Njc4OUFCQ0RFRjAxMjM0NTY3ODlBQkNERUY=
+      key-id: qr-test-v1
+      token-version: 1
+      image-size: 400
+      image-margin: 2
   mail:
     from: no-reply@hamrochalachitraghar.com
     enabled: false

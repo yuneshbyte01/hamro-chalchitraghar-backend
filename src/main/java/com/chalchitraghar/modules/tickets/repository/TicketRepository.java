@@ -28,4 +28,6 @@ public interface TicketRepository extends JpaRepository<Ticket, Long>, JpaSpecif
     boolean existsByTicketReference(String ticketReference);
     boolean existsByBookingSeatId(Long bookingSeatId);
     Optional<Ticket> findByBookingSeatId(Long bookingSeatId);
+    Optional<Ticket> findByQrTokenHash(String qrTokenHash);
+    boolean existsByQrTokenHash(String qrTokenHash);
 }

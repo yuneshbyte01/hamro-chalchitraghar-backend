@@ -10,4 +10,6 @@ public interface TicketService {
  List<StaffTicketSummaryResponse> staffBookingTickets(String bookingReference);
  AdminTicketDetailResponse adminTicket(String reference);
  List<AdminTicketSummaryResponse> adminBookingTickets(String bookingReference);
+ byte[] customerQrPng(String reference,User user);
+ CustomerQrDataResponse customerQrData(String reference,User user);
 }

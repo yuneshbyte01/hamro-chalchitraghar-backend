@@ -2,6 +2,8 @@ package com.chalchitraghar.applications.customer;
 
 import java.util.List;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.MediaType;
+import org.springframework.http.HttpHeaders;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import com.chalchitraghar.modules.tickets.dto.response.*;
@@ -25,5 +27,9 @@ public class TicketController {
  public ResponseEntity<ApiResponse<CustomerTicketDetailResponse>> get(@PathVariable String ticketReference){return ResponseEntity.ok(ApiResponse.success("Ticket fetched successfully",service.customerTicket(ticketReference,user())));}
  @GetMapping("/bookings/{bookingReference}/tickets") @Operation(summary="List tickets for my booking",description="One issued ticket per booked seat, ordered by seat position.")
  public ResponseEntity<ApiResponse<List<CustomerTicketSummaryResponse>>> booking(@PathVariable String bookingReference){return ResponseEntity.ok(ApiResponse.success("Tickets fetched successfully",service.customerBookingTickets(bookingReference,user())));}
+ @GetMapping(value="/tickets/{ticketReference}/qr",produces=MediaType.IMAGE_PNG_VALUE) @Operation(summary="View my ticket QR",description="Decrypts the owner-only opaque token and renders a 400x400 PNG on demand. No booking or customer data is encoded.")
+ public ResponseEntity<byte[]> qr(@PathVariable String ticketReference){return ResponseEntity.ok().contentType(MediaType.IMAGE_PNG).header(HttpHeaders.CACHE_CONTROL,"private, no-store").body(service.customerQrPng(ticketReference,user()));}
+ @GetMapping("/tickets/{ticketReference}/qr-data") @Operation(summary="Get safe QR metadata",description="Returns version and issuance time; never returns token, hash, or ciphertext.")
+ public ResponseEntity<ApiResponse<CustomerQrDataResponse>> qrData(@PathVariable String ticketReference){return ResponseEntity.ok(ApiResponse.success("QR metadata fetched successfully",service.customerQrData(ticketReference,user())));}
  private User user(){var a=SecurityContextHolder.getContext().getAuthentication();if(a==null||!(a.getPrincipal() instanceof User u))throw new AuthenticationException("User not authenticated");return u;}
 }

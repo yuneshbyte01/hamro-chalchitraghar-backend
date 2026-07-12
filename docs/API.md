@@ -1643,3 +1643,9 @@ repeated confirmation or payment finalization reuses existing tickets. Ticket re
 - `GET /api/customer/bookings/{bookingReference}/tickets` lists an owned booking's tickets by seat position.
 - `GET /api/staff/tickets/{ticketReference}` and `GET /api/staff/bookings/{bookingReference}/tickets` are read-only for `STAFF`/`ADMIN`.
 - `GET /api/admin/tickets/{ticketReference}` and `GET /api/admin/bookings/{bookingReference}/tickets` are read-only for `ADMIN`.
+
+Each ticket receives a 256-bit opaque QR token during first issuance. The QR contains only that token—no ticket,
+booking, customer, seat, or payment data. `GET /api/customer/tickets/{ticketReference}/qr` is owner-only and returns
+an on-demand `image/png` with private/no-store caching. `GET /api/customer/tickets/{ticketReference}/qr-data`
+returns only the ticket reference, QR version, and QR issuance time. Neither endpoint exposes plaintext tokens,
+hashes, ciphertext, IVs, or key material. Scanning and check-in are not implemented.

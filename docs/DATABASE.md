@@ -474,3 +474,8 @@ booking and booking seat and stores `status`, `issued_at`, nullable future lifec
 revocation reason, and reserved QR version/key identifiers. No QR token or image is stored in Ticket-1.
 
 `TicketStatus` values are `ISSUED`, `CHECKED_IN`, `REVOKED`, and `EXPIRED`; only `ISSUED` is assigned in Ticket-1.
+
+Ticket-2 adds `qr_token_encrypted` (AES-256-GCM versioned ciphertext), `qr_token_hash` (unique SHA-256 hex lookup
+hash), `qr_token_version`, `qr_key_id`, and `qr_issued_at`. The random 256-bit raw token is never persisted. PNG
+images are derived on demand and are not stored. Future scanners will hash submitted opaque tokens and use the
+unique hash index; encrypted ciphertext is never searched.
