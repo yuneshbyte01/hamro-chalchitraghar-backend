@@ -53,6 +53,7 @@ import com.chalchitraghar.modules.shows.repository.ShowRepository;
 import com.chalchitraghar.shared.exception.ShowConflictException;
 import com.chalchitraghar.modules.shows.service.ShowLifecycleService;
 import com.chalchitraghar.shared.response.PageResponse;
+import com.chalchitraghar.modules.tickets.service.TicketIssuanceService;
 
 import lombok.RequiredArgsConstructor;
 
@@ -73,6 +74,7 @@ public class BookingServiceImpl implements BookingService {
     private final BookingReferenceGenerator bookingReferenceGenerator;
     private final PaymentRepository paymentRepository;
     private final Clock clock;
+    private final TicketIssuanceService ticketIssuanceService;
 
     @Value("${app.bookings.initiated-expiration-minutes:15}")
     private long initiatedExpirationMinutes;
@@ -147,6 +149,7 @@ public class BookingServiceImpl implements BookingService {
                     String.format("Booking %d does not belong to user %d", bookingId, user.getId()));
         }
         if (booking.getStatus() == BookingStatus.CONFIRMED) {
+            ticketIssuanceService.issueTicketsForConfirmedBooking(booking);
             return bookingMapper.toCustomerDetail(booking, seatsFor(bookingId));
         }
         if (bookingLifecycleService.reconcileExpiry(booking)) {
@@ -199,6 +202,7 @@ public class BookingServiceImpl implements BookingService {
         booking.setConfirmedAt(LocalDateTime.now(clock));
         booking.setConfirmationSource(ConfirmationSource.CUSTOMER);
         bookingRepository.save(booking);
+        ticketIssuanceService.issueTicketsForConfirmedBooking(booking);
         return bookingMapper.toCustomerDetail(booking, bookingSeats);
     }
 

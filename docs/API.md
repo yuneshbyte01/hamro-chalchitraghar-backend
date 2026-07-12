@@ -1631,3 +1631,15 @@ Customers initiate an ESEWA/ONLINE attempt with `POST /api/customer/bookings/{bo
 ## Payment operations
 
 Admins can page and filter payments with `GET /api/admin/payments`, inspect `GET /api/admin/payments/manual-review`, resolve review items with `POST /api/admin/payments/{paymentReference}/resolve?resolution=CLEAR|KEEP|NO_REFUND_REQUIRED`, view aggregate metrics at `GET /api/admin/payments/statistics`, and inspect detected inconsistencies at `GET /api/admin/payments/consistency`. Staff remains read-only. Scheduled reconciliation and expiry have no public endpoints.
+## Ticket APIs
+
+Tickets are issued transactionally only when a payment-driven booking confirmation has changed the booking to
+`CONFIRMED` and every selected seat to `BOOKED`. The model creates exactly one `ISSUED` ticket per `BookingSeat`;
+repeated confirmation or payment finalization reuses existing tickets. Ticket references use
+`TKT-YYYYMMDD-XXXXXXXX`. QR images/tokens, scanning, check-in, revocation, PDF, and email delivery are deferred.
+
+- `GET /api/customer/tickets` lists the authenticated user's tickets newest first.
+- `GET /api/customer/tickets/{ticketReference}` is owner-only; unknown/non-owned references return `404`.
+- `GET /api/customer/bookings/{bookingReference}/tickets` lists an owned booking's tickets by seat position.
+- `GET /api/staff/tickets/{ticketReference}` and `GET /api/staff/bookings/{bookingReference}/tickets` are read-only for `STAFF`/`ADMIN`.
+- `GET /api/admin/tickets/{ticketReference}` and `GET /api/admin/bookings/{bookingReference}/tickets` are read-only for `ADMIN`.

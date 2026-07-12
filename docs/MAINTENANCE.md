@@ -483,3 +483,14 @@ LOCAL user lifecycle:
 Payment-2 initiation must keep `(booking_id, idempotency_key)` behavior stable, derive amount/currency only from the locked booking, and enforce at most one active `CREATED`/`PENDING` attempt. All state changes must pass through `PaymentLifecycleService`; process and cancel operations lock the payment row. Keep real provider network work outside locking transactions. `PAYMENT_LOCAL_ENABLED` must remain false in production.
 For eSewa, never log `ESEWA_SECRET_KEY`, never accept merchant/form fields from customers, and never hold database locks during status HTTP calls. Keep request signed fields ordered as `total_amount,transaction_uuid,product_code`. Any verified late success must remain `SUCCESS` with manual review instead of modifying an ineligible booking.
 Keep reconciliation bounded by `PAYMENT_RECONCILIATION_BATCH_SIZE` and scheduled with `PAYMENT_RECONCILIATION_INTERVAL_MS`. A failure for one payment must not stop the batch. Never reconcile terminal payments or mark transient network failures as failed. Review consistency results operationally; diagnostics do not silently mutate bookings or payments.
+## Ticket maintenance
+
+Keep ticket issuance attached to the authoritative transition to `BookingStatus.CONFIRMED`, after seats become
+`BOOKED`; never attach it to `PaymentStatus.SUCCESS` alone. All confirmation paths must use
+`TicketIssuanceService`, and the unique `tickets.booking_seat_id` constraint must remain the final duplicate guard.
+Use the injected application `Clock` for `issuedAt`. Existing confirmed development bookings can be reconciled with
+the internal `backfillConfirmedBooking` service method; do not create tickets silently during reads.
+
+Ticket response changes must preserve customer/staff/admin DTO separation. Do not expose database IDs, customer
+identity in customer responses, QR internals, authentication data, or payment credentials. QR generation, scanning,
+check-in, revocation transitions, PDF, and email delivery are outside Ticket-1.

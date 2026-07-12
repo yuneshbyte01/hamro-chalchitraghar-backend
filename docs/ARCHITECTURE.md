@@ -410,3 +410,13 @@ Payment-2 adds `PaymentLifecycleService` as the transition authority and `Paymen
 Implemented transitions are `CREATED -> PENDING/CANCELLED/EXPIRED` and `PENDING -> SUCCESS/FAILED/EXPIRED/CANCELLED`; terminal states cannot reopen. `REFUNDED` remains reserved. Payment success and booking confirmation remain separate aggregates and workflows.
 Payment-3 splits verification into an unlocked provider-I/O stage and a short transactional finalization stage. `EsewaSignatureService` owns canonical HMAC-SHA256 signing, `EsewaStatusClient` owns status enquiry, and `EsewaPaymentFinalizer` locks payment, booking, and seats only after provider I/O completes. Browser redirects are not trusted as webhooks.
 Payment-4 adds bounded reconciliation and expiry jobs. Each provider reconciliation delegates independently, and finalization retains its own short transaction. Provider/network errors leave payments pending for later recovery. `PaymentOperationsService` supplies admin search, manual-review resolution, metrics, and consistency diagnostics. Refund types and persistence are intentionally inert extension points.
+## Tickets Module
+
+`modules/tickets` owns ticket persistence, reference generation, issuance, audience-specific mapping, and reads.
+`TicketIssuanceService` locks/reloads a confirmed booking, validates that every claimed seat is `BOOKED`, orders
+claims by seat position, and idempotently creates one ticket per booking seat. Customer confirmation and verified
+eSewa finalization call the same service inside their confirmation transactions. Financial success left in manual
+review does not issue tickets. An internal idempotent backfill method is available for confirmed development data.
+
+Customer, staff, and admin controllers expose separate response contracts. Customer ownership is enforced during
+repository lookup. Ticket-1 is read-only after issuance; QR and admission workflows are deferred to Ticket-2.
