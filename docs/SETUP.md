@@ -289,3 +289,7 @@ async off for deterministic dispatch.
 Audit-1 requires no new environment variables, broker, executor, AOP, MDC, or tracing setup. It uses
 the existing Spring `Clock` and stores bounded validated JSON in PostgreSQL TEXT columns for stable
 H2 PostgreSQL-mode tests.
+# Audit-2 setup
+
+Automatic audit integration is active by default and adds no environment variables, request-context
+filter, MDC, proxy trust, broker, or asynchronous executor.

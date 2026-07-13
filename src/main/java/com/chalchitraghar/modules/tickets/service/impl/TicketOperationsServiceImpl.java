@@ -1,5 +1,7 @@
 package com.chalchitraghar.modules.tickets.service.impl;
 
+import com.chalchitraghar.modules.audit.enums.AuditAction;
+import com.chalchitraghar.modules.audit.service.AuditBusinessPublisher;
 import com.chalchitraghar.modules.tickets.config.*;
 import com.chalchitraghar.modules.tickets.dto.response.*;
 import com.chalchitraghar.modules.tickets.entity.*;
@@ -26,6 +28,7 @@ public class TicketOperationsServiceImpl implements TicketOperationsService {
     private final Clock clock;
     private final TicketOperationsProperties props;
     private final TicketQrProperties qrProps;
+    private final AuditBusinessPublisher audit;
 
     @Transactional
     public AdminTicketDetailResponse revoke(String ref, String reason, User admin) {
@@ -39,6 +42,14 @@ public class TicketOperationsServiceImpl implements TicketOperationsService {
         t.setRevokedBy(admin);
         t.setRevocationReason(r);
         tickets.save(t);
+        audit.ticket(
+                AuditAction.TICKET_REVOKED,
+                admin,
+                t.getId(),
+                t.getTicketReference(),
+                java.util.Map.of("status", TicketStatus.ISSUED.name()),
+                java.util.Map.of("status", TicketStatus.REVOKED.name()),
+                java.util.Map.of("reason", r));
         return detail(t);
     }
 

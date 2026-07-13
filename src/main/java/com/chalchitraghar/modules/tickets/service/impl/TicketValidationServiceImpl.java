@@ -1,5 +1,7 @@
 package com.chalchitraghar.modules.tickets.service.impl;
 
+import com.chalchitraghar.modules.audit.enums.AuditAction;
+import com.chalchitraghar.modules.audit.service.AuditBusinessPublisher;
 import com.chalchitraghar.modules.bookings.enums.BookingStatus;
 import com.chalchitraghar.modules.shows.enums.ShowStatus;
 import com.chalchitraghar.modules.tickets.config.TicketQrProperties;
@@ -25,6 +27,7 @@ public class TicketValidationServiceImpl implements TicketValidationService {
     private final TicketLifecycleService lifecycle;
     private final TicketQrProperties properties;
     private final Clock clock;
+    private final AuditBusinessPublisher audit;
 
     @Transactional
     public TicketScanResponse scan(
@@ -137,15 +140,24 @@ public class TicketValidationServiceImpl implements TicketValidationService {
         ticket.setCheckedInAt(now);
         ticket.setCheckedInBy(staff);
         tickets.save(ticket);
-        save(
-                ticket,
+        TicketValidation validation =
+                save(
+                        ticket,
+                        staff,
+                        now,
+                        ValidationResult.SUCCESS,
+                        "Ticket checked in successfully",
+                        device,
+                        location,
+                        requestId);
+        audit.ticket(
+                AuditAction.TICKET_CHECKED_IN,
                 staff,
-                now,
-                ValidationResult.SUCCESS,
-                "Ticket checked in successfully",
-                device,
-                location,
-                requestId);
+                ticket.getId(),
+                ticket.getTicketReference(),
+                java.util.Map.of("status", TicketStatus.ISSUED.name()),
+                java.util.Map.of("status", TicketStatus.CHECKED_IN.name()),
+                java.util.Map.of("validationId", validation.getId()));
         return response(ticket, ValidationResult.SUCCESS, "Ticket checked in successfully", true);
     }
 
@@ -162,7 +174,7 @@ public class TicketValidationServiceImpl implements TicketValidationService {
         return response(t, r, reason, false);
     }
 
-    private void save(
+    private TicketValidation save(
             Ticket t,
             User u,
             LocalDateTime now,
@@ -171,7 +183,7 @@ public class TicketValidationServiceImpl implements TicketValidationService {
             String d,
             String l,
             String id) {
-        validations.save(
+        return validations.save(
                 TicketValidation.builder()
                         .ticket(t)
                         .validatedBy(u)

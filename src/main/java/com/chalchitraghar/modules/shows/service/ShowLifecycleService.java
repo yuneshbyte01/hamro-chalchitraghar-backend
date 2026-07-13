@@ -1,5 +1,6 @@
 package com.chalchitraghar.modules.shows.service;
 
+import com.chalchitraghar.modules.audit.service.AuditBusinessPublisher;
 import com.chalchitraghar.modules.halls.enums.Status;
 import com.chalchitraghar.modules.movies.enums.MovieStatus;
 import com.chalchitraghar.modules.shows.entity.Show;
@@ -20,6 +21,7 @@ public class ShowLifecycleService {
 
     private final Clock clock;
     private final ShowRepository showRepository;
+    private final AuditBusinessPublisher audit;
 
     public ShowStatus effectiveStatus(Show show) {
         if (show.getStatus() == ShowStatus.CANCELLED || show.getStatus() == ShowStatus.COMPLETED) {
@@ -43,7 +45,9 @@ public class ShowLifecycleService {
                 || ((show.getStatus() == ShowStatus.SCHEDULED
                                 || show.getStatus() == ShowStatus.RUNNING)
                         && effective == ShowStatus.COMPLETED)) {
+            ShowStatus before = show.getStatus();
             show.setStatus(effective);
+            audit.systemShowTransition(show.getId(), before.name(), effective.name());
             return true;
         }
         return false;

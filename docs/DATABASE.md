@@ -543,3 +543,8 @@ identity is a nullable snapshot without a user foreign key. Enums are strings. T
 columns use TEXT containing validated JSON so PostgreSQL and H2 share one mapping. Indexes cover
 occurrence time, actor/time, action/time, category/time, resource, request/correlation IDs, and
 result/severity/time. Application code exposes no update or delete operation.
+# Audit-2 event identity
+
+V31 adds nullable internal `event_id` with a unique index. Duplicate delivery of one logical event
+produces one row, while separate genuine attempts receive distinct IDs. Actor identity remains a
+historical snapshot without a user foreign key; snapshots remain explicit allowlisted JSON text.

@@ -1,27 +1,22 @@
-package com.chalchitraghar.modules.audit.dto.request;
+package com.chalchitraghar.modules.audit.event;
 
 import com.chalchitraghar.modules.audit.enums.*;
 import java.time.LocalDateTime;
 import java.util.Map;
 
-/** Trusted internal command; it is never bound by a controller. */
-public record CreateAuditLogCommand(
+/** Immutable, entity-free representation of one logical audit event. */
+public record AuditEvent(
         String eventId,
         LocalDateTime occurredAt,
-        Long actorUserId,
-        String actorEmailSnapshot,
-        String actorRole,
-        AuditActorType actorType,
+        AuditActor actor,
         AuditAction action,
         AuditCategory category,
         AuditSeverity severity,
+        AuditResult result,
         String resourceType,
         Long resourceId,
         String resourceReference,
-        AuditResult result,
         String failureReason,
-        String requestId,
-        String correlationId,
         Map<String, ?> beforeValues,
         Map<String, ?> afterValues,
         Map<String, ?> metadata) {}

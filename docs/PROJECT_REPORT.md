@@ -326,3 +326,9 @@ deferred.
 Audit-1 establishes append-only persistence, safe allowlisted snapshots, bounded filtering and
 pagination, ADMIN-only summary/detail visibility, Swagger descriptions, and authorization and
 integration coverage. Automatic auditing of authentication and business modules remains deferred.
+# Audit-2 delivery
+
+Audit-2 activates typed after-commit auditing across authentication and selected authoritative user,
+catalog, show, booking, payment, ticket, and notification transitions. Event-ID idempotency, safe
+snapshots, isolated selected failures, and append-failure isolation are included. Request tracing is
+deferred to Audit-3.

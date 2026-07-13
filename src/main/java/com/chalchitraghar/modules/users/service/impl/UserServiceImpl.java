@@ -1,5 +1,7 @@
 package com.chalchitraghar.modules.users.service.impl;
 
+import com.chalchitraghar.modules.audit.enums.*;
+import com.chalchitraghar.modules.audit.service.AuditBusinessPublisher;
 import com.chalchitraghar.modules.users.dto.request.AdminCreateUserRequest;
 import com.chalchitraghar.modules.users.dto.request.AdminUpdateUserRequest;
 import com.chalchitraghar.modules.users.dto.request.AdminUserSearchCriteria;
@@ -42,6 +44,7 @@ public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
     private final BCryptPasswordEncoder passwordEncoder;
+    private final AuditBusinessPublisher audit;
     private final UserMapper userMapper;
 
     @Override
@@ -139,6 +142,8 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public User updateUser(Long id, AdminUpdateUserRequest request, User currentAdmin) {
         User user = getUserById(id);
+        Role roleBefore = user.getRole();
+        boolean enabledBefore = user.isEnabled();
         if (request.getName() != null) {
             if (request.getName().isBlank()) {
                 throw new IllegalArgumentException("Name is required");
@@ -158,14 +163,41 @@ public class UserServiceImpl implements UserService {
         if (request.getEmailVerified() != null) {
             user.setEmailVerified(request.getEmailVerified());
         }
-        return userRepository.save(user);
+        User saved = userRepository.save(user);
+        if (roleBefore != saved.getRole())
+            audit.userChange(
+                    AuditAction.USER_ROLE_CHANGED,
+                    currentAdmin,
+                    saved,
+                    java.util.Map.of("role", roleBefore.name()),
+                    java.util.Map.of("role", saved.getRole().name()),
+                    AuditSeverity.HIGH);
+        if (enabledBefore != saved.isEnabled())
+            audit.userChange(
+                    AuditAction.USER_STATUS_CHANGED,
+                    currentAdmin,
+                    saved,
+                    java.util.Map.of("enabled", enabledBefore),
+                    java.util.Map.of("enabled", saved.isEnabled()),
+                    AuditSeverity.HIGH);
+        return saved;
     }
 
     @Override
     @Transactional
     public User changeRole(User targetUser, Role newRole, User currentAdmin) {
+        Role before = targetUser.getRole();
         applyRoleChange(targetUser, newRole, currentAdmin);
-        return userRepository.save(targetUser);
+        User saved = userRepository.save(targetUser);
+        if (before != saved.getRole())
+            audit.userChange(
+                    AuditAction.USER_ROLE_CHANGED,
+                    currentAdmin,
+                    saved,
+                    java.util.Map.of("role", before.name()),
+                    java.util.Map.of("role", saved.getRole().name()),
+                    AuditSeverity.HIGH);
+        return saved;
     }
 
     @Override
@@ -177,8 +209,18 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public User enableUser(Long id, User currentAdmin) {
         User user = getUserById(id);
+        boolean before = user.isEnabled();
         user.setEnabled(true);
-        return userRepository.save(user);
+        User saved = userRepository.save(user);
+        if (before != saved.isEnabled())
+            audit.userChange(
+                    AuditAction.USER_STATUS_CHANGED,
+                    currentAdmin,
+                    saved,
+                    java.util.Map.of("enabled", before),
+                    java.util.Map.of("enabled", true),
+                    AuditSeverity.HIGH);
+        return saved;
     }
 
     @Override
@@ -187,8 +229,18 @@ public class UserServiceImpl implements UserService {
         User user = getUserById(id);
         ensureNotLastEnabledAdmin(user, "Cannot disable the last enabled admin");
         ensureNotSelf(user, currentAdmin, "You cannot disable your own account");
+        boolean before = user.isEnabled();
         user.setEnabled(false);
-        return userRepository.save(user);
+        User saved = userRepository.save(user);
+        if (before != saved.isEnabled())
+            audit.userChange(
+                    AuditAction.USER_STATUS_CHANGED,
+                    currentAdmin,
+                    saved,
+                    java.util.Map.of("enabled", before),
+                    java.util.Map.of("enabled", false),
+                    AuditSeverity.HIGH);
+        return saved;
     }
 
     @Override
@@ -197,9 +249,19 @@ public class UserServiceImpl implements UserService {
         User user = getUserById(id);
         ensureNotLastEnabledAdmin(user, "Cannot lock the last enabled admin");
         ensureNotSelf(user, currentAdmin, "You cannot lock your own account");
+        boolean before = user.isLocked();
         user.setLocked(true);
         user.setLockedUntil(null);
-        return userRepository.save(user);
+        User saved = userRepository.save(user);
+        if (before != saved.isLocked())
+            audit.userChange(
+                    AuditAction.USER_STATUS_CHANGED,
+                    currentAdmin,
+                    saved,
+                    java.util.Map.of("locked", before),
+                    java.util.Map.of("locked", true),
+                    AuditSeverity.HIGH);
+        return saved;
     }
 
     @Override
@@ -209,10 +271,20 @@ public class UserServiceImpl implements UserService {
         if (isSameUser(user, currentAdmin) && user.isLocked()) {
             throw new IllegalArgumentException("You cannot unlock your own locked account");
         }
+        boolean before = user.isLocked();
         user.setLocked(false);
         user.setLockedUntil(null);
         user.setFailedLoginAttempts(0);
-        return userRepository.save(user);
+        User saved = userRepository.save(user);
+        if (before != saved.isLocked())
+            audit.userChange(
+                    AuditAction.USER_STATUS_CHANGED,
+                    currentAdmin,
+                    saved,
+                    java.util.Map.of("locked", before),
+                    java.util.Map.of("locked", false),
+                    AuditSeverity.HIGH);
+        return saved;
     }
 
     @Override

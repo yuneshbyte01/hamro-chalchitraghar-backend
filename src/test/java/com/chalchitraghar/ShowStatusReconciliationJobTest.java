@@ -4,6 +4,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.chalchitraghar.modules.audit.service.AuditBusinessPublisher;
 import com.chalchitraghar.modules.shows.entity.Show;
 import com.chalchitraghar.modules.shows.enums.ShowStatus;
 import com.chalchitraghar.modules.shows.repository.ShowRepository;
@@ -34,7 +35,10 @@ class ShowStatusReconciliationJobTest {
         when(repository.findByStatusIn(List.of(ShowStatus.SCHEDULED, ShowStatus.RUNNING)))
                 .thenReturn(List.of(stale));
 
-        new ShowStatusReconciliationJob(repository, new ShowLifecycleService(clock, repository))
+        new ShowStatusReconciliationJob(
+                        repository,
+                        new ShowLifecycleService(
+                                clock, repository, mock(AuditBusinessPublisher.class)))
                 .reconcileStatuses();
 
         verify(repository).saveAll(List.of(stale));

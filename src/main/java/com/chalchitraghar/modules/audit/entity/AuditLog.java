@@ -18,6 +18,9 @@ public class AuditLog {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(length = 200, unique = true, updatable = false)
+    private String eventId;
+
     @Column(nullable = false, updatable = false)
     private LocalDateTime occurredAt;
 

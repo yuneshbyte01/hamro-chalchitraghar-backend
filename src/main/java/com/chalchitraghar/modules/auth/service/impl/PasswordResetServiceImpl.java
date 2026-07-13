@@ -1,5 +1,6 @@
 package com.chalchitraghar.modules.auth.service.impl;
 
+import com.chalchitraghar.modules.audit.service.AuditBusinessPublisher;
 import com.chalchitraghar.modules.auth.entity.PasswordResetOtp;
 import com.chalchitraghar.modules.auth.repository.PasswordResetOtpRepository;
 import com.chalchitraghar.modules.auth.service.EmailService;
@@ -10,6 +11,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.Base64;
 import lombok.RequiredArgsConstructor;
@@ -30,6 +32,8 @@ public class PasswordResetServiceImpl implements PasswordResetService {
     private final BCryptPasswordEncoder passwordEncoder;
     private final EmailService emailService;
     private final SecureRandom secureRandom = new SecureRandom();
+    private final Clock clock;
+    private final AuditBusinessPublisher audit;
 
     @Value("${app.password-reset.otp-expiration-minutes}")
     private long otpExpirationMinutes;
@@ -56,7 +60,7 @@ public class PasswordResetServiceImpl implements PasswordResetService {
                                             .user(user)
                                             .otpHash(hashOtp(otp))
                                             .expiresAt(
-                                                    LocalDateTime.now()
+                                                    LocalDateTime.now(clock)
                                                             .plusMinutes(otpExpirationMinutes))
                                             .attemptCount(0)
                                             .build();
@@ -77,7 +81,7 @@ public class PasswordResetServiceImpl implements PasswordResetService {
         if (resetOtp.getUsedAt() != null) {
             throw new IllegalArgumentException("Password reset OTP has already been used");
         }
-        if (resetOtp.getExpiresAt().isBefore(LocalDateTime.now())) {
+        if (resetOtp.getExpiresAt().isBefore(LocalDateTime.now(clock))) {
             throw new IllegalArgumentException(INVALID_OTP_MESSAGE);
         }
         if (resetOtp.getAttemptCount() >= maxAttempts) {
@@ -96,13 +100,14 @@ public class PasswordResetServiceImpl implements PasswordResetService {
         }
 
         user.setPassword(passwordEncoder.encode(newPassword));
-        user.setPasswordChangedAt(LocalDateTime.now());
+        user.setPasswordChangedAt(LocalDateTime.now(clock));
         user.setFailedLoginAttempts(0);
         user.setLocked(false);
         user.setLockedUntil(null);
-        resetOtp.setUsedAt(LocalDateTime.now());
+        resetOtp.setUsedAt(LocalDateTime.now(clock));
         passwordResetOtpRepository.save(resetOtp);
         userRepository.save(user);
+        audit.passwordReset(user);
     }
 
     public String hashOtp(String otp) {

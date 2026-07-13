@@ -1,5 +1,10 @@
 # API Reference
 
+Audit-2 automatically populates registration, login, password-reset completion, selected user and
+catalog administration, show/booking/payment/ticket lifecycles, notification preferences, and manual
+delivery retry actions. Actors are USER, SYSTEM, EXTERNAL, or ANONYMOUS. Snapshots are detail-only;
+there are no customer/staff or mutation audit APIs and no Audit-3 HTTP context yet.
+
 Base URL for local development:
 
 ```text

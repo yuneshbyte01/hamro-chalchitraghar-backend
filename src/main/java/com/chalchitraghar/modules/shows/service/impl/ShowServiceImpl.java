@@ -1,5 +1,7 @@
 package com.chalchitraghar.modules.shows.service.impl;
 
+import com.chalchitraghar.modules.audit.enums.AuditAction;
+import com.chalchitraghar.modules.audit.service.AuditBusinessPublisher;
 import com.chalchitraghar.modules.bookings.enums.BookingStatus;
 import com.chalchitraghar.modules.bookings.repository.BookingRepository;
 import com.chalchitraghar.modules.bookings.service.BookingLifecycleService;
@@ -35,6 +37,7 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -67,6 +70,7 @@ public class ShowServiceImpl implements ShowService {
     private final com.chalchitraghar.modules.tickets.service.TicketOperationsService
             ticketOperationsService;
     private final ApplicationEventPublisher events;
+    private final AuditBusinessPublisher audit;
 
     private static final List<BookingStatus> ACTIVE_BOOKING_STATUSES =
             List.of(
@@ -76,6 +80,17 @@ public class ShowServiceImpl implements ShowService {
                     BookingStatus.BOOKED);
     private static final List<BookingStatus> SHOW_CANCELLATION_BLOCKING_STATUSES =
             List.of(BookingStatus.PENDING, BookingStatus.CONFIRMED, BookingStatus.BOOKED);
+
+    private Map<String, ?> showSnapshot(Show show) {
+        return Map.of(
+                "id", show.getId(),
+                "movieId", show.getMovie().getId(),
+                "hallId", show.getHall().getId(),
+                "showDate", show.getShowDate().toString(),
+                "showTime", show.getShowTime().toString(),
+                "endTime", show.getEndTime().toString(),
+                "status", show.getStatus().name());
+    }
 
     @Value("${app.shows.buffer-minutes:15}")
     private long showBufferMinutes;
@@ -130,6 +145,7 @@ public class ShowServiceImpl implements ShowService {
         Show show = showMapper.toEntity(dto, movie, hall);
         Show saved = showRepository.save(show);
         seatGenerationService.generateSeatsForShow(saved.getId());
+        audit.show(AuditAction.SHOW_CREATED, saved.getId(), null, showSnapshot(saved));
         return showMapper.toAdminDetail(saved);
     }
 
@@ -174,8 +190,11 @@ public class ShowServiceImpl implements ShowService {
         }
         validateHallAvailability(
                 dto.getHallId(), dto.getShowDate(), dto.getShowTime(), dto.getEndTime(), id);
+        Map<String, ?> before = showSnapshot(show);
         showMapper.updateEntityFromDto(show, dto, movie, hall);
-        return showMapper.toAdminDetail(showRepository.save(show));
+        Show saved = showRepository.save(show);
+        audit.show(AuditAction.SHOW_UPDATED, saved.getId(), before, showSnapshot(saved));
+        return showMapper.toAdminDetail(saved);
     }
 
     @Override

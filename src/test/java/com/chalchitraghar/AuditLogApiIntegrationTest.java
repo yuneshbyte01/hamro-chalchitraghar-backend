@@ -118,7 +118,7 @@ class AuditLogApiIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     void appendUsesClockAndPermitsActorsWithoutUsers() {
-        LocalDateTime before = LocalDateTime.now(clock);
+        LocalDateTime before = LocalDateTime.now(clock).minusNanos(1_000);
         var row = append(AuditAction.SHOW_STATUS_RECONCILED, null, null, null);
         LocalDateTime after = LocalDateTime.now(clock);
         var stored = auditLogRepository.findById(row.id()).orElseThrow();
@@ -159,6 +159,7 @@ class AuditLogApiIntegrationTest extends AbstractIntegrationTest {
             AuditAction action, LocalDateTime occurredAt, Long userId, String email) {
         return auditLogService.append(
                 new CreateAuditLogCommand(
+                        null,
                         occurredAt,
                         userId,
                         email,
@@ -182,6 +183,7 @@ class AuditLogApiIntegrationTest extends AbstractIntegrationTest {
     private void appendWith(Map<String, ?> snapshot) {
         auditLogService.append(
                 new CreateAuditLogCommand(
+                        null,
                         null,
                         null,
                         null,

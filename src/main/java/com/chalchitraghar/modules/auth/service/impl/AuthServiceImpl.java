@@ -1,5 +1,8 @@
 package com.chalchitraghar.modules.auth.service.impl;
 
+import com.chalchitraghar.modules.audit.enums.*;
+import com.chalchitraghar.modules.audit.factory.*;
+import com.chalchitraghar.modules.audit.service.*;
 import com.chalchitraghar.modules.auth.dto.GoogleUserInfo;
 import com.chalchitraghar.modules.auth.dto.request.GoogleLoginRequest;
 import com.chalchitraghar.modules.auth.dto.request.LoginRequest;
@@ -38,6 +41,10 @@ public class AuthServiceImpl implements AuthService {
     private final GoogleTokenVerifier googleTokenVerifier;
     private final ApplicationEventPublisher events;
     private final Clock clock;
+    private final AuditEventFactory auditEvents;
+    private final AuditActorResolver auditActors;
+    private final AuditEventPublisher auditPublisher;
+    private final AuditFailureRecorder auditFailures;
 
     @Override
     @Transactional
@@ -53,25 +60,63 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional(noRollbackFor = AuthenticationException.class)
     public LoginResponse login(LoginRequest request) {
-        User user = userService.getUserByEmail(request.getEmail());
-        ensureAccountCanAuthenticate(user);
-        if (user.getAuthProvider() == AuthProvider.GOOGLE && user.getPassword() == null) {
-            throw new AuthenticationException("This account uses Google Sign-In.");
+        User user = null;
+        try {
+            user = userService.getUserByEmail(request.getEmail());
+            ensureAccountCanAuthenticate(user);
+            if (user.getAuthProvider() == AuthProvider.GOOGLE && user.getPassword() == null) {
+                throw new AuthenticationException("This account uses Google Sign-In.");
+            }
+            if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+                recordFailedLogin(user);
+                throw new AuthenticationException("Invalid credentials");
+            }
+            recordSuccessfulLogin(user);
+            publishLoginSuccess(user, "LOCAL");
+            return toLoginResponse(user);
+        } catch (AuthenticationException failure) {
+            boolean locked = user != null && user.isLocked();
+            auditFailures.record(
+                    auditEvents.attempt(
+                            user == null
+                                    ? auditActors.anonymous(request.getEmail())
+                                    : auditActors.user(user),
+                            AuditAction.LOGIN_FAILED,
+                            AuditCategory.AUTHENTICATION,
+                            locked ? AuditSeverity.HIGH : AuditSeverity.WARNING,
+                            locked ? AuditResult.DENIED : AuditResult.FAILURE,
+                            "USER",
+                            user == null ? null : user.getId(),
+                            null,
+                            loginFailureCode(failure),
+                            java.util.Map.of("source", "LOCAL")));
+            throw failure;
         }
-        if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-            recordFailedLogin(user);
-            throw new AuthenticationException("Invalid credentials");
-        }
-        recordSuccessfulLogin(user);
-        return toLoginResponse(user);
     }
 
     @Override
     @Transactional
     public LoginResponse googleLogin(GoogleLoginRequest request) {
-        GoogleUserInfo googleUser = googleTokenVerifier.verify(request.getIdToken());
-        if (!googleUser.emailVerified()) {
-            throw new AuthenticationException("Google email is not verified");
+        GoogleUserInfo googleUser;
+        try {
+            googleUser = googleTokenVerifier.verify(request.getIdToken());
+            if (!googleUser.emailVerified()) {
+                throw new AuthenticationException("Google email is not verified");
+            }
+        } catch (AuthenticationException failure) {
+            auditFailures.record(
+                    auditEvents.attempt(
+                            auditActors.anonymous(null),
+                            AuditAction.LOGIN_FAILED,
+                            AuditCategory.AUTHENTICATION,
+                            AuditSeverity.WARNING,
+                            AuditResult.FAILURE,
+                            "USER",
+                            null,
+                            null,
+                            "GOOGLE_VERIFICATION_FAILED",
+                            java.util.Map.of("source", "GOOGLE")));
+            throw failure;
         }
 
         User user =
@@ -86,6 +131,7 @@ public class AuthServiceImpl implements AuthService {
 
         ensureAccountCanAuthenticate(user);
         recordSuccessfulLogin(user);
+        publishLoginSuccess(user, "GOOGLE");
         return toLoginResponse(user);
     }
 
@@ -154,27 +200,27 @@ public class AuthServiceImpl implements AuthService {
     private boolean isLocked(User user) {
         return user.isLocked()
                 && (user.getLockedUntil() == null
-                        || user.getLockedUntil().isAfter(LocalDateTime.now()));
+                        || user.getLockedUntil().isAfter(LocalDateTime.now(clock)));
     }
 
     private boolean isLockExpired(User user) {
         return user.isLocked()
                 && user.getLockedUntil() != null
-                && !user.getLockedUntil().isAfter(LocalDateTime.now());
+                && !user.getLockedUntil().isAfter(LocalDateTime.now(clock));
     }
 
     private void recordFailedLogin(User user) {
         user.setFailedLoginAttempts(user.getFailedLoginAttempts() + 1);
         if (user.getFailedLoginAttempts() >= MAX_FAILED_LOGIN_ATTEMPTS) {
             user.setLocked(true);
-            user.setLockedUntil(LocalDateTime.now().plusMinutes(ACCOUNT_LOCK_MINUTES));
+            user.setLockedUntil(LocalDateTime.now(clock).plusMinutes(ACCOUNT_LOCK_MINUTES));
         }
         userRepository.save(user);
     }
 
     private void recordSuccessfulLogin(User user) {
         clearLock(user);
-        user.setLastLoginAt(LocalDateTime.now());
+        user.setLastLoginAt(LocalDateTime.now(clock));
         userRepository.save(user);
     }
 
@@ -187,5 +233,29 @@ public class AuthServiceImpl implements AuthService {
     private LoginResponse toLoginResponse(User user) {
         String token = jwtUtil.generateToken(user);
         return new LoginResponse(token, user.getEmail(), user.getName(), user.getRole().name());
+    }
+
+    private void publishLoginSuccess(User user, String source) {
+        auditPublisher.publish(
+                auditEvents.attempt(
+                        auditActors.user(user),
+                        AuditAction.LOGIN_SUCCEEDED,
+                        AuditCategory.AUTHENTICATION,
+                        AuditSeverity.INFO,
+                        AuditResult.SUCCESS,
+                        "USER",
+                        user.getId(),
+                        String.valueOf(user.getId()),
+                        null,
+                        java.util.Map.of("source", source)));
+    }
+
+    private String loginFailureCode(AuthenticationException failure) {
+        String message =
+                failure.getMessage() == null ? "AUTHENTICATION_FAILED" : failure.getMessage();
+        if (message.contains("disabled")) return "ACCOUNT_DISABLED";
+        if (message.contains("locked")) return "ACCOUNT_LOCKED";
+        if (message.contains("Google")) return "AUTH_PROVIDER_MISMATCH";
+        return "INVALID_CREDENTIALS";
     }
 }

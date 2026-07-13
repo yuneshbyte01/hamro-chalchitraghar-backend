@@ -22,7 +22,7 @@ import org.springframework.web.bind.annotation.*;
 @Tag(
         name = "Admin Audit Logs",
         description =
-                "ADMIN-only append-only audit log reads; Audit-1 has no mutation, export, or automatic population")
+                "ADMIN-only append-only audit reads. Audit-2 records selected authentication and business actions after commit with USER, SYSTEM, EXTERNAL, or ANONYMOUS actors. Detail-only snapshots never contain secrets; HTTP context is deferred to Audit-3.")
 public class AdminAuditLogController {
     private final AuditLogService service;
 

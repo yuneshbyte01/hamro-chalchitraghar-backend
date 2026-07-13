@@ -1,5 +1,6 @@
 package com.chalchitraghar.modules.notifications.service.impl;
 
+import com.chalchitraghar.modules.audit.service.AuditBusinessPublisher;
 import com.chalchitraghar.modules.notifications.dto.response.*;
 import com.chalchitraghar.modules.notifications.entity.*;
 import com.chalchitraghar.modules.notifications.enums.*;
@@ -24,6 +25,7 @@ public class AdminNotificationOperationsServiceImpl implements AdminNotification
     private final NotificationEmailDispatchLauncher launcher;
     private final ObjectMapper json;
     private final Clock clock;
+    private final AuditBusinessPublisher audit;
 
     @Override
     @Transactional(readOnly = true)
@@ -169,6 +171,7 @@ public class AdminNotificationOperationsServiceImpl implements AdminNotification
                         .findByIdForUpdate(id)
                         .orElseThrow(
                                 () -> new ResourceNotFoundException("Notification delivery", id));
+        NotificationDeliveryStatus previousStatus = d.getStatus();
         if (d.getStatus() != NotificationDeliveryStatus.FAILED
                 || d.getAttemptCount() >= d.getMaxAttempts())
             throw new PaymentConflictException("Delivery is not eligible for manual retry");
@@ -179,6 +182,8 @@ public class AdminNotificationOperationsServiceImpl implements AdminNotification
         d.setClaimedBy(null);
         d.setUpdatedAt(now);
         deliveries.save(d);
+        audit.notificationRetry(
+                d.getId(), previousStatus.name(), d.getStatus().name(), d.getAttemptCount());
         TransactionSynchronizationManager.registerSynchronization(
                 new TransactionSynchronization() {
                     @Override

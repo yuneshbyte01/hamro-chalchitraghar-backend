@@ -1,5 +1,7 @@
 package com.chalchitraghar.modules.halls.service.impl;
 
+import com.chalchitraghar.modules.audit.enums.*;
+import com.chalchitraghar.modules.audit.service.AuditBusinessPublisher;
 import com.chalchitraghar.modules.halls.dto.request.HallRequest;
 import com.chalchitraghar.modules.halls.dto.request.HallSearchCriteria;
 import com.chalchitraghar.modules.halls.dto.response.AdminHallDetailResponse;
@@ -22,6 +24,7 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -41,13 +44,23 @@ public class HallServiceImpl implements HallService {
     private final SeatTemplateRepository seatTemplateRepository;
     private final ShowRepository showRepository;
     private final HallMapper hallMapper;
+    private final AuditBusinessPublisher audit;
 
     @Override
     public AdminHallDetailResponse addHall(HallRequest dto) {
         normalize(dto);
         ensureUniqueName(dto.getName(), null);
         Hall hall = hallMapper.toEntity(dto);
-        return hallMapper.toAdminDetail(hallRepository.save(hall));
+        Hall saved = hallRepository.save(hall);
+        audit.catalog(
+                AuditAction.HALL_CREATED,
+                "HALL",
+                saved.getId(),
+                saved.getName(),
+                null,
+                hallSnapshot(saved),
+                AuditSeverity.INFO);
+        return hallMapper.toAdminDetail(saved);
     }
 
     @Override
@@ -63,8 +76,18 @@ public class HallServiceImpl implements HallService {
         if (hall.getStatus() == Status.ACTIVE && dto.getStatus() == Status.INACTIVE) {
             ensureNoFutureActiveShows(hall.getId());
         }
+        Map<String, ?> before = hallSnapshot(hall);
         hallMapper.updateEntityFromDto(hall, dto);
-        return hallMapper.toAdminDetail(hallRepository.save(hall));
+        Hall saved = hallRepository.save(hall);
+        audit.catalog(
+                AuditAction.HALL_UPDATED,
+                "HALL",
+                saved.getId(),
+                saved.getName(),
+                before,
+                hallSnapshot(saved),
+                AuditSeverity.INFO);
+        return hallMapper.toAdminDetail(saved);
     }
 
     @Override
@@ -76,8 +99,29 @@ public class HallServiceImpl implements HallService {
         if (hall.getStatus() == Status.ACTIVE) {
             ensureNoFutureActiveShows(hall.getId());
         }
+        Map<String, ?> before = hallSnapshot(hall);
         hall.setStatus(Status.INACTIVE);
         hallRepository.save(hall);
+        audit.catalog(
+                AuditAction.HALL_UPDATED,
+                "HALL",
+                hall.getId(),
+                hall.getName(),
+                before,
+                hallSnapshot(hall),
+                AuditSeverity.WARNING);
+    }
+
+    private Map<String, ?> hallSnapshot(Hall hall) {
+        return Map.of(
+                "id",
+                hall.getId(),
+                "name",
+                hall.getName(),
+                "capacity",
+                hall.getCapacity(),
+                "status",
+                hall.getStatus().name());
     }
 
     @Override

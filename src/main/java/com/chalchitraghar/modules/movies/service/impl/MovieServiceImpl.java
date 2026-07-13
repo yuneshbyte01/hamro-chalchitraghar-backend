@@ -1,5 +1,7 @@
 package com.chalchitraghar.modules.movies.service.impl;
 
+import com.chalchitraghar.modules.audit.enums.*;
+import com.chalchitraghar.modules.audit.service.AuditBusinessPublisher;
 import com.chalchitraghar.modules.movies.dto.request.MovieRequest;
 import com.chalchitraghar.modules.movies.dto.request.MovieSearchCriteria;
 import com.chalchitraghar.modules.movies.dto.response.AdminMovieDetailResponse;
@@ -21,6 +23,7 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -47,13 +50,23 @@ public class MovieServiceImpl implements MovieService {
     private final MovieRepository movieRepository;
     private final ShowRepository showRepository;
     private final MovieMapper movieMapper;
+    private final AuditBusinessPublisher audit;
 
     @Override
     public AdminMovieDetailResponse addMovie(MovieRequest dto) {
         validateDuplicateMovie(dto, null);
         validateReleaseDateForStatus(dto.getStatus(), dto.getReleaseDate());
         Movie movie = movieMapper.toEntity(dto);
-        return movieMapper.toAdminDetail(movieRepository.save(movie));
+        Movie saved = movieRepository.save(movie);
+        audit.catalog(
+                AuditAction.MOVIE_CREATED,
+                "MOVIE",
+                saved.getId(),
+                saved.getTitle(),
+                null,
+                movieSnapshot(saved),
+                AuditSeverity.INFO);
+        return movieMapper.toAdminDetail(saved);
     }
 
     @Override
@@ -68,8 +81,23 @@ public class MovieServiceImpl implements MovieService {
         if (dto.getStatus() == MovieStatus.ENDED && movie.getStatus() != MovieStatus.ENDED) {
             ensureNoFutureActiveShows(movie.getId());
         }
+        Map<String, ?> before = movieSnapshot(movie);
+        MovieStatus oldStatus = movie.getStatus();
         movieMapper.updateEntityFromDto(movie, dto);
-        return movieMapper.toAdminDetail(movieRepository.save(movie));
+        Movie saved = movieRepository.save(movie);
+        audit.catalog(
+                oldStatus != MovieStatus.ENDED && saved.getStatus() == MovieStatus.ENDED
+                        ? AuditAction.MOVIE_ENDED
+                        : AuditAction.MOVIE_UPDATED,
+                "MOVIE",
+                saved.getId(),
+                saved.getTitle(),
+                before,
+                movieSnapshot(saved),
+                saved.getStatus() == MovieStatus.ENDED
+                        ? AuditSeverity.WARNING
+                        : AuditSeverity.INFO);
+        return movieMapper.toAdminDetail(saved);
     }
 
     @Override
@@ -79,8 +107,22 @@ public class MovieServiceImpl implements MovieService {
                         .findById(id)
                         .orElseThrow(() -> new ResourceNotFoundException("Movie", id));
         ensureNoFutureActiveShows(movie.getId());
+        Map<String, ?> before = Map.of("status", movie.getStatus().name());
         movie.setStatus(MovieStatus.ENDED);
         movieRepository.save(movie);
+        audit.catalog(
+                AuditAction.MOVIE_ENDED,
+                "MOVIE",
+                movie.getId(),
+                movie.getTitle(),
+                before,
+                Map.of("status", MovieStatus.ENDED.name()),
+                AuditSeverity.WARNING);
+    }
+
+    private Map<String, ?> movieSnapshot(Movie movie) {
+        return Map.of(
+                "id", movie.getId(), "title", movie.getTitle(), "status", movie.getStatus().name());
     }
 
     @Override

@@ -1,5 +1,6 @@
 package com.chalchitraghar.modules.payments.service.impl;
 
+import com.chalchitraghar.modules.audit.service.AuditBusinessPublisher;
 import com.chalchitraghar.modules.bookings.entity.Booking;
 import com.chalchitraghar.modules.bookings.enums.BookingStatus;
 import com.chalchitraghar.modules.bookings.repository.BookingRepository;
@@ -41,6 +42,7 @@ public class PaymentServiceImpl implements PaymentService {
     private final EsewaPayloadFactory esewaPayloadFactory;
     private final EsewaProperties esewaProperties;
     private final ApplicationEventPublisher events;
+    private final AuditBusinessPublisher audit;
 
     @Value("${app.payments.attempt-expiration-minutes:10}")
     private long expirationMinutes;
@@ -148,7 +150,17 @@ public class PaymentServiceImpl implements PaymentService {
                         .expiresAt(now.plusMinutes(expirationMinutes))
                         .build();
         adapter.initiate(payment);
-        return initiationResponse(paymentRepository.save(payment));
+        Payment saved = paymentRepository.save(payment);
+        audit.paymentInitiated(
+                user,
+                saved.getId(),
+                saved.getPaymentReference(),
+                booking.getBookingReference(),
+                saved.getProvider().name(),
+                saved.getMethod().name(),
+                saved.getAmount(),
+                saved.getCurrency());
+        return initiationResponse(saved);
     }
 
     private Object initiationResponse(Payment p) {

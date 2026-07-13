@@ -570,3 +570,9 @@ signature/payload, email-body, binary, stack-trace, and SQL keys are rejected re
 case sensitivity. All timestamps use the injected `Clock`. Add filters in the filter record and
 specification together, preserve the stable two-column sort, and verify each next-numbered migration
 against both the entity mapping and PostgreSQL syntax.
+# Audit-2 maintenance
+
+Publish immutable scalar events inside the authoritative transaction and persist success only after
+commit. Use stable IDs for transition delivery and unique IDs for genuine attempts. Build explicit,
+deterministic allowlisted maps; deliberately assign USER/SYSTEM/EXTERNAL/ANONYMOUS actors; test
+rollback; use the injected `Clock`; and never audit the same action in both controller and service.

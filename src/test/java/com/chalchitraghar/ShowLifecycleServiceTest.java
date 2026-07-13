@@ -3,6 +3,7 @@ package com.chalchitraghar;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
+import com.chalchitraghar.modules.audit.service.AuditBusinessPublisher;
 import com.chalchitraghar.modules.shows.entity.Show;
 import com.chalchitraghar.modules.shows.enums.ShowStatus;
 import com.chalchitraghar.modules.shows.repository.ShowRepository;
@@ -21,7 +22,9 @@ class ShowLifecycleServiceTest {
     @Test
     void calculatesAndReconcilesEffectiveLifecycleWithoutChangingTerminalStatuses() {
         Clock clock = Clock.fixed(Instant.parse("2026-07-11T06:30:00Z"), ZONE); // 12:15 local
-        ShowLifecycleService service = new ShowLifecycleService(clock, mock(ShowRepository.class));
+        ShowLifecycleService service =
+                new ShowLifecycleService(
+                        clock, mock(ShowRepository.class), mock(AuditBusinessPublisher.class));
 
         Show future = show(ShowStatus.SCHEDULED, LocalTime.of(13, 0), LocalTime.of(15, 0));
         Show started = show(ShowStatus.SCHEDULED, LocalTime.of(11, 0), LocalTime.of(13, 0));

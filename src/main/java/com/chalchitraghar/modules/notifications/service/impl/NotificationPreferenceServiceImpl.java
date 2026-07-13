@@ -1,5 +1,6 @@
 package com.chalchitraghar.modules.notifications.service.impl;
 
+import com.chalchitraghar.modules.audit.service.AuditBusinessPublisher;
 import com.chalchitraghar.modules.notifications.dto.response.CustomerNotificationPreferenceResponse;
 import com.chalchitraghar.modules.notifications.entity.NotificationPreference;
 import com.chalchitraghar.modules.notifications.enums.*;
@@ -24,6 +25,7 @@ public class NotificationPreferenceServiceImpl implements NotificationPreference
                     NotificationType.SHOW_CANCELLED, NotificationType.SHOW_REMINDER);
     private final NotificationPreferenceRepository preferences;
     private final Clock clock;
+    private final AuditBusinessPublisher audit;
 
     @Override
     @Transactional(readOnly = true)
@@ -45,25 +47,28 @@ public class NotificationPreferenceServiceImpl implements NotificationPreference
             User user, NotificationType type, boolean enabled) {
         requireConfigurable(type);
         LocalDateTime now = LocalDateTime.now(clock);
+        var existing =
+                preferences.findByUserIdAndNotificationTypeAndChannel(
+                        user.getId(), type, NotificationChannel.EMAIL);
+        boolean before = existing.map(NotificationPreference::isEnabled).orElse(true);
         NotificationPreference preference =
-                preferences
-                        .findByUserIdAndNotificationTypeAndChannel(
-                                user.getId(), type, NotificationChannel.EMAIL)
-                        .orElseGet(
-                                () -> {
-                                    NotificationPreference created =
-                                            NotificationPreference.builder()
-                                                    .user(user)
-                                                    .notificationType(type)
-                                                    .channel(NotificationChannel.EMAIL)
-                                                    .build();
-                                    created.setCreatedAt(now);
-                                    return created;
-                                });
+                existing.orElseGet(
+                        () -> {
+                            NotificationPreference created =
+                                    NotificationPreference.builder()
+                                            .user(user)
+                                            .notificationType(type)
+                                            .channel(NotificationChannel.EMAIL)
+                                            .build();
+                            created.setCreatedAt(now);
+                            return created;
+                        });
         preference.setEnabled(enabled);
         preference.setDisabledAt(enabled ? null : now);
         preference.setUpdatedAt(now);
-        return response(type, preferences.save(preference));
+        NotificationPreference saved = preferences.save(preference);
+        audit.notificationPreference(user, type.name(), before, enabled);
+        return response(type, saved);
     }
 
     @Override

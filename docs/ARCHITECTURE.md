@@ -512,3 +512,9 @@ repository/specification, mapper, and admin DTOs. The admin controller delegates
 service and never exposes entities. Automatic application-event integration is deferred to Audit-2,
 request/correlation context to Audit-3, and export, retention, anonymization, and integrity controls
 to Audit-4.
+# Audit-2 event flow
+
+Success follows `authoritative transaction -> immutable typed event -> commit -> AFTER_COMMIT
+listener -> REQUIRES_NEW append`. Selected failures use sanitized events and isolated persistence
+before the original exception continues. Events contain scalar snapshots, never entities; publishers
+exist only at authoritative service/event boundaries to avoid controller duplication.

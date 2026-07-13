@@ -15,6 +15,7 @@ import java.util.Locale;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
@@ -26,7 +27,7 @@ public class AuditLogServiceImpl implements AuditLogService {
     private final Clock clock;
 
     @Override
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public AdminAuditLogDetailResponse append(CreateAuditLogCommand c) {
         if (c == null) throw new IllegalArgumentException("Audit command is required");
         require(c.actorType(), "Actor type");
@@ -39,6 +40,7 @@ public class AuditLogServiceImpl implements AuditLogService {
         AuditLog log =
                 new AuditLog(
                         null,
+                        bounded(c.eventId(), 200, false, "Event ID"),
                         c.occurredAt() == null ? now : c.occurredAt(),
                         c.actorUserId(),
                         email(c.actorEmailSnapshot()),

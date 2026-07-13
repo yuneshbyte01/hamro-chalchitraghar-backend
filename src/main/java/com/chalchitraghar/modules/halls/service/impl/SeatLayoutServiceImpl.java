@@ -1,5 +1,7 @@
 package com.chalchitraghar.modules.halls.service.impl;
 
+import com.chalchitraghar.modules.audit.enums.*;
+import com.chalchitraghar.modules.audit.service.AuditBusinessPublisher;
 import com.chalchitraghar.modules.halls.dto.request.SeatTemplateSearchCriteria;
 import com.chalchitraghar.modules.halls.dto.response.AdminSeatLayoutResponse;
 import com.chalchitraghar.modules.halls.entity.Hall;
@@ -33,6 +35,7 @@ public class SeatLayoutServiceImpl implements SeatLayoutService {
     private final SeatTemplateRepository seatTemplateRepository;
     private final HallRepository hallRepository;
     private final SeatTemplateMapper seatTemplateMapper;
+    private final AuditBusinessPublisher audit;
     private final SeatTemplateValidator seatTemplateValidator;
     private final ShowRepository showRepository;
 
@@ -132,7 +135,15 @@ public class SeatLayoutServiceImpl implements SeatLayoutService {
         if (seatTemplateRepository.existsByHallId(hallId)) {
             throw new HallConflictException("Seat layout already exists for this hall");
         }
-        seatTemplateRepository.saveAll(buildValidatedTemplates(hall));
+        var saved = seatTemplateRepository.saveAll(buildValidatedTemplates(hall));
+        audit.catalog(
+                AuditAction.SEAT_LAYOUT_GENERATED,
+                "HALL",
+                hall.getId(),
+                hall.getName(),
+                null,
+                java.util.Map.of("templateCount", saved.size(), "capacity", hall.getCapacity()),
+                AuditSeverity.INFO);
     }
 
     @Override
@@ -149,6 +160,15 @@ public class SeatLayoutServiceImpl implements SeatLayoutService {
         List<SeatTemplate> templates = buildValidatedTemplates(hall);
         seatTemplateRepository.deleteByHallId(hallId);
         List<SeatTemplate> savedTemplates = seatTemplateRepository.saveAll(templates);
+        audit.catalog(
+                AuditAction.SEAT_LAYOUT_GENERATED,
+                "HALL",
+                hall.getId(),
+                hall.getName(),
+                null,
+                java.util.Map.of(
+                        "templateCount", savedTemplates.size(), "capacity", hall.getCapacity()),
+                AuditSeverity.INFO);
         return seatTemplateMapper.toLayoutResponse(hall, savedTemplates);
     }
 
