@@ -250,8 +250,3 @@ See [docs/MAINTENANCE.md](docs/MAINTENANCE.md) for developer workflow details.
 ## License
 
 No license file is currently present in the repository.
-# Audit logs
-
-Audit-1 adds an append-only general audit store and ADMIN-only `GET /api/admin/audit-logs`
-and `GET /api/admin/audit-logs/{id}` endpoints. Records are appended only by trusted internal
-code; automatic business-event auditing, mutation endpoints, and export are intentionally deferred.

@@ -26,6 +26,26 @@ cors:
 app:
   time-zone: Asia/Kathmandu
   audit:
+    export:
+      enabled: true
+      max-rows: 10000
+      max-range-days: 31
+    retention:
+      enabled: false
+      mode: ANONYMIZE
+      default-days: 365
+      security-days: 730
+      payment-days: 730
+      high-severity-days: 730
+      batch-size: 100
+      interval: PT24H
+    reports:
+      max-range-days: 31
+      default-bucket: DAY
+    integrity:
+      enabled: true
+      batch-size: 500
+      interval: PT24H
     request-context:
       enabled: true
       capture-ip: false

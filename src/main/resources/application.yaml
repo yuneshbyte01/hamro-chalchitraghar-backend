@@ -22,6 +22,26 @@ spring:
 app:
   time-zone: ${APP_TIME_ZONE:Asia/Kathmandu}
   audit:
+    export:
+      enabled: ${AUDIT_EXPORT_ENABLED:true}
+      max-rows: ${AUDIT_EXPORT_MAX_ROWS:10000}
+      max-range-days: ${AUDIT_EXPORT_MAX_RANGE_DAYS:31}
+    retention:
+      enabled: ${AUDIT_RETENTION_ENABLED:false}
+      mode: ${AUDIT_RETENTION_MODE:ANONYMIZE}
+      default-days: ${AUDIT_RETENTION_DEFAULT_DAYS:365}
+      security-days: ${AUDIT_RETENTION_SECURITY_DAYS:730}
+      payment-days: ${AUDIT_RETENTION_PAYMENT_DAYS:730}
+      high-severity-days: ${AUDIT_RETENTION_HIGH_SEVERITY_DAYS:730}
+      batch-size: ${AUDIT_RETENTION_BATCH_SIZE:100}
+      interval: ${AUDIT_RETENTION_INTERVAL:PT24H}
+    reports:
+      max-range-days: ${AUDIT_REPORTS_MAX_RANGE_DAYS:31}
+      default-bucket: ${AUDIT_REPORTS_DEFAULT_BUCKET:DAY}
+    integrity:
+      enabled: ${AUDIT_INTEGRITY_ENABLED:true}
+      batch-size: ${AUDIT_INTEGRITY_BATCH_SIZE:500}
+      interval: ${AUDIT_INTEGRITY_INTERVAL:PT24H}
     request-context:
       enabled: ${AUDIT_REQUEST_CONTEXT_ENABLED:true}
       request-id-header: ${AUDIT_REQUEST_ID_HEADER:X-Request-ID}

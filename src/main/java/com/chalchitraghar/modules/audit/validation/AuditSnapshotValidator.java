@@ -63,7 +63,11 @@ public class AuditSnapshotValidator {
                     "capacity",
                     "locked",
                     "emailVerified",
-                    "authProvider");
+                    "authProvider",
+                    "format",
+                    "filterSummary",
+                    "exportFrom",
+                    "exportTo");
     private static final Set<String> FORBIDDEN_PARTS =
             Set.of(
                     "password",

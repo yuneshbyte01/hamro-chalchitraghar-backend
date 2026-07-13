@@ -578,6 +578,16 @@ deterministic allowlisted maps; deliberately assign USER/SYSTEM/EXTERNAL/ANONYMO
 rollback; use the injected `Clock`; and never audit the same action in both controller and service.
 # Audit-3 maintenance
 
+# Audit-4 maintenance
+
+Export columns must remain explicitly allowlisted, omit raw JSON/IP/user-agent/body data, and pass every
+text cell through the control-character and formula-injection sanitizer. Reports must keep bounded ranges
+and low-cardinality groupings. Change retention only through `AuditRetentionService`; never make core fields
+mutable or add controller update/delete operations. Anonymizable fields and canonical integrity fields must
+remain disjoint. Hard deletion would erase event-ID deduplication history and is intentionally unsupported.
+All new cutoffs, buckets, and timestamps must use the injected `Clock`. A hash mismatch signals investigation,
+not proof of malicious tampering.
+
 Request context is immutable and must be cleared with MDC in `finally`. Add only bounded low-risk
 fields, never servlet objects or bodies. Keep security reason codes stable and use the per-request
 deduplication marker. Async executors must decorate tasks and restore worker state; scheduled jobs use

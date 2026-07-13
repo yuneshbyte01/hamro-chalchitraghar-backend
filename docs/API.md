@@ -9,7 +9,8 @@ headers are never persisted.
 Audit-2 automatically populates registration, login, password-reset completion, selected user and
 catalog administration, show/booking/payment/ticket lifecycles, notification preferences, and manual
 delivery retry actions. Actors are USER, SYSTEM, EXTERNAL, or ANONYMOUS. Snapshots are detail-only;
-there are no customer/staff or mutation audit APIs and no Audit-3 HTTP context yet.
+there are no customer/staff or mutation audit APIs. Audit-3 request context and Audit-4 lifecycle
+operations are fully active as described below.
 
 Base URL for local development:
 
@@ -1764,5 +1765,19 @@ ordered by `occurredAt DESC, id DESC`. ADMIN may filter by actor ID/email/role/t
 category, severity, result, resource type/ID/reference, request ID, correlation ID, and inclusive
 occurrence range. `GET /api/admin/audit-logs/{auditLogId}` returns sanitized detail including the
 allowlisted JSON snapshots. Both require ADMIN; invalid filters are 400 and missing records are 404.
-There are no creation, mutation, export, customer, or staff endpoints, and Audit-1 does not
+There are no creation or mutation, customer, or staff endpoints.
+
+## Audit-4 operations
+
+- `GET /api/admin/audit-logs/export` requires `occurredFrom` and `occurredTo`, enforces the configured
+  range and row limits, and streams UTF-8 CSV. It omits JSON, raw IP, full user-agent, bodies, credentials,
+  and provider payloads; control characters are flattened and formula-leading values are prefixed with `'`.
+- `GET /api/admin/audit-reports/failed-logins` returns `HOUR` or `DAY` aggregates in the application zone.
+- `GET /api/admin/audit-reports/high-risk-actions` returns paginated HIGH/CRITICAL summaries.
+- `GET /api/admin/audit-reports/summary` returns bounded low-cardinality counts.
+- `POST /api/admin/audit-logs/integrity-check` returns checked/mismatch counts without record contents.
+
+Advanced list filters additionally include created ranges, snapshot/metadata presence, and system-only,
+external-only, denied-only, and high-risk-only switches. All ranges are inclusive and invalid ranges return
+`400`. Export success is itself audited after the CSV bytes have been written.
 automatically populate the table.

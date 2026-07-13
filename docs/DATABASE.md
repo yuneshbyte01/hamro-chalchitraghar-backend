@@ -537,12 +537,13 @@ recipient, and stale-claim indexes support bounded operational processing. Rows 
 audit until a future retention policy is introduced; customer APIs do not expose them.
 # General audit store
 
-Flyway V30 creates `audit_logs`, an insert-only history table independent of ticket validations,
+Flyway V30 creates `audit_logs`, an append-only history table independent of ticket validations,
 notification deliveries, payments/refunds, bookings, tickets, and password-reset OTP state. Actor
 identity is a nullable snapshot without a user foreign key. Enums are strings. The three snapshot
 columns use TEXT containing validated JSON so PostgreSQL and H2 share one mapping. Indexes cover
 occurrence time, actor/time, action/time, category/time, resource, request/correlation IDs, and
-result/severity/time. Application code exposes no update or delete operation.
+result/severity/time. Application code exposes no update or delete API; Audit-4's narrowly scoped
+retention service is the only mutation boundary and may clear anonymizable fields.
 # Audit-2 event identity
 
 V31 adds nullable internal `event_id` with a unique index. Duplicate delivery of one logical event
@@ -553,3 +554,11 @@ historical snapshot without a user foreign key; snapshots remain explicit allowl
 V32 adds nullable `ip_address`, `user_agent`, `http_method`, and `request_path` columns plus a
 path/time index. Existing request/correlation indexes remain. IP capture is disabled by default and
 masked when enabled; values are bounded. No body, query string, cookie, JWT, or raw header is stored.
+# Audit-4 lifecycle and integrity
+
+Flyway V33 adds `retention_status`, `anonymized_at`, `integrity_hash`, and retention/report indexes.
+Core event identity, action, category, severity, result, occurrence/creation time, and event ID remain
+immutable. The only controlled row mutation is `AuditRetentionService`, which clears personal/contextual
+fields in bounded oldest-first batches. Hard deletion is deliberately unsupported so event-ID deduplication
+history survives. New rows receive a canonical SHA-256 hash over immutable non-anonymizable fields; legacy
+rows may have a null hash and are reported as unverifiable.

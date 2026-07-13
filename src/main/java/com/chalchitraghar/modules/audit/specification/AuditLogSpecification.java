@@ -27,13 +27,51 @@ public final class AuditLogSpecification {
             equalText(cb, p, root.get("correlationId"), c.correlationId());
             equalText(cb, p, root.get("httpMethod"), c.httpMethod());
             if (c.requestPath() != null && !c.requestPath().isBlank())
-                p.add(cb.like(root.get("requestPath"), c.requestPath().trim() + "%"));
+                p.add(cb.like(root.get("requestPath"), escape(c.requestPath().trim()) + "%", '\\'));
             if (c.occurredFrom() != null)
                 p.add(cb.greaterThanOrEqualTo(root.get("occurredAt"), c.occurredFrom()));
             if (c.occurredTo() != null)
                 p.add(cb.lessThanOrEqualTo(root.get("occurredAt"), c.occurredTo()));
+            if (c.createdFrom() != null)
+                p.add(cb.greaterThanOrEqualTo(root.get("createdAt"), c.createdFrom()));
+            if (c.createdTo() != null)
+                p.add(cb.lessThanOrEqualTo(root.get("createdAt"), c.createdTo()));
+            present(cb, p, root.get("beforeValues"), c.hasBeforeValues());
+            present(cb, p, root.get("afterValues"), c.hasAfterValues());
+            present(cb, p, root.get("metadata"), c.hasMetadata());
+            if (Boolean.TRUE.equals(c.systemOnly()))
+                p.add(
+                        cb.equal(
+                                root.get("actorType"),
+                                com.chalchitraghar.modules.audit.enums.AuditActorType.SYSTEM));
+            if (Boolean.TRUE.equals(c.externalOnly()))
+                p.add(
+                        cb.equal(
+                                root.get("actorType"),
+                                com.chalchitraghar.modules.audit.enums.AuditActorType.EXTERNAL));
+            if (Boolean.TRUE.equals(c.deniedOnly()))
+                p.add(
+                        cb.equal(
+                                root.get("result"),
+                                com.chalchitraghar.modules.audit.enums.AuditResult.DENIED));
+            if (Boolean.TRUE.equals(c.highRiskOnly()))
+                p.add(
+                        root.get("severity")
+                                .in(
+                                        com.chalchitraghar.modules.audit.enums.AuditSeverity.HIGH,
+                                        com.chalchitraghar.modules.audit.enums.AuditSeverity
+                                                .CRITICAL));
             return cb.and(p.toArray(jakarta.persistence.criteria.Predicate[]::new));
         };
+    }
+
+    private static void present(
+            jakarta.persistence.criteria.CriteriaBuilder cb,
+            List<jakarta.persistence.criteria.Predicate> p,
+            jakarta.persistence.criteria.Path<String> path,
+            Boolean expected) {
+        if (expected == null) return;
+        p.add(expected ? cb.isNotNull(path) : cb.isNull(path));
     }
 
     private static void equalText(
@@ -51,6 +89,10 @@ public final class AuditLogSpecification {
             jakarta.persistence.criteria.Path<String> path,
             String value) {
         if (value != null && !value.isBlank())
-            p.add(cb.like(cb.lower(path), "%" + value.trim().toLowerCase() + "%"));
+            p.add(cb.like(cb.lower(path), "%" + escape(value.trim().toLowerCase()) + "%", '\\'));
+    }
+
+    private static String escape(String value) {
+        return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
     }
 }

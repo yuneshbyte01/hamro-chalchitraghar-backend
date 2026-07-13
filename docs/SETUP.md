@@ -295,6 +295,16 @@ Automatic audit integration is active by default and adds no environment variabl
 filter, MDC, proxy trust, broker, or asynchronous executor.
 # Audit-3 configuration
 
+# Audit-4 operations
+
+Configure export with `AUDIT_EXPORT_ENABLED`, `AUDIT_EXPORT_MAX_ROWS`, and
+`AUDIT_EXPORT_MAX_RANGE_DAYS`. Reports use `AUDIT_REPORTS_MAX_RANGE_DAYS` and
+`AUDIT_REPORTS_DEFAULT_BUCKET`. Retention is opt-in (`AUDIT_RETENTION_ENABLED=false` by default) and uses
+the default/security/payment/high-severity day values, bounded batch size, and ISO-8601 interval in
+`.env.example`. Integrity verification is controlled by `AUDIT_INTEGRITY_ENABLED`, batch size, and interval.
+Retention values are organization/product policy choices, not legal-retention claims. Keep the application
+zone explicit in production and tests.
+
 Configure `AUDIT_REQUEST_CONTEXT_ENABLED`, header names, `AUDIT_CAPTURE_IP`, `AUDIT_MASK_IP`,
 `AUDIT_CAPTURE_USER_AGENT`, and `AUDIT_TRUST_FORWARDED_HEADERS`. Defaults enable IDs/user agent,
 disable IP, mask enabled IPs, and distrust forwarding headers. Never enable forwarded-header trust

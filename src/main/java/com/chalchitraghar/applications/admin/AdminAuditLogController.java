@@ -22,7 +22,7 @@ import org.springframework.web.bind.annotation.*;
 @Tag(
         name = "Admin Audit Logs",
         description =
-                "ADMIN-only append-only audit reads. Audit-2 records selected authentication and business actions after commit with USER, SYSTEM, EXTERNAL, or ANONYMOUS actors. Detail-only snapshots never contain secrets; HTTP context is deferred to Audit-3.")
+                "ADMIN-only append-only audit reads with request tracing and Audit-4 advanced filters. Detail-only snapshots are allowlisted and never contain secrets.")
 public class AdminAuditLogController {
     private final AuditLogService service;
 
@@ -53,7 +53,18 @@ public class AdminAuditLogController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
                     LocalDateTime occurredFrom,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
-                    LocalDateTime occurredTo) {
+                    LocalDateTime occurredTo,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+                    LocalDateTime createdFrom,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+                    LocalDateTime createdTo,
+            @RequestParam(required = false) Boolean hasBeforeValues,
+            @RequestParam(required = false) Boolean hasAfterValues,
+            @RequestParam(required = false) Boolean hasMetadata,
+            @RequestParam(required = false) Boolean systemOnly,
+            @RequestParam(required = false) Boolean externalOnly,
+            @RequestParam(required = false) Boolean deniedOnly,
+            @RequestParam(required = false) Boolean highRiskOnly) {
         var filters =
                 new AdminAuditLogFilterRequest(
                         actorUserId,
@@ -72,7 +83,16 @@ public class AdminAuditLogController {
                         httpMethod,
                         requestPath,
                         occurredFrom,
-                        occurredTo);
+                        occurredTo,
+                        createdFrom,
+                        createdTo,
+                        hasBeforeValues,
+                        hasAfterValues,
+                        hasMetadata,
+                        systemOnly,
+                        externalOnly,
+                        deniedOnly,
+                        highRiskOnly);
         return ResponseEntity.ok(
                 ApiResponse.success("Audit logs fetched", service.findAll(filters, page, size)));
     }

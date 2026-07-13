@@ -338,3 +338,11 @@ Audit-3 adds request/correlation headers, MDC context, safe method/path and opti
 metadata, centralized invalid-JWT/access-denied auditing, actor MDC enrichment, ticket request-ID
 compatibility, and email-executor propagation. Export, retention, anonymization, integrity controls,
 dashboards, and distributed tracing remain deferred.
+# Audit-4 delivery
+
+Audit-4 completes administration and lifecycle support: combined indexed filters, bounded sanitized CSV,
+failed-login and high-risk reporting, summary counts, anonymization-only retention, and bounded integrity
+verification. Privacy controls omit raw context and JSON from export, preserve deduplication history, and
+keep retention disabled until policy owners select periods. The integrity hash is practical corruption
+detection rather than cryptographic tamper-proof storage. Audit tests cover all four phases and use the
+application `Clock` so Kathmandu and UTC executions have identical instant/cutoff semantics.

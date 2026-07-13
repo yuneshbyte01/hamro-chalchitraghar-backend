@@ -509,9 +509,14 @@ delivery. No broker or distributed lease is introduced.
 
 `modules/audit` owns the immutable entity, trusted append command/service, allowlist validator,
 repository/specification, mapper, and admin DTOs. The admin controller delegates reads through the
-service and never exposes entities. Automatic application-event integration is deferred to Audit-2,
-request/correlation context to Audit-3, and export, retention, anonymization, and integrity controls
-to Audit-4.
+service and never exposes entities. Audit-2 supplies automatic application-event integration, Audit-3
+supplies request/correlation context, and Audit-4 supplies export, reporting, retention anonymization,
+and integrity verification.
+
+Audit-4 flows are `admin export -> preflight range/count -> paged streaming query -> CSV sanitizer ->
+response -> export audit`, `retention job -> bounded eligibility specification -> controlled anonymization`,
+and `integrity request -> bounded immutable-field canonicalization -> mismatch counts`. A plain SHA-256 hash
+detects accidental/casual corruption but is not tamper-proof against a privileged writer who can recompute it.
 # Audit-2 event flow
 
 Success follows `authoritative transaction -> immutable typed event -> commit -> AFTER_COMMIT

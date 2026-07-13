@@ -24,6 +24,7 @@ public class AuditLogServiceImpl implements AuditLogService {
     private final AuditLogRepository repository;
     private final AuditSnapshotValidator snapshots;
     private final AuditLogMapper mapper;
+    private final com.chalchitraghar.modules.audit.service.AuditIntegrityService integrity;
     private final Clock clock;
 
     @Override
@@ -37,11 +38,13 @@ public class AuditLogServiceImpl implements AuditLogService {
         require(c.result(), "Result");
         String resourceType = bounded(c.resourceType(), 100, true, "Resource type");
         LocalDateTime now = LocalDateTime.now(clock);
+        String eventId = bounded(c.eventId(), 200, false, "Event ID");
+        LocalDateTime occurredAt = c.occurredAt() == null ? now : c.occurredAt();
         AuditLog log =
                 new AuditLog(
                         null,
-                        bounded(c.eventId(), 200, false, "Event ID"),
-                        c.occurredAt() == null ? now : c.occurredAt(),
+                        eventId,
+                        occurredAt,
                         c.actorUserId(),
                         email(c.actorEmailSnapshot()),
                         bounded(c.actorRole(), 50, false, "Actor role"),
@@ -63,7 +66,21 @@ public class AuditLogServiceImpl implements AuditLogService {
                         snapshots.validateAndSerialize(c.beforeValues(), "beforeValues"),
                         snapshots.validateAndSerialize(c.afterValues(), "afterValues"),
                         snapshots.validateAndSerialize(c.metadata(), "metadata"),
-                        now);
+                        now,
+                        com.chalchitraghar.modules.audit.enums.AuditRetentionStatus.ACTIVE,
+                        null,
+                        integrity.hash(
+                                occurredAt,
+                                c.actorUserId(),
+                                c.actorType(),
+                                c.action(),
+                                c.category(),
+                                c.severity(),
+                                resourceType.toUpperCase(Locale.ROOT),
+                                c.resourceId(),
+                                c.result(),
+                                eventId,
+                                now));
         return mapper.toAdminDetail(repository.save(log));
     }
 
@@ -78,6 +95,10 @@ public class AuditLogServiceImpl implements AuditLogService {
                 && filters.occurredTo() != null
                 && filters.occurredFrom().isAfter(filters.occurredTo()))
             throw new IllegalArgumentException("Invalid date range");
+        if (filters.createdFrom() != null
+                && filters.createdTo() != null
+                && filters.createdFrom().isAfter(filters.createdTo()))
+            throw new IllegalArgumentException("Invalid created date range");
         Page<AuditLog> result =
                 repository.findAll(
                         AuditLogSpecification.matching(filters),
