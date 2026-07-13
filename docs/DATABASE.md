@@ -518,3 +518,12 @@ is stored per recipient, deterministic business event, and channel. Examples inc
 `USER_REGISTERED:{userId}`, `BOOKING_CONFIRMED:{bookingId}`,
 `PAYMENT_SUCCEEDED:{paymentId}`, `SHOW_CANCELLED:{showId}:{userId}`, and
 `TICKET_ISSUED:{bookingId}`. Event keys are internal persistence metadata.
+
+## Notification email deliveries
+
+Migration V27 adds `notification_deliveries`, related many-to-one to `notifications`. It snapshots
+the recipient and stores channel, `PENDING/PROCESSING/SENT/FAILED/EXHAUSTED/SKIPPED` status,
+bounded attempts, retry timestamps, sanitized failure reason, worker claim, template identifier,
+subject, and content version. `(notification_id, channel)` is unique. Retry, notification,
+recipient, and stale-claim indexes support bounded operational processing. Rows are retained for
+audit until a future retention policy is introduced; customer APIs do not expose them.

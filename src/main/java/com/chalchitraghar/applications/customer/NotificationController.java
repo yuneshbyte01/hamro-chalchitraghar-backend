@@ -34,7 +34,7 @@ import org.springframework.web.bind.annotation.RestController;
 @Tag(
         name = "Customer Notifications",
         description =
-                "Owner-only in-app notifications created after committed registration, booking, payment, ticket, and show lifecycle events. Failed operations create none; duplicate processing is idempotent; internal event keys are hidden. Email and reminders remain deferred.")
+                "Owner-only in-app notifications created after committed registration, booking, payment, ticket, and show lifecycle events. Eligible notifications may also queue email independently; email failure never changes business success or in-app read state, and delivery diagnostics remain internal. Ticket PDF and password-reset OTP email use separate workflows.")
 @SecurityRequirement(name = "bearerAuth")
 public class NotificationController {
     private final NotificationService notificationService;

@@ -540,3 +540,13 @@ authoritative state transition succeeds but before its transaction returns. Neve
 tokens, OTPs, gateway payloads, QR data, or credentials. Tests must prove commit creation, rollback
 suppression, duplicate delivery idempotency, ownership, and UTC/Kathmandu independence. Do not put
 timestamps or random values in idempotency keys.
+
+## Maintaining notification email
+
+Enable a type only in `NotificationEmailPolicy`, add its escaped Thymeleaf template under
+`templates/email`, and test with a mocked `NotificationMailSender`. Never render raw HTML or place
+tokens, OTPs, QR values, gateway payloads, credentials, or exception text in templates or delivery
+rows. SMTP work must remain outside business and claim transactions. Treat mail/connectivity
+exceptions as transient; invalid recipients, missing templates, and construction errors are
+permanent. Inspect `EXHAUSTED` rows operationally, and recover stale `PROCESSING` rows through the
+retry processor. All timestamps and fixtures must use the injected `Clock`.

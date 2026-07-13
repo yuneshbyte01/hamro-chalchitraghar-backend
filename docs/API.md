@@ -1727,3 +1727,13 @@ the customer DTOs. Email notification delivery and show reminders remain deferre
 
 `SHOW_UPDATED` is reserved and fully mapped, but the current show rules reject schedule changes
 whenever an active booking exists, so there is currently no customer-facing schedule-update trigger.
+
+## Notification-3 email delivery
+
+`WELCOME`, `BOOKING_CONFIRMED`, `BOOKING_CANCELLED`, `BOOKING_EXPIRED`,
+`PAYMENT_SUCCEEDED`, `PAYMENT_FAILED`, `SHOW_UPDATED`, and `SHOW_CANCELLED` notifications may queue
+email after in-app persistence commits. Email delivery is asynchronous, persisted, idempotent, and
+retryable; business endpoint success and in-app read state are independent of mail delivery.
+Customer notification APIs expose no recipient, delivery status, attempt count, claim, or failure
+diagnostics. `TICKET_ISSUED` remains on the existing PDF attachment workflow, and password-reset OTP
+email remains security-specific and is never stored in notification persistence.

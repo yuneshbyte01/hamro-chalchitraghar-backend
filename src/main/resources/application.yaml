@@ -22,6 +22,25 @@ spring:
 
 app:
   time-zone: ${APP_TIME_ZONE:Asia/Kathmandu}
+  notifications:
+    email:
+      enabled: ${NOTIFICATION_EMAIL_ENABLED:false}
+      from: ${NOTIFICATION_EMAIL_FROM:}
+      from-name: ${NOTIFICATION_EMAIL_FROM_NAME:Hamro Chalchitraghar}
+      max-attempts: ${NOTIFICATION_EMAIL_MAX_ATTEMPTS:3}
+      initial-retry-delay-ms: ${NOTIFICATION_EMAIL_INITIAL_RETRY_DELAY_MS:60000}
+      retry-multiplier: ${NOTIFICATION_EMAIL_RETRY_MULTIPLIER:2.0}
+      max-retry-delay-ms: ${NOTIFICATION_EMAIL_MAX_RETRY_DELAY_MS:3600000}
+      retry-batch-size: ${NOTIFICATION_EMAIL_RETRY_BATCH_SIZE:50}
+      retry-interval-ms: ${NOTIFICATION_EMAIL_RETRY_INTERVAL_MS:60000}
+      processing-timeout-ms: ${NOTIFICATION_EMAIL_PROCESSING_TIMEOUT_MS:300000}
+      async:
+        enabled: ${NOTIFICATION_EMAIL_ASYNC_ENABLED:true}
+      executor:
+        core-pool-size: ${NOTIFICATION_EMAIL_CORE_POOL_SIZE:2}
+        max-pool-size: ${NOTIFICATION_EMAIL_MAX_POOL_SIZE:4}
+        queue-capacity: ${NOTIFICATION_EMAIL_QUEUE_CAPACITY:100}
+        keep-alive-seconds: ${NOTIFICATION_EMAIL_KEEP_ALIVE_SECONDS:60}
   bookings:
     initiated-expiration-minutes: ${BOOKING_INITIATED_EXPIRATION_MINUTES:15}
     currency: ${BOOKING_CURRENCY:NPR}

@@ -26,6 +26,24 @@ cors:
 
 app:
   time-zone: Asia/Kathmandu
+  notifications:
+    email:
+      enabled: false
+      from: notifications@test.local
+      max-attempts: 3
+      initial-retry-delay-ms: 1000
+      retry-multiplier: 2.0
+      max-retry-delay-ms: 10000
+      retry-batch-size: 50
+      retry-interval-ms: 60000
+      processing-timeout-ms: 30000
+      async:
+        enabled: false
+      executor:
+        core-pool-size: 1
+        max-pool-size: 1
+        queue-capacity: 10
+        keep-alive-seconds: 10
   bookings:
     initiated-expiration-minutes: 15
     currency: NPR

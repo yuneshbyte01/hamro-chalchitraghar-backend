@@ -269,3 +269,11 @@ email configuration remains unchanged.
 Business-event notifications are enabled by default and need no environment variables, SMTP
 settings, async executor, broker, or new runtime service. They persist IN_APP rows in the existing
 database. Password-reset and ticket-delivery email configuration is unchanged.
+
+## General notification email
+
+Set `NOTIFICATION_EMAIL_ENABLED=true` and provide `NOTIFICATION_EMAIL_FROM` plus the existing
+`spring.mail`/`MAIL_*` SMTP settings. Pool, queue, retry, backoff, batch, processing-timeout, sender
+name, and async settings are listed in `.env.example`. When disabled, startup needs no SMTP
+credentials and eligible deliveries are recorded as `SKIPPED`. Tests disable real SMTP and may set
+async off for deterministic dispatch.

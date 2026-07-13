@@ -2,6 +2,7 @@ package com.chalchitraghar.modules.notifications.listener;
 
 import com.chalchitraghar.modules.notifications.event.*;
 import com.chalchitraghar.modules.notifications.service.NotificationContentFactory;
+import com.chalchitraghar.modules.notifications.service.NotificationEmailQueueService;
 import com.chalchitraghar.modules.notifications.service.NotificationService;
 import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
@@ -16,6 +17,7 @@ import org.springframework.transaction.event.TransactionalEventListener;
 public class BusinessNotificationEventListener {
     private final NotificationContentFactory contentFactory;
     private final NotificationService notifications;
+    private final NotificationEmailQueueService emailQueue;
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void on(UserRegisteredEvent event) {
@@ -70,14 +72,25 @@ public class BusinessNotificationEventListener {
     private void handle(Object event, Long userId, LocalDateTime occurredAt) {
         var content = contentFactory.build(event);
         try {
-            notifications.createInAppNotification(
-                    userId,
-                    content.type(),
-                    content.eventKey(),
-                    content.title(),
-                    content.message(),
-                    content.payload(),
-                    occurredAt);
+            var notification =
+                    notifications.createInAppNotification(
+                            userId,
+                            content.type(),
+                            content.eventKey(),
+                            content.title(),
+                            content.message(),
+                            content.payload(),
+                            occurredAt);
+            try {
+                emailQueue.queue(notification);
+            } catch (RuntimeException queueFailure) {
+                log.error(
+                        "Notification email queueing failed eventType={} eventKey={} recipientUserId={} reason={}",
+                        event.getClass().getSimpleName(),
+                        content.eventKey(),
+                        userId,
+                        queueFailure.getClass().getSimpleName());
+            }
             log.info(
                     "Created notification eventType={} eventKey={} recipientUserId={} notificationType={}",
                     event.getClass().getSimpleName(),

@@ -477,3 +477,19 @@ failure is safely logged after commit and cannot reverse the business transition
 in-memory Spring events, so a process crash between commit and listener completion can lose a
 notification; a transactional outbox is the recommended future durability upgrade. Email remains
 deferred to Notification-3, and the existing ticket-email event flow is unchanged.
+
+## Notification-3 delivery flow
+
+```text
+AFTER_COMMIT listener -> IN_APP notification -> REQUIRES_NEW delivery row
+    -> bounded notificationEmailExecutor -> transactional claim (PROCESSING)
+    -> HTML render + SMTP outside the claim transaction
+    -> REQUIRES_NEW SENT or FAILED/EXHAUSTED update
+    -> bounded scheduled retry for due and stale claims
+```
+
+Pessimistic row locking and committed `PROCESSING` claims prevent immediate and retry workers from
+sending the same row concurrently. Backoff is bounded and computed from the injected `Clock`.
+Executor rejection leaves the persisted row recoverable. Ticket PDF delivery remains separate to
+preserve attachments; password-reset OTP delivery remains separate to avoid delayed security-token
+delivery. No broker or distributed lease is introduced.

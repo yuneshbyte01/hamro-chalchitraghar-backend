@@ -302,3 +302,12 @@ notifications through the existing Notification-1 service and uniqueness constra
 occurs at authoritative state transitions, providing rollback safety and duplicate-processing
 protection while preserving customer ownership and existing read APIs. Email notifications,
 reminders, async delivery, and an outbox are explicitly deferred.
+
+## Notification-3
+
+Notification-3 adds a database-backed general email queue, recipient snapshots, HTML Thymeleaf
+templates, a bounded executor, concurrency-safe claims, exponential retry, stale-claim recovery,
+sanitized failures, and disabled-environment audit rows. External mail failure is isolated from
+business and in-app notification commits. Existing ticket PDF delivery and password-reset OTP email
+remain separate; admin delivery operations, preferences, analytics, retention, and reminders remain
+deferred.
