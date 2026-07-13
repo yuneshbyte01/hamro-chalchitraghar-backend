@@ -1,0 +1,3 @@
+ALTER TABLE seats
+    ALTER COLUMN price TYPE NUMERIC(38,2)
+    USING price::NUMERIC(38,2);

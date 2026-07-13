@@ -118,7 +118,7 @@ erDiagram
         varchar row_label
         varchar seat_code
         varchar seat_type
-        double price
+        numeric price
         varchar seat_status
         integer position_index
         timestamp locked_at
@@ -305,7 +305,7 @@ Stores concrete seats for a specific show.
 | `row_label`         | `VARCHAR(255)`     | No       | Not null validation                                                   | `rowLabel`       |
 | `seat_code`         | `VARCHAR(255)`     | No       | Not null validation                                                   | `seatCode`       |
 | `seat_type`         | `VARCHAR(255)`     | No       | Enum string: `PREMIUM`, `PLATINUM`                                    | `seatType`       |
-| `price`             | `DOUBLE PRECISION` | No       | Positive validation                                                   | `price`          |
+| `price`             | `NUMERIC(38,2)`    | No       | Positive validation                                                   | `price`          |
 | `seat_status`       | `VARCHAR(255)`     | No       | Enum string: `AVAILABLE`, `LOCKED`, `BOOKED`, `RESERVED`, `CANCELLED` | `seatStatus`     |
 | `position_index`    | `INTEGER`          | No       | Used for display ordering                                             | `positionIndex`  |
 | `locked_at`         | `TIMESTAMP`        | Yes      | Set when held                                                         | `lockedAt`       |

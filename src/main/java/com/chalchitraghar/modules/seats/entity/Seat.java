@@ -73,7 +73,7 @@ public class Seat extends GenericEntity {
     private SeatType seatType;
 
     /** Price for this seat. Must be greater than zero. */
-    @Column(nullable = false)
+    @Column(nullable = false, precision = 38, scale = 2)
     @NotNull(message = "Price is required")
     @Positive(message = "Price must be greater than 0")
     private BigDecimal price;
