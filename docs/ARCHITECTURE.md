@@ -438,3 +438,24 @@ rendering, and after-commit delivery events. `TicketDelivery` supplies the idemp
 per booking/channel; retries never touch a sent record. Search specifications apply customer ownership inside the
 database query and expose only allowlisted sort fields. Metrics aggregate ticket states and validation outcomes, and
 the consistency service reports broken relationships without destructive auto-repair.
+# Notifications module (Notification-1)
+
+`modules/notifications` owns the entity, enums, DTOs, mapper, specification, repository, and service.
+`applications/customer/NotificationController` is a thin authenticated adapter. Although the shared
+customer route policy also permits staff and admin roles, every repository lookup includes the
+authenticated principal's user ID, so those roles can see only notifications owned by their own
+accounts.
+
+Internal trusted code can call `NotificationService.createInAppNotification`. Creation validates
+display fields and JSON payload, forces channel `IN_APP`, uses the injected application `Clock`, and
+reuses an existing `(user,eventKey,channel)` row. Database uniqueness resolves concurrent creation.
+No controller exposes creation.
+
+Customer lists use specifications for combined filters and stable `occurredAt/id` pagination.
+Detail reads do not alter state. Mark-read preserves the original `readAt`; read-all performs one
+owner/channel-bound bulk update with one clock timestamp. DTO mapping excludes user identity and
+event keys.
+
+Publishing business events and automatically creating notifications are explicitly deferred to
+Notification-2. Email, async delivery, retries, reminders, preferences, admin/staff APIs, and
+historical backfill are not part of Notification-1.

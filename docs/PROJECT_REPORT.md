@@ -282,3 +282,15 @@ single/bundle PDF downloads, booking-level after-commit email delivery and retry
 search, state/validation metrics, and consistency detection. PDFs are generated with OpenPDF and embedded ZXing QR
 images entirely in memory. Cancellation revokes issued tickets while preserving checked-in tickets for manual
 review. Offline validation, external storage, SMS/push, and generic audit logging remain outside scope.
+# Notification-1
+
+Notification-1 adds the in-app notification domain and Flyway persistence, stable type/channel
+enums, validated optional JSON metadata, per-user/channel event-key idempotency, centralized safe
+DTO mapping, and customer-owned list/detail/read/read-all/unread-count APIs. Lists are bounded,
+filterable, and stably ordered; all access and mutations are owner-bound, including when staff or
+admin accounts use customer routes. Notification timestamps use the configured application `Clock`.
+
+This phase does not automatically create notifications from registration, authentication, booking,
+payment, show, or ticket workflows. It does not alter password-reset or ticket email delivery.
+Business events are deferred to Notification-2; email/async/retry work to Notification-3; reminders,
+preferences, and administrative operations remain later work. There is no historical backfill.

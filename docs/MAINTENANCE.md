@@ -513,3 +513,21 @@ orchestration. Expiry processes only `ISSUED` rows in bounded batches while scan
 PDFs and QR images remain memory-only. Delivery is triggered after commit, uniquely keyed by booking/channel, and
 must never roll back payment, confirmation, or issuance. Search sorts must stay allowlisted, and consistency findings
 must not be silently repaired.
+# Notification maintenance
+
+- Add new values to `NotificationType` only with a stable name, migration/API compatibility review,
+  and tests.
+- Event keys must be deterministic, non-blank, free of secrets, and unique for the intended user and
+  channel, for example `BOOKING_CONFIRMED:{bookingId}`.
+- Payload is optional validated JSON metadata, not an authorization source. Never store passwords,
+  OTPs, reset/JWT/Google tokens, payment secrets or full gateway responses, SMTP credentials, raw QR
+  material, cryptographic keys, stack traces, or full email bodies.
+- Customer repository operations must bind notification ID and authenticated user ID in the query.
+  Do not fetch globally and enforce ownership only in controllers.
+- All notification timestamps must use the injected application `Clock`. Do not introduce direct
+  system-time calls in notification code or fixtures.
+- Never create or reconcile notifications during reads. Notification-2 will create rows only for new
+  events unless a separate backfill is explicitly approved.
+- Schema changes require Flyway updates plus entity/migration constraint and integration tests.
+- Preserve the separation between in-app read state and future channel delivery state. Do not merge
+  this model with `TicketDelivery`.

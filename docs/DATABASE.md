@@ -492,3 +492,21 @@ Ticket-4 adds ticket reissue metadata (`reissued_at`, actor, and reason) and ope
 `ticket_deliveries` table stores one unique booking/channel delivery with recipient, status, attempt count, safe
 failure message, and attempt/sent timestamps. It stores neither SMTP credentials nor PDF bytes. Delivery statuses
 are `PENDING`, `SENT`, and `FAILED`; the only current channel is `EMAIL`.
+# Notifications
+
+Migration `V26__create_notifications_table.sql` introduces `notifications`. Each row belongs to one
+user, one stable event key, and one channel. Notification-1 creates only `IN_APP` rows; `EMAIL` is a
+reserved general-notification enum value and remains separate from `ticket_deliveries`.
+
+Columns are `id`, audit timestamps, `user_id`, `type`, `channel`, `event_key`, `title`, `message`,
+nullable `payload`, `is_read`, nullable `read_at`, and `occurred_at`. The foreign key references
+`users(id)`. `(user_id, event_key, channel)` is unique and is the final concurrent-idempotency
+boundary. Blank event keys, titles, and messages are rejected.
+
+Indexes support owner/time lists, owner/read/time lists, type/time filters, and channel/time filters.
+Payload uses validated `TEXT` JSON rather than PostgreSQL `JSONB` so the same entity mapping remains
+portable to the project's H2 `create-drop` integration tests. It is optional metadata and is never
+an authorization source.
+
+Read state is deliberately independent of future delivery state. Notification-1 has no delivery
+status, attempts, recipients, failure fields, or retry indexes.

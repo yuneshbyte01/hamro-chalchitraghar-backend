@@ -1677,3 +1677,42 @@ Staff/admin ticket detail includes newest-first validation history.
 Issued tickets expire after the show-end grace window. Show cancellation revokes issued tickets through one shared
 orchestration path; checked-in tickets cause an operational conflict rather than silent revocation. PDFs are
 generated in memory and include the QR image but never token text, ciphertext, hashes, credentials, or database IDs.
+# Notification-1 customer APIs
+
+Notification-1 provides database-backed, in-app notifications only. It does not expose a
+notification creation endpoint and does not send email, schedule reminders, or provide staff/admin
+notification APIs. Every lookup and mutation is scoped to the authenticated account; a missing or
+non-owned notification returns `404`.
+
+### `GET /api/customer/notifications`
+
+Returns `ApiResponse<PageResponse<CustomerNotificationSummaryResponse>>`. Defaults are `page=0`,
+`size=20`, and `sortDir=desc`; size is limited to 100. Results use stable `occurredAt`, then `id`,
+ordering. Optional filters are `type`, `channel` (`IN_APP` only), `read`, `occurredFrom`, and
+`occurredTo`. Date-time filters use ISO local date-time format. Invalid enums, dates, pagination,
+sort direction, an `EMAIL` channel, or a reversed date range return `400`.
+
+Summary fields are `id`, `type`, `channel`, `title`, `messagePreview`, `read`, `readAt`, and
+`occurredAt`. The preview is Unicode-safe and limited to 120 code points.
+
+### `GET /api/customer/notifications/{notificationId}`
+
+Returns the owned notification detail. Retrieval does not mark it read. Detail fields are `id`,
+`type`, `channel`, `title`, `message`, structured nullable `payload`, `read`, `readAt`, `occurredAt`,
+and `createdAt`. User identity and the internal event key are never returned.
+
+### `PATCH /api/customer/notifications/{notificationId}/read`
+
+Idempotently marks an owned notification read using the application `Clock`. The first call sets
+`readAt`; later calls preserve it. Unknown and non-owned IDs return `404`.
+
+### `PATCH /api/customer/notifications/read-all`
+
+Marks only the current account's unread `IN_APP` notifications using one timestamp and returns
+`updatedCount`. Already-read and other users' rows are unchanged. A repeated call returns zero.
+
+### `GET /api/customer/notifications/unread-count`
+
+Returns `{ "unreadCount": n }`, counting only the current account's unread `IN_APP` rows.
+
+All routes require a bearer token. Missing or invalid authentication returns `401`.

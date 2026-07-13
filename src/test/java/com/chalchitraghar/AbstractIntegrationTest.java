@@ -12,6 +12,7 @@ import com.chalchitraghar.modules.halls.repository.SeatTemplateRepository;
 import com.chalchitraghar.modules.movies.entity.Movie;
 import com.chalchitraghar.modules.movies.enums.MovieStatus;
 import com.chalchitraghar.modules.movies.repository.MovieRepository;
+import com.chalchitraghar.modules.notifications.repository.NotificationRepository;
 import com.chalchitraghar.modules.payments.entity.Payment;
 import com.chalchitraghar.modules.payments.enums.PaymentMethod;
 import com.chalchitraghar.modules.payments.enums.PaymentProvider;
@@ -63,6 +64,8 @@ abstract class AbstractIntegrationTest {
 
     @Autowired protected MovieRepository movieRepository;
 
+    @Autowired protected NotificationRepository notificationRepository;
+
     @Autowired protected HallRepository hallRepository;
 
     @Autowired protected SeatTemplateRepository seatTemplateRepository;
@@ -83,6 +86,7 @@ abstract class AbstractIntegrationTest {
 
     @BeforeEach
     void cleanDatabase() {
+        notificationRepository.deleteAll();
         ticketDeliveryRepository.deleteAll();
         ticketValidationRepository.deleteAll();
         ticketRepository.deleteAll();

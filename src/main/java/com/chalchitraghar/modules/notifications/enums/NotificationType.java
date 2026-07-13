@@ -1,0 +1,18 @@
+package com.chalchitraghar.modules.notifications.enums;
+
+public enum NotificationType {
+    SYSTEM,
+    WELCOME,
+    PASSWORD_RESET_REQUESTED,
+    PASSWORD_RESET_COMPLETED,
+    BOOKING_CREATED,
+    BOOKING_CONFIRMED,
+    BOOKING_CANCELLED,
+    BOOKING_EXPIRED,
+    PAYMENT_SUCCEEDED,
+    PAYMENT_FAILED,
+    SHOW_UPDATED,
+    SHOW_CANCELLED,
+    SHOW_REMINDER,
+    TICKET_ISSUED
+}
