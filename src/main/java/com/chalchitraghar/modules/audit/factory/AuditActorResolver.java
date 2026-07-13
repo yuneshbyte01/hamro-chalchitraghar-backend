@@ -16,6 +16,7 @@ public class AuditActorResolver {
     public AuditActor currentUserOrSystem() {
         var auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth == null || !auth.isAuthenticated()) return system();
+        if (auth.getPrincipal() instanceof User user) return user(user);
         return users.findByEmail(auth.getName()).map(this::user).orElseGet(this::system);
     }
 

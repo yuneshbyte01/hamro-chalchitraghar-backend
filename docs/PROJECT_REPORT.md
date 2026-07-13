@@ -332,3 +332,9 @@ Audit-2 activates typed after-commit auditing across authentication and selected
 catalog, show, booking, payment, ticket, and notification transitions. Event-ID idempotency, safe
 snapshots, isolated selected failures, and append-failure isolation are included. Request tracing is
 deferred to Audit-3.
+# Audit-3 delivery
+
+Audit-3 adds request/correlation headers, MDC context, safe method/path and optional masked client
+metadata, centralized invalid-JWT/access-denied auditing, actor MDC enrichment, ticket request-ID
+compatibility, and email-executor propagation. Export, retention, anonymization, integrity controls,
+dashboards, and distributed tracing remain deferred.

@@ -518,3 +518,10 @@ Success follows `authoritative transaction -> immutable typed event -> commit ->
 listener -> REQUIRES_NEW append`. Selected failures use sanitized events and isolated persistence
 before the original exception continues. Events contain scalar snapshots, never entities; publishers
 exist only at authoritative service/event boundaries to avoid controller duplication.
+# Audit-3 context flow
+
+`RequestAuditContextFilter -> immutable holder/MDC -> JWT/security -> business event snapshot ->
+AFTER_COMMIT append`. The filter runs before JWT and clears all thread-local/MDC state in `finally`.
+Invalid JWT and access denial use sanitized, deduplicated, `REQUIRES_NEW` failure audits. The email
+executor explicitly copies low-risk context and restores/clears worker state; scheduled work may create
+fresh SYSTEM contexts rather than inherit request state.

@@ -293,3 +293,10 @@ H2 PostgreSQL-mode tests.
 
 Automatic audit integration is active by default and adds no environment variables, request-context
 filter, MDC, proxy trust, broker, or asynchronous executor.
+# Audit-3 configuration
+
+Configure `AUDIT_REQUEST_CONTEXT_ENABLED`, header names, `AUDIT_CAPTURE_IP`, `AUDIT_MASK_IP`,
+`AUDIT_CAPTURE_USER_AGENT`, and `AUDIT_TRUST_FORWARDED_HEADERS`. Defaults enable IDs/user agent,
+disable IP, mask enabled IPs, and distrust forwarding headers. Never enable forwarded-header trust
+unless the application is reachable only through a configured trusted proxy. Console logs include
+request and correlation MDC values; production SQL display is disabled.

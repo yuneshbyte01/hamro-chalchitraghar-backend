@@ -1,5 +1,6 @@
 package com.chalchitraghar.modules.notifications.config;
 
+import com.chalchitraghar.shared.audit.AuditContextTaskDecorator;
 import java.util.concurrent.ThreadPoolExecutor;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.*;
@@ -23,6 +24,7 @@ public class NotificationEmailConfig {
         executor.setKeepAliveSeconds(properties.getExecutor().getKeepAliveSeconds());
         executor.setThreadNamePrefix("notification-email-");
         executor.setRejectedExecutionHandler(new ThreadPoolExecutor.AbortPolicy());
+        executor.setTaskDecorator(new AuditContextTaskDecorator());
         executor.initialize();
         return executor;
     }

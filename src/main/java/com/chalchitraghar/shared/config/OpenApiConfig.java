@@ -25,6 +25,9 @@ public class OpenApiConfig {
                                 Includes public movie, hall, show and seat browsing; JWT authentication;
                                 customer booking flow; staff booking lookup; and admin management endpoints.
                                 All non-empty responses use the standard ApiResponse wrapper.
+                                Responses include X-Request-ID and X-Correlation-ID. Clients may supply safe
+                                values; missing or invalid values are generated. These IDs are operational
+                                context, not authentication credentials.
                                 """)
                                 .version("v2"))
                 .components(

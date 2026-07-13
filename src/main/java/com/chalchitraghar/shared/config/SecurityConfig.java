@@ -1,5 +1,7 @@
 package com.chalchitraghar.shared.config;
 
+import com.chalchitraghar.modules.audit.service.AuditSecurityRecorder;
+import com.chalchitraghar.shared.audit.RequestAuditContextFilter;
 import com.chalchitraghar.shared.response.ApiResponse;
 import com.chalchitraghar.shared.security.JwtAuthenticationFilter;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -31,6 +33,8 @@ public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final ObjectMapper objectMapper;
+    private final RequestAuditContextFilter requestAuditContextFilter;
+    private final AuditSecurityRecorder auditSecurity;
 
     @Value("${cors.allowed-origins}")
     private String allowedOrigins;
@@ -125,6 +129,7 @@ public class SecurityConfig {
                                                 })
                                         .accessDeniedHandler(
                                                 (request, response, accessDeniedException) -> {
+                                                    auditSecurity.accessDenied();
                                                     response.setStatus(403);
                                                     response.setContentType(
                                                             MediaType.APPLICATION_JSON_VALUE);
@@ -135,7 +140,8 @@ public class SecurityConfig {
                                                                                     "Access denied")));
                                                 }))
                 .addFilterBefore(
-                        jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+                        jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(requestAuditContextFilter, JwtAuthenticationFilter.class);
 
         return http.build();
     }

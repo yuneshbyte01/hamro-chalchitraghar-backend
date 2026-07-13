@@ -17,5 +17,7 @@ public record AdminAuditLogFilterRequest(
         String resourceReference,
         String requestId,
         String correlationId,
+        String httpMethod,
+        String requestPath,
         LocalDateTime occurredFrom,
         LocalDateTime occurredTo) {}

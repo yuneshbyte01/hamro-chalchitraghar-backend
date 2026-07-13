@@ -25,6 +25,9 @@ public final class AuditLogSpecification {
             contains(cb, p, root.get("resourceReference"), c.resourceReference());
             equalText(cb, p, root.get("requestId"), c.requestId());
             equalText(cb, p, root.get("correlationId"), c.correlationId());
+            equalText(cb, p, root.get("httpMethod"), c.httpMethod());
+            if (c.requestPath() != null && !c.requestPath().isBlank())
+                p.add(cb.like(root.get("requestPath"), c.requestPath().trim() + "%"));
             if (c.occurredFrom() != null)
                 p.add(cb.greaterThanOrEqualTo(root.get("occurredAt"), c.occurredFrom()));
             if (c.occurredTo() != null)

@@ -71,6 +71,18 @@ public class AuditLog {
     @Column(length = 100, updatable = false)
     private String correlationId;
 
+    @Column(length = 100, updatable = false)
+    private String ipAddress;
+
+    @Column(length = 512, updatable = false)
+    private String userAgent;
+
+    @Column(length = 16, updatable = false)
+    private String httpMethod;
+
+    @Column(length = 500, updatable = false)
+    private String requestPath;
+
     @Lob
     @Column(columnDefinition = "TEXT", updatable = false)
     private String beforeValues;

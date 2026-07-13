@@ -576,3 +576,10 @@ Publish immutable scalar events inside the authoritative transaction and persist
 commit. Use stable IDs for transition delivery and unique IDs for genuine attempts. Build explicit,
 deterministic allowlisted maps; deliberately assign USER/SYSTEM/EXTERNAL/ANONYMOUS actors; test
 rollback; use the injected `Clock`; and never audit the same action in both controller and service.
+# Audit-3 maintenance
+
+Request context is immutable and must be cleared with MDC in `finally`. Add only bounded low-risk
+fields, never servlet objects or bodies. Keep security reason codes stable and use the per-request
+deduplication marker. Async executors must decorate tasks and restore worker state; scheduled jobs use
+fresh SYSTEM contexts. All context timestamps use the injected `Clock`. Forwarded headers remain
+untrusted unless deployment topology guarantees a trusted proxy boundary.

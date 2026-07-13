@@ -1,5 +1,6 @@
 package com.chalchitraghar.shared.security;
 
+import com.chalchitraghar.modules.audit.service.AuditSecurityRecorder;
 import com.chalchitraghar.modules.users.repository.UserRepository;
 import com.chalchitraghar.shared.response.ApiResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -9,10 +10,12 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.MDC;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -31,6 +34,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtUtil jwtUtil;
     private final UserRepository userRepository;
     private final ObjectMapper objectMapper;
+    private final AuditSecurityRecorder auditSecurity;
+    private final Clock clock;
 
     /**
      * Processes each request to extract JWT token from Authorization header, validates it, and sets
@@ -60,11 +65,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     email = null;
                 }
             } catch (ExpiredJwtException e) {
-                logger.error("JWT expired: " + e.getMessage());
+                logger.warn("JWT rejected reason=TOKEN_EXPIRED");
+                auditSecurity.invalidJwt("TOKEN_EXPIRED");
                 writeUnauthorizedResponse(response, "Token expired");
                 return;
             } catch (Exception e) {
-                logger.error("JWT error: " + e.getMessage());
+                logger.warn("JWT rejected reason=TOKEN_INVALID");
+                auditSecurity.invalidJwt("TOKEN_INVALID");
                 writeUnauthorizedResponse(response, "Invalid token");
                 return;
             }
@@ -100,6 +107,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
                 authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 SecurityContextHolder.getContext().setAuthentication(authToken);
+                MDC.put("actorUserId", String.valueOf(user.getId()));
+                MDC.put("actorRole", user.getRole().name());
             }
         }
 
@@ -116,6 +125,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private boolean isLocked(com.chalchitraghar.modules.users.entity.User user) {
         return user.isLocked()
                 && (user.getLockedUntil() == null
-                        || user.getLockedUntil().isAfter(LocalDateTime.now()));
+                        || user.getLockedUntil().isAfter(LocalDateTime.now(clock)));
     }
 }

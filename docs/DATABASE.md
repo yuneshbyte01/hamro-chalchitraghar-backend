@@ -548,3 +548,8 @@ result/severity/time. Application code exposes no update or delete operation.
 V31 adds nullable internal `event_id` with a unique index. Duplicate delivery of one logical event
 produces one row, while separate genuine attempts receive distinct IDs. Actor identity remains a
 historical snapshot without a user foreign key; snapshots remain explicit allowlisted JSON text.
+# Audit-3 request context
+
+V32 adds nullable `ip_address`, `user_agent`, `http_method`, and `request_path` columns plus a
+path/time index. Existing request/correlation indexes remain. IP capture is disabled by default and
+masked when enabled; values are bounded. No body, query string, cookie, JWT, or raw header is stored.

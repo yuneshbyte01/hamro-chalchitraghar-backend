@@ -26,6 +26,7 @@ public class AuditEventListener {
         if (event.eventId() != null && repository.existsByEventId(event.eventId())) return;
         try {
             var actor = event.actor();
+            var context = event.requestContext();
             service.append(
                     new CreateAuditLogCommand(
                             event.eventId(),
@@ -42,8 +43,12 @@ public class AuditEventListener {
                             event.resourceReference(),
                             event.result(),
                             event.failureReason(),
-                            null,
-                            null,
+                            context == null ? null : context.requestId(),
+                            context == null ? null : context.correlationId(),
+                            context == null ? null : context.ipAddress(),
+                            context == null ? null : context.userAgent(),
+                            context == null ? null : context.httpMethod(),
+                            context == null ? null : context.requestPath(),
                             event.beforeValues(),
                             event.afterValues(),
                             event.metadata()));

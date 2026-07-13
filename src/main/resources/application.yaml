@@ -21,6 +21,18 @@ spring:
 
 app:
   time-zone: ${APP_TIME_ZONE:Asia/Kathmandu}
+  audit:
+    request-context:
+      enabled: ${AUDIT_REQUEST_CONTEXT_ENABLED:true}
+      request-id-header: ${AUDIT_REQUEST_ID_HEADER:X-Request-ID}
+      correlation-id-header: ${AUDIT_CORRELATION_ID_HEADER:X-Correlation-ID}
+      capture-ip: ${AUDIT_CAPTURE_IP:false}
+      mask-ip: ${AUDIT_MASK_IP:true}
+      capture-user-agent: ${AUDIT_CAPTURE_USER_AGENT:true}
+      trust-forwarded-headers: ${AUDIT_TRUST_FORWARDED_HEADERS:false}
+      max-request-id-length: 100
+      max-correlation-id-length: 100
+      max-user-agent-length: 512
   notifications:
     reminders:
       enabled: ${NOTIFICATION_REMINDERS_ENABLED:false}

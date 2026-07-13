@@ -6,6 +6,7 @@ import com.chalchitraghar.modules.tickets.dto.response.TicketScanResponse;
 import com.chalchitraghar.modules.tickets.service.TicketService;
 import com.chalchitraghar.modules.tickets.service.TicketValidationService;
 import com.chalchitraghar.modules.users.entity.User;
+import com.chalchitraghar.shared.audit.RequestAuditContextHolder;
 import com.chalchitraghar.shared.response.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -56,9 +57,9 @@ public class TicketValidationController {
     public ResponseEntity<ApiResponse<TicketScanResponse>> scan(
             @Valid @RequestBody TicketScanRequest request,
             @RequestHeader(value = "X-Device-ID", required = false) String deviceId,
-            @RequestHeader(value = "X-Location", required = false) String location,
-            @RequestHeader(value = "X-Request-ID", required = false) String requestId) {
+            @RequestHeader(value = "X-Location", required = false) String location) {
         var user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        String requestId = RequestAuditContextHolder.current().map(c -> c.requestId()).orElse(null);
         return ResponseEntity.ok(
                 ApiResponse.success(
                         "Ticket validation completed",

@@ -25,6 +25,12 @@ cors:
 
 app:
   time-zone: Asia/Kathmandu
+  audit:
+    request-context:
+      enabled: true
+      capture-ip: false
+      capture-user-agent: true
+      trust-forwarded-headers: false
   notifications:
     reminders:
       enabled: false

@@ -1,9 +1,5 @@
 # Hamro Chalchitraghar Backend
 
-Audit-2 automatically records selected authentication and authoritative business transitions through
-typed after-commit events. Stable event IDs prevent duplicate delivery while preserving distinct
-genuine attempts; audit persistence cannot roll back committed business state.
-
 ![Java](https://img.shields.io/badge/Java-21-blue)
 ![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.5.9-brightgreen)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-blue)

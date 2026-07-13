@@ -17,4 +17,6 @@ public record AdminAuditLogSummaryResponse(
         String resourceType,
         String resourceReference,
         String requestId,
-        String correlationId) {}
+        String correlationId,
+        String httpMethod,
+        String requestPath) {}

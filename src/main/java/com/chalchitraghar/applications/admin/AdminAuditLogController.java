@@ -48,6 +48,8 @@ public class AdminAuditLogController {
             @RequestParam(required = false) String resourceReference,
             @RequestParam(required = false) String requestId,
             @RequestParam(required = false) String correlationId,
+            @RequestParam(required = false) String httpMethod,
+            @RequestParam(required = false) String requestPath,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
                     LocalDateTime occurredFrom,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
@@ -67,6 +69,8 @@ public class AdminAuditLogController {
                         resourceReference,
                         requestId,
                         correlationId,
+                        httpMethod,
+                        requestPath,
                         occurredFrom,
                         occurredTo);
         return ResponseEntity.ok(

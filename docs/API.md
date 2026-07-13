@@ -1,5 +1,11 @@
 # API Reference
 
+Responses include `X-Request-ID` (one request) and `X-Correlation-ID` (related work). Safe client IDs
+are accepted; missing, invalid, or oversized values are replaced. Audit detail includes masked IP when
+enabled, bounded user agent, method, and path; summaries omit IP/user agent. Filters support request ID,
+correlation ID, exact method, and safe path prefix. Bodies, query strings, cookies, and authorization
+headers are never persisted.
+
 Audit-2 automatically populates registration, login, password-reset completion, selected user and
 catalog administration, show/booking/payment/ticket lifecycles, notification preferences, and manual
 delivery retry actions. Actors are USER, SYSTEM, EXTERNAL, or ANONYMOUS. Snapshots are detail-only;

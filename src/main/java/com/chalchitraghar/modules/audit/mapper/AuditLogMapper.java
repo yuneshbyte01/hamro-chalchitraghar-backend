@@ -26,7 +26,9 @@ public class AuditLogMapper {
                 a.getResourceType(),
                 a.getResourceReference(),
                 a.getRequestId(),
-                a.getCorrelationId());
+                a.getCorrelationId(),
+                a.getHttpMethod(),
+                a.getRequestPath());
     }
 
     public AdminAuditLogDetailResponse toAdminDetail(AuditLog a) {
@@ -45,12 +47,20 @@ public class AuditLogMapper {
                 a.getResourceReference(),
                 a.getRequestId(),
                 a.getCorrelationId(),
+                a.getIpAddress(),
+                truncate(a.getUserAgent(), 512),
+                a.getHttpMethod(),
+                a.getRequestPath(),
                 a.getResourceId(),
                 a.getFailureReason(),
                 json(a.getBeforeValues()),
                 json(a.getAfterValues()),
                 json(a.getMetadata()),
                 a.getCreatedAt());
+    }
+
+    private String truncate(String value, int max) {
+        return value == null ? null : value.substring(0, Math.min(value.length(), max));
     }
 
     private JsonNode json(String value) {
