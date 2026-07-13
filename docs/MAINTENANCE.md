@@ -1,5 +1,15 @@
 # Maintenance Guide
 
+## Notification-4 operations
+
+Preference types belong in the centralized preference policy and affect only future EMAIL rows.
+Reminder eligibility requires an enabled user, CONFIRMED booking, SCHEDULED future show, configured
+window, and deterministic `SHOW_REMINDER:{bookingId}:{duration}` key. Manual retry accepts FAILED
+rows below their persisted maximum only. Investigate EXHAUSTED rows through masked admin APIs. Stale
+claims preserve attempt counts. Retention is bounded anonymization, never deletion. Use injected
+`Clock`, row locks, safe logs, and never expose message bodies, recipients, tokens, or credentials.
+
+
 This guide describes how to extend and maintain Hamro Chalchitraghar Backend while staying consistent with the current implementation.
 
 ## Development Workflow

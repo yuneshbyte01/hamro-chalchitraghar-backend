@@ -65,6 +65,11 @@ public class BusinessNotificationEventListener {
     }
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void on(ShowReminderDueEvent event) {
+        handle(event, event.userId(), event.occurredAt());
+    }
+
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void on(TicketIssuedNotificationEvent event) {
         handle(event, event.userId(), event.occurredAt());
     }

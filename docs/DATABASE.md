@@ -521,6 +521,14 @@ is stored per recipient, deterministic business event, and channel. Examples inc
 
 ## Notification email deliveries
 
+## Notification-4 persistence
+
+V28 creates `notification_preferences` with unique `(user_id, notification_type, channel)` EMAIL
+overrides and adds retention indexes plus `anonymized_at`. Reminder keys use
+`SHOW_REMINDER:{bookingId}:{duration}`. Retention anonymizes instead of deleting, preserving event-key
+tombstones and foreign-key integrity.
+
+
 Migration V27 adds `notification_deliveries`, related many-to-one to `notifications`. It snapshots
 the recipient and stores channel, `PENDING/PROCESSING/SENT/FAILED/EXHAUSTED/SKIPPED` status,
 bounded attempts, retry timestamps, sanitized failure reason, worker claim, template identifier,

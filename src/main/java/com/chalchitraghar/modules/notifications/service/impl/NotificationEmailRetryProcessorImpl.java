@@ -18,11 +18,13 @@ public class NotificationEmailRetryProcessorImpl implements NotificationEmailRet
     private final NotificationEmailDispatchLauncher launcher;
     private final NotificationEmailProperties properties;
     private final Clock clock;
+    private final StaleNotificationDeliveryRecoveryService staleRecovery;
 
     @Override
     @Transactional(readOnly = true)
     public int processBatch() {
         if (!properties.isEnabled()) return 0;
+        staleRecovery.recoverBatch();
         LocalDateTime now = LocalDateTime.now(clock);
         var pageable = PageRequest.of(0, properties.getRetryBatchSize());
         var due =
@@ -32,21 +34,7 @@ public class NotificationEmailRetryProcessorImpl implements NotificationEmailRet
                                 NotificationDeliveryStatus.FAILED),
                         now,
                         pageable);
-        int remaining = properties.getRetryBatchSize() - due.getNumberOfElements();
         var ids = new java.util.ArrayList<>(due.stream().map(d -> d.getId()).toList());
-        if (remaining > 0) {
-            LocalDateTime staleBefore =
-                    now.minus(Duration.ofMillis(properties.getProcessingTimeoutMs()));
-            ids.addAll(
-                    deliveries
-                            .findByStatusAndClaimedAtLessThanEqualOrderByClaimedAtAsc(
-                                    NotificationDeliveryStatus.PROCESSING,
-                                    staleBefore,
-                                    PageRequest.of(0, remaining))
-                            .stream()
-                            .map(d -> d.getId())
-                            .toList());
-        }
         ids.forEach(launcher::submit);
         return ids.size();
     }

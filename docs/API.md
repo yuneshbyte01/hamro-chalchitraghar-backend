@@ -1730,6 +1730,15 @@ whenever an active booking exists, so there is currently no customer-facing sche
 
 ## Notification-3 email delivery
 
+## Notification-4 operations, preferences, and reminders
+
+ADMIN-only endpoints provide bounded notification and delivery search/detail with masked recipients,
+plus conservative manual retry of eligible FAILED deliveries under `/api/admin/notifications` and
+`/api/admin/notification-deliveries`. Customers manage future EMAIL queueing through
+`/api/customer/notification-preferences`; defaults are enabled and overrides never disable in-app
+notifications. Confirmed active bookings receive at most one `SHOW_REMINDER` per configured window.
+
+
 `WELCOME`, `BOOKING_CONFIRMED`, `BOOKING_CANCELLED`, `BOOKING_EXPIRED`,
 `PAYMENT_SUCCEEDED`, `PAYMENT_FAILED`, `SHOW_UPDATED`, and `SHOW_CANCELLED` notifications may queue
 email after in-app persistence commits. Email delivery is asynchronous, persisted, idempotent, and

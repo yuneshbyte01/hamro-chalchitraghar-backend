@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <title th:text="${title}">Show reminder</title>
+</head>
+
+<body style="margin:0;background:#f4f4f5;font-family:Arial,sans-serif;color:#18181b">
+    <table role="presentation" width="100%">
+        <tr>
+            <td align="center" style="padding:32px 12px">
+                <table role="presentation" width="600" style="max-width:600px;background:#fff;border-radius:8px">
+                    <tr>
+                        <td style="padding:28px">
+                            <div style="font-size:20px;font-weight:bold;color:#7c2d12">Hamro Chalchitraghar</div>
+                            <p>Hello <span th:text="${customerName}">Customer</span>,</p>
+                            <h1 style="font-size:24px" th:text="${title}">Your show starts soon</h1>
+                            <p style="line-height:1.6" th:text="${message}">Show reminder</p>
+                            <p style="color:#71717a;font-size:13px">Please check your current ticket status before
+                                travelling. This email contains no QR credential.</p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+
+</html>

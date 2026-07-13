@@ -25,6 +25,7 @@ public class NotificationEmailQueueServiceImpl implements NotificationEmailQueue
     private final NotificationEmailDispatchLauncher launcher;
     private final Clock clock;
     private final PlatformTransactionManager transactionManager;
+    private final NotificationPreferenceService preferenceService;
 
     @Override
     public NotificationDelivery queue(Notification supplied) {
@@ -56,6 +57,10 @@ public class NotificationEmailQueueServiceImpl implements NotificationEmailQueue
         if (!properties.isEnabled()) {
             status = NotificationDeliveryStatus.SKIPPED;
             reason = "Email delivery disabled";
+        } else if (!preferenceService.emailEnabled(
+                notification.getUser().getId(), notification.getType())) {
+            status = NotificationDeliveryStatus.SKIPPED;
+            reason = "Disabled by user preference";
         } else if (!valid(recipient)) {
             status = NotificationDeliveryStatus.SKIPPED;
             reason = "Invalid email recipient";

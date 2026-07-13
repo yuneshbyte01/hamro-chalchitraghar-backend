@@ -13,6 +13,7 @@ import com.chalchitraghar.modules.movies.entity.Movie;
 import com.chalchitraghar.modules.movies.enums.MovieStatus;
 import com.chalchitraghar.modules.movies.repository.MovieRepository;
 import com.chalchitraghar.modules.notifications.repository.NotificationDeliveryRepository;
+import com.chalchitraghar.modules.notifications.repository.NotificationPreferenceRepository;
 import com.chalchitraghar.modules.notifications.repository.NotificationRepository;
 import com.chalchitraghar.modules.payments.entity.Payment;
 import com.chalchitraghar.modules.payments.enums.PaymentMethod;
@@ -67,6 +68,7 @@ abstract class AbstractIntegrationTest {
 
     @Autowired protected NotificationRepository notificationRepository;
     @Autowired protected NotificationDeliveryRepository notificationDeliveryRepository;
+    @Autowired protected NotificationPreferenceRepository notificationPreferenceRepository;
 
     @Autowired protected HallRepository hallRepository;
 
@@ -90,6 +92,7 @@ abstract class AbstractIntegrationTest {
     void cleanDatabase() {
         notificationDeliveryRepository.deleteAll();
         notificationRepository.deleteAll();
+        notificationPreferenceRepository.deleteAll();
         ticketDeliveryRepository.deleteAll();
         ticketValidationRepository.deleteAll();
         ticketRepository.deleteAll();

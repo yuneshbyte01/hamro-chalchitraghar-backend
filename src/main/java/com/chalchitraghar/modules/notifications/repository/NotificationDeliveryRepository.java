@@ -12,7 +12,10 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.*;
 import org.springframework.data.repository.query.Param;
 
-public interface NotificationDeliveryRepository extends JpaRepository<NotificationDelivery, Long> {
+public interface NotificationDeliveryRepository
+        extends JpaRepository<NotificationDelivery, Long>,
+                org.springframework.data.jpa.repository.JpaSpecificationExecutor<
+                        NotificationDelivery> {
     Optional<NotificationDelivery> findByNotificationIdAndChannel(
             Long notificationId, NotificationChannel channel);
 

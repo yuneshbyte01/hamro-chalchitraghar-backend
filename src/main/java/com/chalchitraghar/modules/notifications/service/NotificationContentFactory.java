@@ -118,6 +118,24 @@ public class NotificationContentFactory {
                             + DATE_TIME.format(e.showDateTime())
                             + " has been cancelled.",
                     payload("showDateTime", e.showDateTime().toString()));
+        if (event instanceof ShowReminderDueEvent e)
+            return content(
+                    NotificationType.SHOW_REMINDER,
+                    "SHOW_REMINDER:" + e.bookingId() + ":" + e.reminderWindow(),
+                    "Your show starts soon",
+                    "Your booking "
+                            + e.bookingReference()
+                            + " for "
+                            + e.movieName()
+                            + " starts at "
+                            + DATE_TIME.format(e.showDateTime())
+                            + " in "
+                            + e.hallName()
+                            + ".",
+                    payload(
+                            "bookingReference", e.bookingReference(),
+                            "showDateTime", e.showDateTime().toString(),
+                            "hallName", e.hallName()));
         if (event instanceof TicketIssuedNotificationEvent e)
             return content(
                     NotificationType.TICKET_ISSUED,

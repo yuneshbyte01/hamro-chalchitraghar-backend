@@ -272,6 +272,13 @@ database. Password-reset and ticket-delivery email configuration is unchanged.
 
 ## General notification email
 
+## Reminders and retention
+
+Reminders and retention default off. Configure their enable flags, ISO-8601 durations, age limits,
+and bounded batch sizes with the `NOTIFICATION_*` variables in `.env.example`. `APP_TIME_ZONE`
+controls reminder calculations, and tests send no real SMTP.
+
+
 Set `NOTIFICATION_EMAIL_ENABLED=true` and provide `NOTIFICATION_EMAIL_FROM` plus the existing
 `spring.mail`/`MAIL_*` SMTP settings. Pool, queue, retry, backoff, batch, processing-timeout, sender
 name, and async settings are listed in `.env.example`. When disabled, startup needs no SMTP

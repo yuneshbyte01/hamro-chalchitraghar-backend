@@ -480,6 +480,18 @@ deferred to Notification-3, and the existing ticket-email event flow is unchange
 
 ## Notification-3 delivery flow
 
+## Notification-4 operational flow
+
+```text
+Reminder job -> eligible booking -> event -> notification -> preference -> email queue
+Admin retry -> locked FAILED delivery -> dispatcher
+Retention job -> bounded terminal/read selection -> anonymization
+```
+
+Admin DTOs mask recipients. Stale claims recover without resetting attempts. Retention preserves
+type, status, timestamps, relationships, and event keys while removing customer content.
+
+
 ```text
 AFTER_COMMIT listener -> IN_APP notification -> REQUIRES_NEW delivery row
     -> bounded notificationEmailExecutor -> transactional claim (PROCESSING)

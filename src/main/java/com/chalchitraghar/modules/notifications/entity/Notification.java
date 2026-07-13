@@ -69,6 +69,9 @@ public class Notification extends GenericEntity {
     @Column(name = "occurred_at", nullable = false)
     private LocalDateTime occurredAt;
 
+    @Column(name = "anonymized_at")
+    private LocalDateTime anonymizedAt;
+
     /** Notification audit timestamps are assigned by the service using the application Clock. */
     @Override
     @PrePersist

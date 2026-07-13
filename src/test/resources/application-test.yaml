@@ -27,6 +27,17 @@ cors:
 app:
   time-zone: Asia/Kathmandu
   notifications:
+    reminders:
+      enabled: false
+      show-before: PT2H
+      scan-interval: PT5M
+      batch-size: 100
+    retention:
+      enabled: false
+      notification-days: 365
+      delivery-days: 180
+      batch-size: 100
+      interval: PT24H
     email:
       enabled: false
       from: notifications@test.local

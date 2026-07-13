@@ -1,5 +1,15 @@
 # Project Report
 
+## Final notification module
+
+Notifications now include the Notification-1 in-app and ownership foundation, Notification-2 typed
+after-commit events, Notification-3 persisted HTML email delivery and retry, and Notification-4
+ADMIN operations, customer EMAIL preferences, idempotent show reminders, stale recovery, and bounded
+anonymization. Tables are `notifications`, `notification_deliveries`, and
+`notification_preferences`. SMS, push, WebSockets, campaigns, tracking, staff history, and customer
+deletion remain deferred.
+
+
 ## Show lifecycle and customer safety
 
 Shows use an effective time-based lifecycle in the configured `Asia/Kathmandu` application timezone. A scheduled reconciliation job advances stale shows to `RUNNING` at start and `COMPLETED` at end, while read-time and booking-time checks cover delayed jobs. Public catalogs retain currently running shows but hide ended/cancelled shows; all new holds and booking actions close at show start.

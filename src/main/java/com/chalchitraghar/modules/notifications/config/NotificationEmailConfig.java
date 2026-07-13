@@ -8,7 +8,11 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 @Configuration
 @EnableAsync
-@EnableConfigurationProperties(NotificationEmailProperties.class)
+@EnableConfigurationProperties({
+    NotificationEmailProperties.class,
+    NotificationReminderProperties.class,
+    NotificationRetentionProperties.class
+})
 public class NotificationEmailConfig {
     @Bean(name = "notificationEmailExecutor")
     ThreadPoolTaskExecutor notificationEmailExecutor(NotificationEmailProperties properties) {

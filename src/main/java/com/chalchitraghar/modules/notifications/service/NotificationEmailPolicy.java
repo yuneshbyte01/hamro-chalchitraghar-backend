@@ -15,7 +15,8 @@ public class NotificationEmailPolicy {
                     NotificationType.PAYMENT_SUCCEEDED, "payment-succeeded",
                     NotificationType.PAYMENT_FAILED, "payment-failed",
                     NotificationType.SHOW_UPDATED, "show-updated",
-                    NotificationType.SHOW_CANCELLED, "show-cancelled");
+                    NotificationType.SHOW_CANCELLED, "show-cancelled",
+                    NotificationType.SHOW_REMINDER, "show-reminder");
 
     public boolean eligible(NotificationType type) {
         return TEMPLATES.containsKey(type);

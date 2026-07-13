@@ -63,6 +63,9 @@ public class NotificationDelivery extends GenericEntity {
     @Column(nullable = false)
     private int contentVersion;
 
+    @Column(name = "anonymized_at")
+    private LocalDateTime anonymizedAt;
+
     @Override
     @PrePersist
     protected void onCreate() {

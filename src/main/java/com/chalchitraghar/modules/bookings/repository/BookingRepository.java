@@ -34,6 +34,22 @@ public interface BookingRepository
 
     List<Booking> findByShowIdAndStatus(Long showId, BookingStatus status);
 
+    @Query(
+            """
+            select b from Booking b join fetch b.user u join fetch b.show s
+            join fetch s.movie join fetch s.hall
+            where b.status = 'CONFIRMED' and u.enabled = true and s.status = 'SCHEDULED'
+              and (s.showDate > :fromDate or (s.showDate = :fromDate and s.showTime > :fromTime))
+              and (s.showDate < :toDate or (s.showDate = :toDate and s.showTime <= :toTime))
+            order by s.showDate, s.showTime, b.id
+            """)
+    List<Booking> findReminderCandidates(
+            @Param("fromDate") java.time.LocalDate fromDate,
+            @Param("fromTime") java.time.LocalTime fromTime,
+            @Param("toDate") java.time.LocalDate toDate,
+            @Param("toTime") java.time.LocalTime toTime,
+            Pageable pageable);
+
     boolean existsByShowIdAndStatusIn(Long showId, List<BookingStatus> statuses);
 
     long countByShowIdAndStatusIn(Long showId, List<BookingStatus> statuses);

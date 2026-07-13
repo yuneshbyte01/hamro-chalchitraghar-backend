@@ -23,6 +23,17 @@ spring:
 app:
   time-zone: ${APP_TIME_ZONE:Asia/Kathmandu}
   notifications:
+    reminders:
+      enabled: ${NOTIFICATION_REMINDERS_ENABLED:false}
+      show-before: ${NOTIFICATION_SHOW_REMINDER_BEFORE:PT2H}
+      scan-interval: ${NOTIFICATION_REMINDER_SCAN_INTERVAL:PT5M}
+      batch-size: ${NOTIFICATION_REMINDER_BATCH_SIZE:100}
+    retention:
+      enabled: ${NOTIFICATION_RETENTION_ENABLED:false}
+      notification-days: ${NOTIFICATION_RETENTION_DAYS:365}
+      delivery-days: ${NOTIFICATION_DELIVERY_RETENTION_DAYS:180}
+      batch-size: ${NOTIFICATION_RETENTION_BATCH_SIZE:100}
+      interval: ${NOTIFICATION_RETENTION_INTERVAL:PT24H}
     email:
       enabled: ${NOTIFICATION_EMAIL_ENABLED:false}
       from: ${NOTIFICATION_EMAIL_FROM:}
