@@ -1716,3 +1716,14 @@ Marks only the current account's unread `IN_APP` notifications using one timesta
 Returns `{ "unreadCount": n }`, counting only the current account's unread `IN_APP` rows.
 
 All routes require a bearer token. Missing or invalid authentication returns `401`.
+# Notification-2 business events
+
+The existing customer notification endpoints are unchanged. IN_APP notifications are now created
+after committed account registration, booking creation, booking confirmation, ticket issuance,
+payment success, terminal payment failure, booking cancellation, booking expiry, and show
+cancellation transitions. Failed or rolled-back operations create none, and deterministic internal
+event keys prevent repeated processing from creating duplicates. Event keys are never returned by
+the customer DTOs. Email notification delivery and show reminders remain deferred.
+
+`SHOW_UPDATED` is reserved and fully mapped, but the current show rules reject schedule changes
+whenever an active booking exists, so there is currently no customer-facing schedule-update trigger.

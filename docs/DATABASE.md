@@ -510,3 +510,11 @@ an authorization source.
 
 Read state is deliberately independent of future delivery state. Notification-1 has no delivery
 status, attempts, recipients, failure fields, or retry indexes.
+# Notification-2 idempotency
+
+Notification-2 requires no schema change beyond the Notification-1 `notifications` table. The
+existing `(user_id, event_key, channel)` unique constraint is the final concurrency guard: one row
+is stored per recipient, deterministic business event, and channel. Examples include
+`USER_REGISTERED:{userId}`, `BOOKING_CONFIRMED:{bookingId}`,
+`PAYMENT_SUCCEEDED:{paymentId}`, `SHOW_CANCELLED:{showId}:{userId}`, and
+`TICKET_ISSUED:{bookingId}`. Event keys are internal persistence metadata.

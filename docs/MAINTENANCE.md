@@ -531,3 +531,12 @@ must not be silently repaired.
 - Schema changes require Flyway updates plus entity/migration constraint and integration tests.
 - Preserve the separation between in-app read state and future channel delivery state. Do not merge
   this model with `TicketDelivery`.
+# Adding a notification business event
+
+Add an immutable event under `modules.notifications.event`, containing only the recipient ID,
+public-safe context, and an injected-`Clock` occurrence time. Define its deterministic key and text
+in `NotificationContentFactory`, add an `AFTER_COMMIT` listener method, and publish only after the
+authoritative state transition succeeds but before its transaction returns. Never pass JPA entities,
+tokens, OTPs, gateway payloads, QR data, or credentials. Tests must prove commit creation, rollback
+suppression, duplicate delivery idempotency, ownership, and UTC/Kathmandu independence. Do not put
+timestamps or random values in idempotency keys.

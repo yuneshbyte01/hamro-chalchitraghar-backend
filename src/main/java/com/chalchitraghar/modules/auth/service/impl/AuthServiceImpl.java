@@ -16,8 +16,10 @@ import com.chalchitraghar.modules.users.repository.UserRepository;
 import com.chalchitraghar.modules.users.service.UserService;
 import com.chalchitraghar.shared.exception.AuthenticationException;
 import com.chalchitraghar.shared.security.JwtUtil;
+import java.time.Clock;
 import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,11 +36,17 @@ public class AuthServiceImpl implements AuthService {
     private final BCryptPasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
     private final GoogleTokenVerifier googleTokenVerifier;
+    private final ApplicationEventPublisher events;
+    private final Clock clock;
 
     @Override
+    @Transactional
     public RegistrationResponse register(RegistrationRequest request) {
         User user =
                 userService.addUser(request.getName(), request.getEmail(), request.getPassword());
+        events.publishEvent(
+                new com.chalchitraghar.modules.notifications.event.UserRegisteredEvent(
+                        user.getId(), LocalDateTime.now(clock)));
         return new RegistrationResponse("User registered successfully", user.getEmail());
     }
 
@@ -115,7 +123,11 @@ public class AuthServiceImpl implements AuthService {
                         .avatarUrl(googleUser.avatarUrl())
                         .emailVerified(true)
                         .build();
-        return userRepository.save(user);
+        User saved = userRepository.save(user);
+        events.publishEvent(
+                new com.chalchitraghar.modules.notifications.event.UserRegisteredEvent(
+                        saved.getId(), LocalDateTime.now(clock)));
+        return saved;
     }
 
     private void ensureAccountCanAuthenticate(User user) {

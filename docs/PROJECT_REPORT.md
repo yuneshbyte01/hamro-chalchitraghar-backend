@@ -294,3 +294,11 @@ This phase does not automatically create notifications from registration, authen
 payment, show, or ticket workflows. It does not alter password-reset or ticket email delivery.
 Business events are deferred to Notification-2; email/async/retry work to Notification-3; reminders,
 preferences, and administrative operations remain later work. There is no historical backfill.
+# Notification-2
+
+Notification-2 adds typed events for registration, booking lifecycle, payment success/failure,
+show lifecycle, and ticket issuance. Cohesive after-commit listeners create idempotent IN_APP
+notifications through the existing Notification-1 service and uniqueness constraint. Integration
+occurs at authoritative state transitions, providing rollback safety and duplicate-processing
+protection while preserving customer ownership and existing read APIs. Email notifications,
+reminders, async delivery, and an outbox are explicitly deferred.

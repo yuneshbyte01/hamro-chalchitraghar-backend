@@ -11,6 +11,7 @@ import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.Comparator;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,6 +23,7 @@ public class BookingLifecycleService {
     private final BookingSeatRepository bookingSeatRepository;
     private final SeatRepository seatRepository;
     private final Clock clock;
+    private final ApplicationEventPublisher events;
 
     @Transactional
     public boolean reconcileExpiry(Booking booking) {
@@ -43,6 +45,13 @@ public class BookingLifecycleService {
         booking.setStatus(BookingStatus.EXPIRED);
         booking.setExpiredAt(now);
         bookingRepository.save(booking);
+        events.publishEvent(
+                new com.chalchitraghar.modules.notifications.event.BookingExpiredEvent(
+                        booking.getUser().getId(),
+                        booking.getId(),
+                        booking.getBookingReference(),
+                        booking.getShow().getMovie().getTitle(),
+                        now));
         return true;
     }
 
@@ -57,6 +66,13 @@ public class BookingLifecycleService {
             booking.setStatus(BookingStatus.CANCELLED);
             booking.setCancelledAt(LocalDateTime.now(clock));
             bookingRepository.save(booking);
+            events.publishEvent(
+                    new com.chalchitraghar.modules.notifications.event.BookingCancelledEvent(
+                            booking.getUser().getId(),
+                            booking.getId(),
+                            booking.getBookingReference(),
+                            booking.getShow().getMovie().getTitle(),
+                            booking.getCancelledAt()));
             cancelled++;
         }
         return cancelled;

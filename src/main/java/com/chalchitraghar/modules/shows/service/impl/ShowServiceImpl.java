@@ -39,6 +39,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -65,6 +66,7 @@ public class ShowServiceImpl implements ShowService {
     private final BookingLifecycleService bookingLifecycleService;
     private final com.chalchitraghar.modules.tickets.service.TicketOperationsService
             ticketOperationsService;
+    private final ApplicationEventPublisher events;
 
     private static final List<BookingStatus> ACTIVE_BOOKING_STATUSES =
             List.of(
@@ -189,6 +191,7 @@ public class ShowServiceImpl implements ShowService {
         if (show.getStatus() == ShowStatus.RUNNING || show.getStatus() == ShowStatus.COMPLETED) {
             throw new ShowConflictException("Running or completed shows cannot be cancelled");
         }
+        var affectedUserIds = affectedUserIds(id);
         ticketOperationsService.revokeForShow(id, "SHOW_CANCELLED", null);
         bookingLifecycleService.cancelInitiatedBookingsForShow(id);
         transitionStatus(show, ShowStatus.CANCELLED);
@@ -198,6 +201,7 @@ public class ShowServiceImpl implements ShowService {
         locks.forEach(this::clearSeatLock);
         seatRepository.saveAll(locks);
         showRepository.save(show);
+        publishShowCancelled(show, affectedUserIds);
     }
 
     @Override
@@ -207,12 +211,16 @@ public class ShowServiceImpl implements ShowService {
                         .findByIdForUpdate(id)
                         .orElseThrow(() -> new ResourceNotFoundException("Show", id));
         lifecycleService.reconcile(show);
+        var affectedUserIds =
+                status == ShowStatus.CANCELLED ? affectedUserIds(id) : List.<Long>of();
         if (status == ShowStatus.CANCELLED) {
             ticketOperationsService.revokeForShow(id, "SHOW_CANCELLED", null);
             bookingLifecycleService.cancelInitiatedBookingsForShow(id);
         }
         transitionStatus(show, status);
-        return showMapper.toAdminDetail(showRepository.save(show));
+        Show saved = showRepository.save(show);
+        if (status == ShowStatus.CANCELLED) publishShowCancelled(saved, affectedUserIds);
+        return showMapper.toAdminDetail(saved);
     }
 
     @Override
@@ -409,5 +417,28 @@ public class ShowServiceImpl implements ShowService {
         seat.setLockedAt(null);
         seat.setLockExpiresAt(null);
         seat.setLockedByUserId(null);
+    }
+
+    private List<Long> affectedUserIds(Long showId) {
+        return ACTIVE_BOOKING_STATUSES.stream()
+                .flatMap(status -> bookingRepository.findByShowIdAndStatus(showId, status).stream())
+                .map(booking -> booking.getUser().getId())
+                .distinct()
+                .toList();
+    }
+
+    private void publishShowCancelled(Show show, List<Long> userIds) {
+        var occurredAt = java.time.LocalDateTime.now(clock);
+        var showDateTime = java.time.LocalDateTime.of(show.getShowDate(), show.getShowTime());
+        userIds.forEach(
+                userId ->
+                        events.publishEvent(
+                                new com.chalchitraghar.modules.notifications.event
+                                        .ShowCancelledEvent(
+                                        userId,
+                                        show.getId(),
+                                        show.getMovie().getTitle(),
+                                        showDateTime,
+                                        occurredAt)));
     }
 }

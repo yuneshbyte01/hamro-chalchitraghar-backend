@@ -22,6 +22,7 @@ import java.time.*;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -39,6 +40,7 @@ public class PaymentServiceImpl implements PaymentService {
     private final Clock clock;
     private final EsewaPayloadFactory esewaPayloadFactory;
     private final EsewaProperties esewaProperties;
+    private final ApplicationEventPublisher events;
 
     @Value("${app.payments.attempt-expiration-minutes:10}")
     private long expirationMinutes;
@@ -180,7 +182,27 @@ public class PaymentServiceImpl implements PaymentService {
             p.setFailureCode("LOCAL_FAILED");
             p.setFailureMessage("Local payment was marked as failed");
         }
-        return mapper.toCustomerDetail(paymentRepository.save(p));
+        Payment saved = paymentRepository.save(p);
+        Booking booking = saved.getBooking();
+        LocalDateTime occurredAt = LocalDateTime.now(clock);
+        if (target == PaymentStatus.SUCCESS) {
+            events.publishEvent(
+                    new com.chalchitraghar.modules.notifications.event.PaymentSucceededEvent(
+                            booking.getUser().getId(),
+                            saved.getId(),
+                            saved.getPaymentReference(),
+                            booking.getBookingReference(),
+                            occurredAt));
+        } else {
+            events.publishEvent(
+                    new com.chalchitraghar.modules.notifications.event.PaymentFailedEvent(
+                            booking.getUser().getId(),
+                            saved.getId(),
+                            saved.getPaymentReference(),
+                            booking.getBookingReference(),
+                            occurredAt));
+        }
+        return mapper.toCustomerDetail(saved);
     }
 
     private Payment findPaymentForUpdate(String ref, User user) {

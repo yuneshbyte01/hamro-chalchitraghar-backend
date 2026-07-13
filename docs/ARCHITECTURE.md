@@ -459,3 +459,21 @@ event keys.
 Publishing business events and automatically creating notifications are explicitly deferred to
 Notification-2. Email, async delivery, retries, reminders, preferences, admin/staff APIs, and
 historical backfill are not part of Notification-1.
+# Notification-2 event flow
+
+```text
+Authoritative business transition
+  -> publish immutable typed event in the transaction
+  -> transaction commits
+  -> @TransactionalEventListener(AFTER_COMMIT)
+  -> NotificationContentFactory
+  -> idempotent IN_APP notification persistence
+```
+
+Events carry IDs, public references, display-safe context, and an `occurredAt` value from the
+injected application `Clock`; they never carry JPA entities or credentials. The centralized content
+factory owns notification type, deterministic key, text, and minimal JSON payload. Persistence
+failure is safely logged after commit and cannot reverse the business transition. Delivery uses
+in-memory Spring events, so a process crash between commit and listener completion can lose a
+notification; a transactional outbox is the recommended future durability upgrade. Email remains
+deferred to Notification-3, and the existing ticket-email event flow is unchanged.

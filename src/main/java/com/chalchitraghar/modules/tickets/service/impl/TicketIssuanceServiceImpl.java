@@ -86,6 +86,14 @@ public class TicketIssuanceServiceImpl implements TicketIssuanceService {
         tickets.flush();
         events.publishEvent(
                 new com.chalchitraghar.modules.tickets.service.TicketsIssuedEvent(booking.getId()));
+        events.publishEvent(
+                new com.chalchitraghar.modules.notifications.event.TicketIssuedNotificationEvent(
+                        booking.getUser().getId(),
+                        booking.getId(),
+                        booking.getBookingReference(),
+                        booking.getShow().getMovie().getTitle(),
+                        result.size(),
+                        issuedAt));
         return result;
     }
 

@@ -34,7 +34,7 @@ import org.springframework.web.bind.annotation.RestController;
 @Tag(
         name = "Customer Notifications",
         description =
-                "Owner-only in-app notifications. Notification-1 does not include creation APIs, email, reminders, staff, or admin APIs.")
+                "Owner-only in-app notifications created after committed registration, booking, payment, ticket, and show lifecycle events. Failed operations create none; duplicate processing is idempotent; internal event keys are hidden. Email and reminders remain deferred.")
 @SecurityRequirement(name = "bearerAuth")
 public class NotificationController {
     private final NotificationService notificationService;
@@ -43,7 +43,7 @@ public class NotificationController {
     @Operation(
             summary = "List my notifications",
             description =
-                    "Returns only the authenticated account's in-app notifications. Results use stable occurredAt/id ordering and support pagination and approved filters.")
+                    "Returns only the authenticated account's in-app notifications, including registration, booking creation/confirmation/cancellation/expiry, ticket issuance, payment success/eligible failure, and show cancellation events. Results use stable occurredAt/id ordering and support pagination and approved filters.")
     public ResponseEntity<ApiResponse<PageResponse<CustomerNotificationSummaryResponse>>> list(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,

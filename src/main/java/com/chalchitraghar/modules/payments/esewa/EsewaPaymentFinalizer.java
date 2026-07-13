@@ -1,5 +1,6 @@
 package com.chalchitraghar.modules.payments.esewa;
 
+import com.chalchitraghar.modules.bookings.entity.Booking;
 import com.chalchitraghar.modules.bookings.enums.*;
 import com.chalchitraghar.modules.bookings.repository.*;
 import com.chalchitraghar.modules.payments.dto.esewa.EsewaStatusResponse;
@@ -13,6 +14,7 @@ import com.chalchitraghar.modules.tickets.service.TicketIssuanceService;
 import com.chalchitraghar.shared.exception.*;
 import java.time.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,6 +28,7 @@ public class EsewaPaymentFinalizer {
     private final ShowLifecycleService shows;
     private final Clock clock;
     private final TicketIssuanceService ticketIssuanceService;
+    private final ApplicationEventPublisher events;
 
     @Transactional
     public Payment finalizeStatus(
@@ -44,11 +47,14 @@ public class EsewaPaymentFinalizer {
                 return payments.save(p);
             }
             case "NOT_FOUND" -> {
+                boolean newlyFailed = p.getStatus() != PaymentStatus.FAILED;
                 p.setStatus(PaymentStatus.FAILED);
                 p.setFailureCode("ESEWA_TRANSACTION_NOT_FOUND");
                 p.setFailureMessage("eSewa transaction was not found");
                 p.setFailedAt(LocalDateTime.now(clock));
-                return payments.save(p);
+                Payment saved = payments.save(p);
+                if (newlyFailed) publishPaymentFailed(saved);
+                return saved;
             }
             case "CANCELED" -> {
                 p.setStatus(PaymentStatus.CANCELLED);
@@ -82,6 +88,7 @@ public class EsewaPaymentFinalizer {
         p.setCompletedAt(LocalDateTime.now(clock));
         p.setFailureCode(null);
         p.setFailureMessage(null);
+        publishPaymentSucceeded(p);
         var b = bookings.findByIdForUpdate(p.getBooking().getId()).orElseThrow();
         if (b.getStatus() == BookingStatus.CONFIRMED) {
             p.setManualReviewRequired(true);
@@ -109,6 +116,13 @@ public class EsewaPaymentFinalizer {
         b.setConfirmationSource(ConfirmationSource.SYSTEM);
         bookings.save(b);
         ticketIssuanceService.issueTicketsForConfirmedBooking(b);
+        events.publishEvent(
+                new com.chalchitraghar.modules.notifications.event.BookingConfirmedEvent(
+                        b.getUser().getId(),
+                        b.getId(),
+                        b.getBookingReference(),
+                        b.getShow().getMovie().getTitle(),
+                        b.getConfirmedAt()));
         return payments.save(p);
     }
 
@@ -116,5 +130,27 @@ public class EsewaPaymentFinalizer {
         p.setManualReviewRequired(true);
         p.setManualReviewReason(reason);
         return payments.save(p);
+    }
+
+    private void publishPaymentSucceeded(Payment payment) {
+        Booking booking = payment.getBooking();
+        events.publishEvent(
+                new com.chalchitraghar.modules.notifications.event.PaymentSucceededEvent(
+                        booking.getUser().getId(),
+                        payment.getId(),
+                        payment.getPaymentReference(),
+                        booking.getBookingReference(),
+                        LocalDateTime.now(clock)));
+    }
+
+    private void publishPaymentFailed(Payment payment) {
+        Booking booking = payment.getBooking();
+        events.publishEvent(
+                new com.chalchitraghar.modules.notifications.event.PaymentFailedEvent(
+                        booking.getUser().getId(),
+                        payment.getId(),
+                        payment.getPaymentReference(),
+                        booking.getBookingReference(),
+                        LocalDateTime.now(clock)));
     }
 }

@@ -26,6 +26,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 
@@ -63,6 +64,7 @@ public class NotificationServiceImpl implements NotificationService {
         LocalDateTime eventTime = occurredAt == null ? LocalDateTime.now(clock) : occurredAt;
 
         TransactionTemplate transaction = new TransactionTemplate(transactionManager);
+        transaction.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
         try {
             return transaction.execute(
                     status ->
@@ -97,15 +99,14 @@ public class NotificationServiceImpl implements NotificationService {
                                                 return notifications.saveAndFlush(notification);
                                             }));
         } catch (DataIntegrityViolationException race) {
-            return new TransactionTemplate(transactionManager)
-                    .execute(
-                            status ->
-                                    notifications
-                                            .findByUserIdAndEventKeyAndChannel(
-                                                    userId,
-                                                    normalizedEventKey,
-                                                    NotificationChannel.IN_APP)
-                                            .orElseThrow(() -> race));
+            TransactionTemplate retry = new TransactionTemplate(transactionManager);
+            retry.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+            return retry.execute(
+                    status ->
+                            notifications
+                                    .findByUserIdAndEventKeyAndChannel(
+                                            userId, normalizedEventKey, NotificationChannel.IN_APP)
+                                    .orElseThrow(() -> race));
         }
     }
 

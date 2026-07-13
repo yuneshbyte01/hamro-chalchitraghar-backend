@@ -264,3 +264,8 @@ Notification-1 requires no new environment variables, SMTP configuration, async 
 scheduler. It is a database-backed in-app feature installed by Flyway migration V26. Customer list
 pagination defaults to 20 and is bounded at 100 in the service. Existing password-reset and ticket
 email configuration remains unchanged.
+# Notification-2 runtime
+
+Business-event notifications are enabled by default and need no environment variables, SMTP
+settings, async executor, broker, or new runtime service. They persist IN_APP rows in the existing
+database. Password-reset and ticket-delivery email configuration is unchanged.

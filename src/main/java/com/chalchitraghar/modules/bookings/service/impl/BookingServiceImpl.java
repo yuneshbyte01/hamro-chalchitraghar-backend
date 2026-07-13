@@ -46,6 +46,7 @@ import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -73,6 +74,7 @@ public class BookingServiceImpl implements BookingService {
     private final TicketIssuanceService ticketIssuanceService;
     private final com.chalchitraghar.modules.tickets.service.TicketOperationsService
             ticketOperationsService;
+    private final ApplicationEventPublisher events;
 
     @Value("${app.bookings.initiated-expiration-minutes:15}")
     private long initiatedExpirationMinutes;
@@ -151,6 +153,13 @@ public class BookingServiceImpl implements BookingService {
             seat.setLockedByUserId(null);
         }
         seatRepository.saveAll(seats);
+        events.publishEvent(
+                new com.chalchitraghar.modules.notifications.event.BookingCreatedEvent(
+                        user.getId(),
+                        booking.getId(),
+                        booking.getBookingReference(),
+                        show.getMovie().getTitle(),
+                        bookingTime));
         return bookingMapper.toCustomerDetail(booking, bookingSeats);
     }
 
@@ -238,6 +247,13 @@ public class BookingServiceImpl implements BookingService {
         booking.setConfirmationSource(ConfirmationSource.CUSTOMER);
         bookingRepository.save(booking);
         ticketIssuanceService.issueTicketsForConfirmedBooking(booking);
+        events.publishEvent(
+                new com.chalchitraghar.modules.notifications.event.BookingConfirmedEvent(
+                        user.getId(),
+                        booking.getId(),
+                        booking.getBookingReference(),
+                        booking.getShow().getMovie().getTitle(),
+                        booking.getConfirmedAt()));
         return bookingMapper.toCustomerDetail(booking, bookingSeats);
     }
 
@@ -322,6 +338,13 @@ public class BookingServiceImpl implements BookingService {
         booking.setCancelledAt(LocalDateTime.now(clock));
         bookingRepository.save(booking);
         ticketOperationsService.revokeForBooking(bookingId, "BOOKING_CANCELLED", user);
+        events.publishEvent(
+                new com.chalchitraghar.modules.notifications.event.BookingCancelledEvent(
+                        user.getId(),
+                        booking.getId(),
+                        booking.getBookingReference(),
+                        booking.getShow().getMovie().getTitle(),
+                        booking.getCancelledAt()));
         return bookingMapper.toCustomerDetail(booking, bookingSeats);
     }
 
