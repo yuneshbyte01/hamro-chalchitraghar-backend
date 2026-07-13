@@ -1,7 +1,6 @@
 package com.chalchitraghar.modules.auth.dto.request;
 
 import com.chalchitraghar.shared.validation.StrongPassword;
-
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;

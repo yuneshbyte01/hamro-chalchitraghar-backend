@@ -1,21 +1,16 @@
 package com.chalchitraghar.modules.seats.repository;
 
+import com.chalchitraghar.modules.seats.entity.Seat;
+import com.chalchitraghar.modules.seats.enums.SeatStatus;
+import jakarta.persistence.LockModeType;
 import java.time.LocalDateTime;
 import java.util.List;
-
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-import com.chalchitraghar.modules.seats.entity.Seat;
-import com.chalchitraghar.modules.seats.enums.SeatStatus;
-
-import jakarta.persistence.LockModeType;
-
-/**
- * Repository interface for Seat entity persistence operations.
- */
+/** Repository interface for Seat entity persistence operations. */
 public interface SeatRepository extends JpaRepository<Seat, Long> {
 
     /**
@@ -30,8 +25,10 @@ public interface SeatRepository extends JpaRepository<Seat, Long> {
             Long showId, SeatStatus seatStatus, LocalDateTime now);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @Query("SELECT s FROM Seat s WHERE s.show.id = :showId AND s.seatStatus = 'LOCKED' AND s.lockExpiresAt > :now")
-    List<Seat> findActiveLockedSeatsByShowId(@Param("showId") Long showId, @Param("now") LocalDateTime now);
+    @Query(
+            "SELECT s FROM Seat s WHERE s.show.id = :showId AND s.seatStatus = 'LOCKED' AND s.lockExpiresAt > :now")
+    List<Seat> findActiveLockedSeatsByShowId(
+            @Param("showId") Long showId, @Param("now") LocalDateTime now);
 
     long countByShowId(Long showId);
 
@@ -54,8 +51,8 @@ public interface SeatRepository extends JpaRepository<Seat, Long> {
     List<Seat> findByIdsWithLock(@Param("seatIds") List<Long> seatIds);
 
     /**
-     * Finds seats by show ID and seat IDs with pessimistic write lock.
-     * Used for atomic seat locking during booking validation.
+     * Finds seats by show ID and seat IDs with pessimistic write lock. Used for atomic seat locking
+     * during booking validation.
      *
      * @param showId the show ID
      * @param seatIds list of seat IDs to retrieve
@@ -63,7 +60,8 @@ public interface SeatRepository extends JpaRepository<Seat, Long> {
      */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT s FROM Seat s WHERE s.show.id = :showId AND s.id IN :seatIds ORDER BY s.id")
-    List<Seat> findByShowIdAndSeatIdsWithLock(@Param("showId") Long showId, @Param("seatIds") List<Long> seatIds);
+    List<Seat> findByShowIdAndSeatIdsWithLock(
+            @Param("showId") Long showId, @Param("seatIds") List<Long> seatIds);
 
     /**
      * Finds expired locked seats.
@@ -74,6 +72,8 @@ public interface SeatRepository extends JpaRepository<Seat, Long> {
     @Query("SELECT s FROM Seat s WHERE s.seatStatus = 'LOCKED' AND s.lockExpiresAt < :now")
     List<Seat> findExpiredLockedSeats(@Param("now") LocalDateTime now);
 
-    @Query("SELECT s FROM Seat s WHERE s.show.id = :showId AND s.seatStatus = 'LOCKED' AND (s.lockExpiresAt IS NULL OR s.lockExpiresAt < :now)")
-    List<Seat> findExpiredLockedSeatsByShowId(@Param("showId") Long showId, @Param("now") LocalDateTime now);
+    @Query(
+            "SELECT s FROM Seat s WHERE s.show.id = :showId AND s.seatStatus = 'LOCKED' AND (s.lockExpiresAt IS NULL OR s.lockExpiresAt < :now)")
+    List<Seat> findExpiredLockedSeatsByShowId(
+            @Param("showId") Long showId, @Param("now") LocalDateTime now);
 }

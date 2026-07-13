@@ -8,19 +8,15 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import java.nio.charset.StandardCharsets;
-import java.util.Map;
-
-import javax.crypto.SecretKey;
-
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Value;
-
 import com.chalchitraghar.modules.users.enums.Role;
-
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
+import java.nio.charset.StandardCharsets;
+import java.util.Map;
+import javax.crypto.SecretKey;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Value;
 
 class AuthorizationAndErrorApiIntegrationTest extends AbstractIntegrationTest {
 
@@ -51,10 +47,16 @@ class AuthorizationAndErrorApiIntegrationTest extends AbstractIntegrationTest {
     void adminEndpointsRequireAdminRole() throws Exception {
         String customerToken = tokenFor("not-admin@example.com", Role.CUSTOMER);
 
-        mockMvc.perform(post("/api/admin/movies")
-                        .header("Authorization", bearer(customerToken))
-                        .contentType("application/json")
-                        .content(json(movieRequest("Forbidden Movie", com.chalchitraghar.modules.movies.enums.MovieStatus.NOW_SHOWING))))
+        mockMvc.perform(
+                        post("/api/admin/movies")
+                                .header("Authorization", bearer(customerToken))
+                                .contentType("application/json")
+                                .content(
+                                        json(
+                                                movieRequest(
+                                                        "Forbidden Movie",
+                                                        com.chalchitraghar.modules.movies.enums
+                                                                .MovieStatus.NOW_SHOWING))))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.message").value("Access denied"))
@@ -67,15 +69,15 @@ class AuthorizationAndErrorApiIntegrationTest extends AbstractIntegrationTest {
         String adminToken = tokenFor("admin-users@example.com", Role.ADMIN);
         saveUser("listed-customer@example.com", Role.CUSTOMER);
 
-        mockMvc.perform(get("/api/admin/users")
-                        .header("Authorization", bearer(adminToken)))
+        mockMvc.perform(get("/api/admin/users").header("Authorization", bearer(adminToken)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.message").value("Users fetched successfully"))
                 .andExpect(jsonPath("$.data.content").isArray())
-                .andExpect(jsonPath("$.data.content[*].email", hasItems(
-                        "admin-users@example.com",
-                        "listed-customer@example.com")))
+                .andExpect(
+                        jsonPath(
+                                "$.data.content[*].email",
+                                hasItems("admin-users@example.com", "listed-customer@example.com")))
                 .andExpect(jsonPath("$.data.page").value(0))
                 .andExpect(jsonPath("$.data.size").value(20))
                 .andExpect(jsonPath("$.errors").isArray());
@@ -86,14 +88,12 @@ class AuthorizationAndErrorApiIntegrationTest extends AbstractIntegrationTest {
         String customerToken = tokenFor("staff-denied@example.com", Role.CUSTOMER);
         String staffToken = tokenFor("staff-allowed@example.com", Role.STAFF);
 
-        mockMvc.perform(get("/api/staff/bookings/1")
-                        .header("Authorization", bearer(customerToken)))
+        mockMvc.perform(get("/api/staff/bookings/1").header("Authorization", bearer(customerToken)))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.message").value("Access denied"));
 
-        mockMvc.perform(get("/api/staff/bookings/1")
-                        .header("Authorization", bearer(staffToken)))
+        mockMvc.perform(get("/api/staff/bookings/1").header("Authorization", bearer(staffToken)))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.message").value("Booking not found with id: 1"));
@@ -101,8 +101,9 @@ class AuthorizationAndErrorApiIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     void invalidJwtReturnsStandardApiResponse() throws Exception {
-        mockMvc.perform(get("/api/customer/profile")
-                        .header("Authorization", "Bearer invalid-token"))
+        mockMvc.perform(
+                        get("/api/customer/profile")
+                                .header("Authorization", "Bearer invalid-token"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.message").value("Invalid token"))
@@ -114,8 +115,7 @@ class AuthorizationAndErrorApiIntegrationTest extends AbstractIntegrationTest {
     void expiredJwtReturnsStandardApiResponse() throws Exception {
         String expiredToken = expiredToken();
 
-        mockMvc.perform(get("/api/customer/profile")
-                        .header("Authorization", bearer(expiredToken)))
+        mockMvc.perform(get("/api/customer/profile").header("Authorization", bearer(expiredToken)))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.message").value("Token expired"))
@@ -127,9 +127,10 @@ class AuthorizationAndErrorApiIntegrationTest extends AbstractIntegrationTest {
     void expiredRefreshTokenReturnsStandardApiResponse() throws Exception {
         String expiredToken = expiredToken();
 
-        mockMvc.perform(post("/api/auth/refresh")
-                        .contentType("application/json")
-                        .content(json(Map.of("token", expiredToken))))
+        mockMvc.perform(
+                        post("/api/auth/refresh")
+                                .contentType("application/json")
+                                .content(json(Map.of("token", expiredToken))))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.message").value("Invalid or expired token"))
@@ -139,12 +140,15 @@ class AuthorizationAndErrorApiIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     void validationErrorUsesStandardApiResponse() throws Exception {
-        mockMvc.perform(post("/api/auth/register")
-                        .contentType("application/json")
-                        .content(json(Map.of(
-                                "name", "",
-                                "email", "not-an-email",
-                                "password", "short"))))
+        mockMvc.perform(
+                        post("/api/auth/register")
+                                .contentType("application/json")
+                                .content(
+                                        json(
+                                                Map.of(
+                                                        "name", "",
+                                                        "email", "not-an-email",
+                                                        "password", "short"))))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.message").value("Validation failed"))

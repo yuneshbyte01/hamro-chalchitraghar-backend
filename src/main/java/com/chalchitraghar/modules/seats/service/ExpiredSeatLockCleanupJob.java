@@ -1,13 +1,10 @@
 package com.chalchitraghar.modules.seats.service;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-import lombok.RequiredArgsConstructor;
-
-/**
- * Periodically releases expired seat holds.
- */
+/** Periodically releases expired seat holds. */
 @Component
 @RequiredArgsConstructor
 public class ExpiredSeatLockCleanupJob {

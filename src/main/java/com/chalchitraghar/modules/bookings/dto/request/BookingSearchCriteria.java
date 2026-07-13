@@ -14,5 +14,4 @@ public record BookingSearchCriteria(
         LocalDate showDateFrom,
         LocalDate showDateTo,
         LocalDateTime bookingTimeFrom,
-        LocalDateTime bookingTimeTo) {
-}
+        LocalDateTime bookingTimeTo) {}

@@ -1,11 +1,9 @@
 package com.chalchitraghar.modules.shows.dto.response;
 
+import com.chalchitraghar.modules.shows.enums.ShowStatus;
+import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.LocalDate;
 import java.time.LocalTime;
-
-import com.chalchitraghar.modules.shows.enums.ShowStatus;
-
-import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;

@@ -1,20 +1,18 @@
 package com.chalchitraghar;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 
+import com.chalchitraghar.modules.shows.entity.Show;
+import com.chalchitraghar.modules.shows.enums.ShowStatus;
+import com.chalchitraghar.modules.shows.repository.ShowRepository;
+import com.chalchitraghar.modules.shows.service.ShowLifecycleService;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
-
 import org.junit.jupiter.api.Test;
-
-import com.chalchitraghar.modules.shows.entity.Show;
-import com.chalchitraghar.modules.shows.enums.ShowStatus;
-import com.chalchitraghar.modules.shows.service.ShowLifecycleService;
-import com.chalchitraghar.modules.shows.repository.ShowRepository;
-import static org.mockito.Mockito.mock;
 
 class ShowLifecycleServiceTest {
 
@@ -42,8 +40,12 @@ class ShowLifecycleServiceTest {
     }
 
     private Show show(ShowStatus status, LocalTime start, LocalTime end) {
-        Show show = Show.builder().showDate(LocalDate.of(2026, 7, 11))
-                .showTime(start).endTime(end).build();
+        Show show =
+                Show.builder()
+                        .showDate(LocalDate.of(2026, 7, 11))
+                        .showTime(start)
+                        .endTime(end)
+                        .build();
         show.setStatus(status);
         return show;
     }

@@ -2,14 +2,12 @@ package com.chalchitraghar;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import java.util.List;
-
-import org.junit.jupiter.api.Test;
-
 import com.chalchitraghar.modules.halls.entity.SeatTemplate;
 import com.chalchitraghar.modules.halls.service.SeatTemplateValidator;
 import com.chalchitraghar.modules.seats.enums.SeatType;
 import com.chalchitraghar.shared.exception.HallConflictException;
+import java.util.List;
+import org.junit.jupiter.api.Test;
 
 class SeatTemplateValidatorTest {
 
@@ -17,23 +15,30 @@ class SeatTemplateValidatorTest {
 
     @Test
     void rejectsInvalidRow() {
-        assertInvalid(template("a", 1, SeatType.PREMIUM, 0),
+        assertInvalid(
+                template("a", 1, SeatType.PREMIUM, 0),
                 "Seat row must contain one or two uppercase letters A-Z");
     }
 
     @Test
     void rejectsInvalidSeatNumberAndNonSequentialNumbers() {
-        assertInvalid(template("A", 101, SeatType.PREMIUM, 0), "Seat number must be between 1 and 100");
-        assertThatThrownBy(() -> validator.validate(List.of(
-                template("A", 1, SeatType.PREMIUM, 0),
-                template("A", 3, SeatType.PREMIUM, 1)), 2))
+        assertInvalid(
+                template("A", 101, SeatType.PREMIUM, 0), "Seat number must be between 1 and 100");
+        assertThatThrownBy(
+                        () ->
+                                validator.validate(
+                                        List.of(
+                                                template("A", 1, SeatType.PREMIUM, 0),
+                                                template("A", 3, SeatType.PREMIUM, 1)),
+                                        2))
                 .isInstanceOf(HallConflictException.class)
                 .hasMessage("Seat numbers must be sequential within row A");
     }
 
     @Test
     void rejectsInvalidPosition() {
-        assertInvalid(template("A", 1, SeatType.PREMIUM, 1),
+        assertInvalid(
+                template("A", 1, SeatType.PREMIUM, 1),
                 "Seat position indexes must start at 0 and be sequential without gaps");
     }
 
@@ -51,8 +56,8 @@ class SeatTemplateValidatorTest {
 
     @Test
     void rejectsCapacityMismatch() {
-        assertThatThrownBy(() -> validator.validate(
-                List.of(template("A", 1, SeatType.PREMIUM, 0)), 2))
+        assertThatThrownBy(
+                        () -> validator.validate(List.of(template("A", 1, SeatType.PREMIUM, 0)), 2))
                 .isInstanceOf(HallConflictException.class)
                 .hasMessage("Generated seat count must match hall capacity");
     }

@@ -1,36 +1,28 @@
 package com.chalchitraghar.shared.security;
 
-import java.nio.charset.StandardCharsets;
-import java.time.ZoneId;
-import java.util.Date;
-
-import javax.crypto.SecretKey;
-
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
-
 import com.chalchitraghar.modules.users.entity.User;
-
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
+import java.nio.charset.StandardCharsets;
+import java.time.ZoneId;
+import java.util.Date;
+import javax.crypto.SecretKey;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
 
-/**
- * Utility class for JWT token generation, validation, and claim extraction.
- */
+/** Utility class for JWT token generation, validation, and claim extraction. */
 @Component
 public class JwtUtil {
 
     /**
-     * Secret key for signing and verifying JWT tokens.
-     * Must be at least 256 bits for HS256 algorithm.
+     * Secret key for signing and verifying JWT tokens. Must be at least 256 bits for HS256
+     * algorithm.
      */
     private final String secret;
 
-    /**
-     * Token expiration time in milliseconds.
-     */
+    /** Token expiration time in milliseconds. */
     private final long expirationMs;
 
     public JwtUtil(
@@ -61,7 +53,7 @@ public class JwtUtil {
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + expirationMs))
                 .claim("role", user.getRole().name())
-                .signWith(getSigningKey(), SignatureAlgorithm.HS256)    
+                .signWith(getSigningKey(), SignatureAlgorithm.HS256)
                 .compact();
     }
 
@@ -95,9 +87,8 @@ public class JwtUtil {
             return false;
         }
         Date issuedAt = extractIssuedAt(token);
-        Date passwordChangedAt = Date.from(user.getPasswordChangedAt()
-                .atZone(ZoneId.systemDefault())
-                .toInstant());
+        Date passwordChangedAt =
+                Date.from(user.getPasswordChangedAt().atZone(ZoneId.systemDefault()).toInstant());
         return issuedAt.before(passwordChangedAt);
     }
 

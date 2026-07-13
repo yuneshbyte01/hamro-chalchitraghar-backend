@@ -1,9 +1,8 @@
 package com.chalchitraghar.modules.bookings.service.impl;
 
-import org.springframework.stereotype.Service;
-
 import com.chalchitraghar.modules.bookings.entity.Booking;
 import com.chalchitraghar.modules.bookings.service.PaymentAuthorizationService;
+import org.springframework.stereotype.Service;
 
 /** Backward-compatible local authorization until a payment provider is integrated. */
 @Service

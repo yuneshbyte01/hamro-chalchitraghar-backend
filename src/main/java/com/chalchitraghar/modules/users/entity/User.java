@@ -1,12 +1,8 @@
 package com.chalchitraghar.modules.users.entity;
 
-import java.time.LocalDateTime;
-
-import com.chalchitraghar.shared.GenericEntity;
-
 import com.chalchitraghar.modules.users.enums.AuthProvider;
 import com.chalchitraghar.modules.users.enums.Role;
-
+import com.chalchitraghar.shared.GenericEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -15,15 +11,14 @@ import jakarta.persistence.Table;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
-/**
- * Represents a user account with authentication credentials and role-based access.
- */
+/** Represents a user account with authentication credentials and role-based access. */
 @Entity
 @Table(name = "users")
 @Data
@@ -33,31 +28,21 @@ import lombok.NoArgsConstructor;
 @Builder
 public class User extends GenericEntity {
 
-    /**
-     * Name of the user. Must be not blank.
-     */
+    /** Name of the user. Must be not blank. */
     @Column(nullable = false)
     @NotBlank(message = "Name is required")
     private String name;
 
-    /**
-     * Unique email address used for authentication and identification.
-     */
+    /** Unique email address used for authentication and identification. */
     @Column(nullable = false, unique = true)
     @NotBlank(message = "Email is required")
     @Email(message = "Invalid email address")
     private String email;
 
-    /**
-     * Encrypted password. Nullable for Google-only accounts.
-     */
-    @Column
-    private String password;
+    /** Encrypted password. Nullable for Google-only accounts. */
+    @Column private String password;
 
-    /**
-     * Role of the user. Must be not null.
-     * CUSTOMER, STAFF, ADMIN
-     */
+    /** Role of the user. Must be not null. CUSTOMER, STAFF, ADMIN */
     @Column(nullable = false)
     @NotNull(message = "Role is required")
     @Enumerated(EnumType.STRING)
@@ -69,8 +54,7 @@ public class User extends GenericEntity {
     @Builder.Default
     private AuthProvider authProvider = AuthProvider.LOCAL;
 
-    @Column
-    private String googleId;
+    @Column private String googleId;
 
     @Column(nullable = false)
     @Builder.Default
@@ -91,12 +75,9 @@ public class User extends GenericEntity {
     @Builder.Default
     private int failedLoginAttempts = 0;
 
-    @Column
-    private LocalDateTime lockedUntil;
+    @Column private LocalDateTime lockedUntil;
 
-    @Column
-    private LocalDateTime lastLoginAt;
+    @Column private LocalDateTime lastLoginAt;
 
-    @Column
-    private LocalDateTime passwordChangedAt;
+    @Column private LocalDateTime passwordChangedAt;
 }

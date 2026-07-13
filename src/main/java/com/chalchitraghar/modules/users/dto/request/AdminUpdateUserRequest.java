@@ -9,7 +9,9 @@ public class AdminUpdateUserRequest {
     @Schema(example = "John Doe")
     private String name;
 
-    @Schema(example = "STAFF", allowableValues = {"CUSTOMER", "STAFF", "ADMIN"})
+    @Schema(
+            example = "STAFF",
+            allowableValues = {"CUSTOMER", "STAFF", "ADMIN"})
     private String role;
 
     @Schema(example = "true")

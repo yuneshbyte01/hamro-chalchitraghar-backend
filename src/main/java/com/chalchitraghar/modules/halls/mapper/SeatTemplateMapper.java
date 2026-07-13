@@ -1,14 +1,12 @@
 package com.chalchitraghar.modules.halls.mapper;
 
-import java.util.List;
-
-import org.springframework.stereotype.Component;
-
 import com.chalchitraghar.modules.halls.dto.response.AdminSeatLayoutResponse;
 import com.chalchitraghar.modules.halls.dto.response.AdminSeatTemplateSummaryResponse;
 import com.chalchitraghar.modules.halls.entity.Hall;
 import com.chalchitraghar.modules.halls.entity.SeatTemplate;
 import com.chalchitraghar.modules.seats.enums.SeatType;
+import java.util.List;
+import org.springframework.stereotype.Component;
 
 /** Maps hall seat templates to dedicated admin response contracts. */
 @Component
@@ -31,20 +29,24 @@ public class SeatTemplateMapper {
         if (hall == null) {
             return null;
         }
-        List<AdminSeatTemplateSummaryResponse> summaries = templates.stream()
-                .map(this::toSummary)
-                .toList();
-        int premiumSeats = (int) templates.stream()
-                .filter(template -> template.getSeatType() == SeatType.PREMIUM)
-                .count();
-        int platinumSeats = (int) templates.stream()
-                .filter(template -> template.getSeatType() == SeatType.PLATINUM)
-                .count();
-        List<String> rows = templates.stream()
-                .map(SeatTemplate::getRowLabel)
-                .distinct()
-                .sorted(String.CASE_INSENSITIVE_ORDER)
-                .toList();
+        List<AdminSeatTemplateSummaryResponse> summaries =
+                templates.stream().map(this::toSummary).toList();
+        int premiumSeats =
+                (int)
+                        templates.stream()
+                                .filter(template -> template.getSeatType() == SeatType.PREMIUM)
+                                .count();
+        int platinumSeats =
+                (int)
+                        templates.stream()
+                                .filter(template -> template.getSeatType() == SeatType.PLATINUM)
+                                .count();
+        List<String> rows =
+                templates.stream()
+                        .map(SeatTemplate::getRowLabel)
+                        .distinct()
+                        .sorted(String.CASE_INSENSITIVE_ORDER)
+                        .toList();
         return new AdminSeatLayoutResponse(
                 hall.getId(),
                 hall.getName(),

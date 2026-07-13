@@ -14,14 +14,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import java.time.LocalDateTime;
-import java.util.Map;
-
-import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-
 import com.chalchitraghar.modules.auth.dto.GoogleUserInfo;
 import com.chalchitraghar.modules.auth.entity.PasswordResetOtp;
 import com.chalchitraghar.modules.auth.service.EmailService;
@@ -31,6 +23,12 @@ import com.chalchitraghar.modules.users.enums.AuthProvider;
 import com.chalchitraghar.modules.users.enums.Role;
 import com.chalchitraghar.shared.exception.AuthenticationException;
 import com.chalchitraghar.shared.security.JwtUtil;
+import java.time.LocalDateTime;
+import java.util.Map;
+import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 class AuthApiIntegrationTest extends AbstractIntegrationTest {
 
@@ -38,23 +36,23 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
     private static final String FORGOT_PASSWORD_MESSAGE =
             "If an account exists with this email, password reset instructions have been sent.";
 
-    @MockitoBean
-    private EmailService emailService;
+    @MockitoBean private EmailService emailService;
 
-    @MockitoBean
-    private GoogleTokenVerifier googleTokenVerifier;
+    @MockitoBean private GoogleTokenVerifier googleTokenVerifier;
 
-    @Autowired
-    private JwtUtil jwtUtil;
+    @Autowired private JwtUtil jwtUtil;
 
     @Test
     void registerCustomerSuccessfullyWithStrongPassword() throws Exception {
-        mockMvc.perform(post("/api/auth/register")
-                        .contentType("application/json")
-                        .content(json(Map.of(
-                                "name", "Sita",
-                                "email", "sita@example.com",
-                                "password", STRONG_PASSWORD))))
+        mockMvc.perform(
+                        post("/api/auth/register")
+                                .contentType("application/json")
+                                .content(
+                                        json(
+                                                Map.of(
+                                                        "name", "Sita",
+                                                        "email", "sita@example.com",
+                                                        "password", STRONG_PASSWORD))))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.message").value("User registered successfully"))
@@ -86,9 +84,16 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
     void loginSuccessfully() throws Exception {
         saveUser("login@example.com", Role.CUSTOMER);
 
-        mockMvc.perform(post("/api/auth/login")
-                        .contentType("application/json")
-                        .content(json(Map.of("email", "login@example.com", "password", "password123"))))
+        mockMvc.perform(
+                        post("/api/auth/login")
+                                .contentType("application/json")
+                                .content(
+                                        json(
+                                                Map.of(
+                                                        "email",
+                                                        "login@example.com",
+                                                        "password",
+                                                        "password123"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.message").value("Login successful"))
@@ -101,12 +106,15 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
     void duplicateEmailRegistrationReturnsError() throws Exception {
         saveUser("duplicate@example.com", Role.CUSTOMER);
 
-        mockMvc.perform(post("/api/auth/register")
-                        .contentType("application/json")
-                        .content(json(Map.of(
-                                "name", "Duplicate",
-                                "email", "duplicate@example.com",
-                                "password", STRONG_PASSWORD))))
+        mockMvc.perform(
+                        post("/api/auth/register")
+                                .contentType("application/json")
+                                .content(
+                                        json(
+                                                Map.of(
+                                                        "name", "Duplicate",
+                                                        "email", "duplicate@example.com",
+                                                        "password", STRONG_PASSWORD))))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.message").value("Email is already registered"))
@@ -118,9 +126,16 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
     void invalidLoginReturnsUnauthorizedErrorResponse() throws Exception {
         saveUser("wrong-password@example.com", Role.CUSTOMER);
 
-        mockMvc.perform(post("/api/auth/login")
-                        .contentType("application/json")
-                        .content(json(Map.of("email", "wrong-password@example.com", "password", "wrongpass123"))))
+        mockMvc.perform(
+                        post("/api/auth/login")
+                                .contentType("application/json")
+                                .content(
+                                        json(
+                                                Map.of(
+                                                        "email",
+                                                        "wrong-password@example.com",
+                                                        "password",
+                                                        "wrongpass123"))))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.message").value("Invalid credentials"))
@@ -130,12 +145,15 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     void passwordIsStoredHashed() throws Exception {
-        mockMvc.perform(post("/api/auth/register")
-                        .contentType("application/json")
-                        .content(json(Map.of(
-                                "name", "Hashed User",
-                                "email", "hashed@example.com",
-                                "password", STRONG_PASSWORD))))
+        mockMvc.perform(
+                        post("/api/auth/register")
+                                .contentType("application/json")
+                                .content(
+                                        json(
+                                                Map.of(
+                                                        "name", "Hashed User",
+                                                        "email", "hashed@example.com",
+                                                        "password", STRONG_PASSWORD))))
                 .andExpect(status().isCreated());
 
         User user = userRepository.findByEmail("hashed@example.com").orElseThrow();
@@ -147,9 +165,10 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
     void refreshTokenSuccessfully() throws Exception {
         String token = tokenFor("refresh@example.com", Role.CUSTOMER);
 
-        mockMvc.perform(post("/api/auth/refresh")
-                        .contentType("application/json")
-                        .content(json(Map.of("token", token))))
+        mockMvc.perform(
+                        post("/api/auth/refresh")
+                                .contentType("application/json")
+                                .content(json(Map.of("token", token))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.message").value("Token refreshed successfully"))
@@ -161,9 +180,10 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     void invalidRefreshTokenReturnsUnauthorizedErrorResponse() throws Exception {
-        mockMvc.perform(post("/api/auth/refresh")
-                        .contentType("application/json")
-                        .content(json(Map.of("token", "invalid-token"))))
+        mockMvc.perform(
+                        post("/api/auth/refresh")
+                                .contentType("application/json")
+                                .content(json(Map.of("token", "invalid-token"))))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.message").value("Invalid or expired token"))
@@ -194,9 +214,10 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
         when(googleTokenVerifier.verify("invalid-google-token"))
                 .thenThrow(new AuthenticationException("Invalid Google ID token"));
 
-        mockMvc.perform(post("/api/auth/google")
-                        .contentType("application/json")
-                        .content(json(Map.of("idToken", "invalid-google-token"))))
+        mockMvc.perform(
+                        post("/api/auth/google")
+                                .contentType("application/json")
+                                .content(json(Map.of("idToken", "invalid-google-token"))))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.message").value("Invalid Google ID token"))
@@ -209,9 +230,10 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
         when(googleTokenVerifier.verify("expired-google-token"))
                 .thenThrow(new AuthenticationException("Invalid Google ID token"));
 
-        mockMvc.perform(post("/api/auth/google")
-                        .contentType("application/json")
-                        .content(json(Map.of("idToken", "expired-google-token"))))
+        mockMvc.perform(
+                        post("/api/auth/google")
+                                .contentType("application/json")
+                                .content(json(Map.of("idToken", "expired-google-token"))))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.message").value("Invalid Google ID token"));
@@ -222,9 +244,10 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
         when(googleTokenVerifier.verify("unverified-google-token"))
                 .thenReturn(googleUser("google-unverified", "unverified@example.com", false));
 
-        mockMvc.perform(post("/api/auth/google")
-                        .contentType("application/json")
-                        .content(json(Map.of("idToken", "unverified-google-token"))))
+        mockMvc.perform(
+                        post("/api/auth/google")
+                                .contentType("application/json")
+                                .content(json(Map.of("idToken", "unverified-google-token"))))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.message").value("Google email is not verified"))
@@ -234,14 +257,16 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     void googleLoginWithExistingGoogleAccountLogsInAndUpdatesAvatar() throws Exception {
-        saveGoogleUser("existing-google@example.com", "google-existing", "https://example.com/old.png");
+        saveGoogleUser(
+                "existing-google@example.com", "google-existing", "https://example.com/old.png");
         when(googleTokenVerifier.verify("existing-google-token"))
-                .thenReturn(new GoogleUserInfo(
-                        "google-existing",
-                        "existing-google@example.com",
-                        "Google Existing",
-                        "https://example.com/new.png",
-                        true));
+                .thenReturn(
+                        new GoogleUserInfo(
+                                "google-existing",
+                                "existing-google@example.com",
+                                "Google Existing",
+                                "https://example.com/new.png",
+                                true));
 
         googleLoginToken("existing-google-token", "existing-google@example.com");
 
@@ -267,11 +292,14 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
         assertThat(user.isEmailVerified()).isTrue();
         assertThat(passwordEncoder.matches("OldPass@123", user.getPassword())).isTrue();
 
-        mockMvc.perform(post("/api/auth/login")
-                        .contentType("application/json")
-                        .content(json(Map.of(
-                                "email", "local-link@example.com",
-                                "password", "OldPass@123"))))
+        mockMvc.perform(
+                        post("/api/auth/login")
+                                .contentType("application/json")
+                                .content(
+                                        json(
+                                                Map.of(
+                                                        "email", "local-link@example.com",
+                                                        "password", "OldPass@123"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.token").isNotEmpty());
@@ -281,11 +309,14 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
     void localLoginStillWorksForLocalAccount() throws Exception {
         saveCustomerWithPassword("local-still-works@example.com", "OldPass@123");
 
-        mockMvc.perform(post("/api/auth/login")
-                        .contentType("application/json")
-                        .content(json(Map.of(
-                                "email", "local-still-works@example.com",
-                                "password", "OldPass@123"))))
+        mockMvc.perform(
+                        post("/api/auth/login")
+                                .contentType("application/json")
+                                .content(
+                                        json(
+                                                Map.of(
+                                                        "email", "local-still-works@example.com",
+                                                        "password", "OldPass@123"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.token").isNotEmpty());
@@ -293,13 +324,17 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     void passwordLoginForGoogleAccountFailsGracefully() throws Exception {
-        saveGoogleUser("google-password@example.com", "google-password", "https://example.com/avatar.png");
+        saveGoogleUser(
+                "google-password@example.com", "google-password", "https://example.com/avatar.png");
 
-        mockMvc.perform(post("/api/auth/login")
-                        .contentType("application/json")
-                        .content(json(Map.of(
-                                "email", "google-password@example.com",
-                                "password", "AnyPass@123"))))
+        mockMvc.perform(
+                        post("/api/auth/login")
+                                .contentType("application/json")
+                                .content(
+                                        json(
+                                                Map.of(
+                                                        "email", "google-password@example.com",
+                                                        "password", "AnyPass@123"))))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.message").value("This account uses Google Sign-In."))
@@ -313,11 +348,14 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
     void failedLoginIncrementsAttempts() throws Exception {
         saveCustomerWithPassword("attempts@example.com", "OldPass@123");
 
-        mockMvc.perform(post("/api/auth/login")
-                        .contentType("application/json")
-                        .content(json(Map.of(
-                                "email", "attempts@example.com",
-                                "password", "WrongPass@123"))))
+        mockMvc.perform(
+                        post("/api/auth/login")
+                                .contentType("application/json")
+                                .content(
+                                        json(
+                                                Map.of(
+                                                        "email", "attempts@example.com",
+                                                        "password", "WrongPass@123"))))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.message").value("Invalid credentials"));
 
@@ -331,11 +369,15 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
         saveCustomerWithPassword("lock-after-failures@example.com", "OldPass@123");
 
         for (int attempt = 0; attempt < 5; attempt++) {
-            mockMvc.perform(post("/api/auth/login")
-                            .contentType("application/json")
-                            .content(json(Map.of(
-                                    "email", "lock-after-failures@example.com",
-                                    "password", "WrongPass@123"))))
+            mockMvc.perform(
+                            post("/api/auth/login")
+                                    .contentType("application/json")
+                                    .content(
+                                            json(
+                                                    Map.of(
+                                                            "email",
+                                                                    "lock-after-failures@example.com",
+                                                            "password", "WrongPass@123"))))
                     .andExpect(status().isUnauthorized())
                     .andExpect(jsonPath("$.message").value("Invalid credentials"));
         }
@@ -353,14 +395,19 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
         user.setLockedUntil(LocalDateTime.now().plusMinutes(15));
         userRepository.save(user);
 
-        mockMvc.perform(post("/api/auth/login")
-                        .contentType("application/json")
-                        .content(json(Map.of(
-                                "email", "locked-login@example.com",
-                                "password", "OldPass@123"))))
+        mockMvc.perform(
+                        post("/api/auth/login")
+                                .contentType("application/json")
+                                .content(
+                                        json(
+                                                Map.of(
+                                                        "email", "locked-login@example.com",
+                                                        "password", "OldPass@123"))))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.message").value("Account is temporarily locked. Please try again later."));
+                .andExpect(
+                        jsonPath("$.message")
+                                .value("Account is temporarily locked. Please try again later."));
     }
 
     @Test
@@ -371,11 +418,14 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
         user.setLockedUntil(LocalDateTime.now().minusMinutes(1));
         userRepository.save(user);
 
-        mockMvc.perform(post("/api/auth/login")
-                        .contentType("application/json")
-                        .content(json(Map.of(
-                                "email", "expired-lock@example.com",
-                                "password", "OldPass@123"))))
+        mockMvc.perform(
+                        post("/api/auth/login")
+                                .contentType("application/json")
+                                .content(
+                                        json(
+                                                Map.of(
+                                                        "email", "expired-lock@example.com",
+                                                        "password", "OldPass@123"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.token").isNotEmpty());
@@ -392,11 +442,14 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
         user.setFailedLoginAttempts(3);
         userRepository.save(user);
 
-        mockMvc.perform(post("/api/auth/login")
-                        .contentType("application/json")
-                        .content(json(Map.of(
-                                "email", "successful-reset@example.com",
-                                "password", "OldPass@123"))))
+        mockMvc.perform(
+                        post("/api/auth/login")
+                                .contentType("application/json")
+                                .content(
+                                        json(
+                                                Map.of(
+                                                        "email", "successful-reset@example.com",
+                                                        "password", "OldPass@123"))))
                 .andExpect(status().isOk());
 
         User updated = userRepository.findByEmail("successful-reset@example.com").orElseThrow();
@@ -406,12 +459,15 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     void registrationSetsPasswordChangedAt() throws Exception {
-        mockMvc.perform(post("/api/auth/register")
-                        .contentType("application/json")
-                        .content(json(Map.of(
-                                "name", "Tracked Password",
-                                "email", "tracked-register@example.com",
-                                "password", STRONG_PASSWORD))))
+        mockMvc.perform(
+                        post("/api/auth/register")
+                                .contentType("application/json")
+                                .content(
+                                        json(
+                                                Map.of(
+                                                        "name", "Tracked Password",
+                                                        "email", "tracked-register@example.com",
+                                                        "password", STRONG_PASSWORD))))
                 .andExpect(status().isCreated());
 
         User user = userRepository.findByEmail("tracked-register@example.com").orElseThrow();
@@ -425,12 +481,15 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
         userRepository.save(user);
         String token = loginTokenWithPassword("tracked-change@example.com", "OldPass@123");
 
-        mockMvc.perform(put("/api/customer/profile/password")
-                        .header("Authorization", bearer(token))
-                        .contentType("application/json")
-                        .content(json(Map.of(
-                                "currentPassword", "OldPass@123",
-                                "newPassword", "NewStrongPass@123"))))
+        mockMvc.perform(
+                        put("/api/customer/profile/password")
+                                .header("Authorization", bearer(token))
+                                .contentType("application/json")
+                                .content(
+                                        json(
+                                                Map.of(
+                                                        "currentPassword", "OldPass@123",
+                                                        "newPassword", "NewStrongPass@123"))))
                 .andExpect(status().isOk());
 
         User updated = userRepository.findByEmail("tracked-change@example.com").orElseThrow();
@@ -444,12 +503,15 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
         userRepository.save(user);
         String otp = requestPasswordResetOtp("tracked-reset@example.com");
 
-        mockMvc.perform(post("/api/auth/reset-password")
-                        .contentType("application/json")
-                        .content(json(Map.of(
-                                "email", "tracked-reset@example.com",
-                                "otp", otp,
-                                "newPassword", "NewStrongPass@123"))))
+        mockMvc.perform(
+                        post("/api/auth/reset-password")
+                                .contentType("application/json")
+                                .content(
+                                        json(
+                                                Map.of(
+                                                        "email", "tracked-reset@example.com",
+                                                        "otp", otp,
+                                                        "newPassword", "NewStrongPass@123"))))
                 .andExpect(status().isOk());
 
         User updated = userRepository.findByEmail("tracked-reset@example.com").orElseThrow();
@@ -462,11 +524,14 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
         user.setEnabled(false);
         userRepository.save(user);
 
-        mockMvc.perform(post("/api/auth/login")
-                        .contentType("application/json")
-                        .content(json(Map.of(
-                                "email", "disabled-login@example.com",
-                                "password", "OldPass@123"))))
+        mockMvc.perform(
+                        post("/api/auth/login")
+                                .contentType("application/json")
+                                .content(
+                                        json(
+                                                Map.of(
+                                                        "email", "disabled-login@example.com",
+                                                        "password", "OldPass@123"))))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.message").value("Account is disabled"));
@@ -480,8 +545,7 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
         user.setEnabled(false);
         userRepository.save(user);
 
-        mockMvc.perform(get("/api/customer/profile")
-                        .header("Authorization", bearer(token)))
+        mockMvc.perform(get("/api/customer/profile").header("Authorization", bearer(token)))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.message").value("Account is disabled"));
@@ -489,7 +553,10 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     void googleLoginUpdatesLastLoginAt() throws Exception {
-        saveGoogleUser("google-last-login@example.com", "google-last-login", "https://example.com/old.png");
+        saveGoogleUser(
+                "google-last-login@example.com",
+                "google-last-login",
+                "https://example.com/old.png");
         when(googleTokenVerifier.verify("google-last-login-token"))
                 .thenReturn(googleUser("google-last-login", "google-last-login@example.com", true));
 
@@ -501,31 +568,43 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     void lockedGoogleAccountCannotLogin() throws Exception {
-        User user = saveGoogleUser("locked-google@example.com", "locked-google", "https://example.com/avatar.png");
+        User user =
+                saveGoogleUser(
+                        "locked-google@example.com",
+                        "locked-google",
+                        "https://example.com/avatar.png");
         user.setLocked(true);
         user.setLockedUntil(LocalDateTime.now().plusMinutes(15));
         userRepository.save(user);
         when(googleTokenVerifier.verify("locked-google-token"))
                 .thenReturn(googleUser("locked-google", "locked-google@example.com", true));
 
-        mockMvc.perform(post("/api/auth/google")
-                        .contentType("application/json")
-                        .content(json(Map.of("idToken", "locked-google-token"))))
+        mockMvc.perform(
+                        post("/api/auth/google")
+                                .contentType("application/json")
+                                .content(json(Map.of("idToken", "locked-google-token"))))
                 .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.message").value("Account is temporarily locked. Please try again later."));
+                .andExpect(
+                        jsonPath("$.message")
+                                .value("Account is temporarily locked. Please try again later."));
     }
 
     @Test
     void disabledGoogleAccountCannotLogin() throws Exception {
-        User user = saveGoogleUser("disabled-google@example.com", "disabled-google", "https://example.com/avatar.png");
+        User user =
+                saveGoogleUser(
+                        "disabled-google@example.com",
+                        "disabled-google",
+                        "https://example.com/avatar.png");
         user.setEnabled(false);
         userRepository.save(user);
         when(googleTokenVerifier.verify("disabled-google-token"))
                 .thenReturn(googleUser("disabled-google", "disabled-google@example.com", true));
 
-        mockMvc.perform(post("/api/auth/google")
-                        .contentType("application/json")
-                        .content(json(Map.of("idToken", "disabled-google-token"))))
+        mockMvc.perform(
+                        post("/api/auth/google")
+                                .contentType("application/json")
+                                .content(json(Map.of("idToken", "disabled-google-token"))))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.message").value("Account is disabled"));
     }
@@ -535,28 +614,33 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
         saveCustomerWithPassword("old-token@example.com", "OldPass@123");
         String oldToken = loginTokenWithPassword("old-token@example.com", "OldPass@123");
 
-        mockMvc.perform(put("/api/customer/profile/password")
-                        .header("Authorization", bearer(oldToken))
-                        .contentType("application/json")
-                        .content(json(Map.of(
-                                "currentPassword", "OldPass@123",
-                                "newPassword", "NewStrongPass@123"))))
+        mockMvc.perform(
+                        put("/api/customer/profile/password")
+                                .header("Authorization", bearer(oldToken))
+                                .contentType("application/json")
+                                .content(
+                                        json(
+                                                Map.of(
+                                                        "currentPassword", "OldPass@123",
+                                                        "newPassword", "NewStrongPass@123"))))
                 .andExpect(status().isOk());
 
-        mockMvc.perform(get("/api/customer/profile")
-                        .header("Authorization", bearer(oldToken)))
+        mockMvc.perform(get("/api/customer/profile").header("Authorization", bearer(oldToken)))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.message").value("Token is no longer valid after password change"));
+                .andExpect(
+                        jsonPath("$.message")
+                                .value("Token is no longer valid after password change"));
     }
 
     @Test
     void forgotPasswordWithExistingEmailReturnsGenericSuccess() throws Exception {
         saveCustomerWithPassword("forgot-existing@example.com", "OldPass@123");
 
-        mockMvc.perform(post("/api/auth/forgot-password")
-                        .contentType("application/json")
-                        .content(json(Map.of("email", "forgot-existing@example.com"))))
+        mockMvc.perform(
+                        post("/api/auth/forgot-password")
+                                .contentType("application/json")
+                                .content(json(Map.of("email", "forgot-existing@example.com"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.message").value(FORGOT_PASSWORD_MESSAGE))
@@ -569,9 +653,10 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     void forgotPasswordWithUnknownEmailReturnsSameGenericSuccess() throws Exception {
-        mockMvc.perform(post("/api/auth/forgot-password")
-                        .contentType("application/json")
-                        .content(json(Map.of("email", "missing@example.com"))))
+        mockMvc.perform(
+                        post("/api/auth/forgot-password")
+                                .contentType("application/json")
+                                .content(json(Map.of("email", "missing@example.com"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.message").value(FORGOT_PASSWORD_MESSAGE))
@@ -600,12 +685,15 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
         saveCustomerWithPassword("reset-success@example.com", "OldPass@123");
         String otp = requestPasswordResetOtp("reset-success@example.com");
 
-        mockMvc.perform(post("/api/auth/reset-password")
-                        .contentType("application/json")
-                        .content(json(Map.of(
-                                "email", "reset-success@example.com",
-                                "otp", otp,
-                                "newPassword", "NewStrongPass@123"))))
+        mockMvc.perform(
+                        post("/api/auth/reset-password")
+                                .contentType("application/json")
+                                .content(
+                                        json(
+                                                Map.of(
+                                                        "email", "reset-success@example.com",
+                                                        "otp", otp,
+                                                        "newPassword", "NewStrongPass@123"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.message").value("Password reset successfully"))
@@ -615,19 +703,25 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
         PasswordResetOtp resetOtp = passwordResetOtpRepository.findAll().getFirst();
         assertThat(resetOtp.getUsedAt()).isNotNull();
 
-        mockMvc.perform(post("/api/auth/login")
-                        .contentType("application/json")
-                        .content(json(Map.of(
-                                "email", "reset-success@example.com",
-                                "password", "OldPass@123"))))
+        mockMvc.perform(
+                        post("/api/auth/login")
+                                .contentType("application/json")
+                                .content(
+                                        json(
+                                                Map.of(
+                                                        "email", "reset-success@example.com",
+                                                        "password", "OldPass@123"))))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.message").value("Invalid credentials"));
 
-        mockMvc.perform(post("/api/auth/login")
-                        .contentType("application/json")
-                        .content(json(Map.of(
-                                "email", "reset-success@example.com",
-                                "password", "NewStrongPass@123"))))
+        mockMvc.perform(
+                        post("/api/auth/login")
+                                .contentType("application/json")
+                                .content(
+                                        json(
+                                                Map.of(
+                                                        "email", "reset-success@example.com",
+                                                        "password", "NewStrongPass@123"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.token").isNotEmpty());
@@ -639,12 +733,15 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
         String otp = requestPasswordResetOtp("invalid-otp@example.com");
         String invalidOtp = differentOtpThan(otp);
 
-        mockMvc.perform(post("/api/auth/reset-password")
-                        .contentType("application/json")
-                        .content(json(Map.of(
-                                "email", "invalid-otp@example.com",
-                                "otp", invalidOtp,
-                                "newPassword", "NewStrongPass@123"))))
+        mockMvc.perform(
+                        post("/api/auth/reset-password")
+                                .contentType("application/json")
+                                .content(
+                                        json(
+                                                Map.of(
+                                                        "email", "invalid-otp@example.com",
+                                                        "otp", invalidOtp,
+                                                        "newPassword", "NewStrongPass@123"))))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.message").value("Invalid or expired password reset OTP"))
@@ -662,12 +759,15 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
         resetOtp.setExpiresAt(LocalDateTime.now().minusMinutes(1));
         passwordResetOtpRepository.save(resetOtp);
 
-        mockMvc.perform(post("/api/auth/reset-password")
-                        .contentType("application/json")
-                        .content(json(Map.of(
-                                "email", "expired-reset@example.com",
-                                "otp", otp,
-                                "newPassword", "NewStrongPass@123"))))
+        mockMvc.perform(
+                        post("/api/auth/reset-password")
+                                .contentType("application/json")
+                                .content(
+                                        json(
+                                                Map.of(
+                                                        "email", "expired-reset@example.com",
+                                                        "otp", otp,
+                                                        "newPassword", "NewStrongPass@123"))))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.message").value("Invalid or expired password reset OTP"))
@@ -680,20 +780,26 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
         saveCustomerWithPassword("reused-reset@example.com", "OldPass@123");
         String otp = requestPasswordResetOtp("reused-reset@example.com");
 
-        mockMvc.perform(post("/api/auth/reset-password")
-                        .contentType("application/json")
-                        .content(json(Map.of(
-                                "email", "reused-reset@example.com",
-                                "otp", otp,
-                                "newPassword", "NewStrongPass@123"))))
+        mockMvc.perform(
+                        post("/api/auth/reset-password")
+                                .contentType("application/json")
+                                .content(
+                                        json(
+                                                Map.of(
+                                                        "email", "reused-reset@example.com",
+                                                        "otp", otp,
+                                                        "newPassword", "NewStrongPass@123"))))
                 .andExpect(status().isOk());
 
-        mockMvc.perform(post("/api/auth/reset-password")
-                        .contentType("application/json")
-                        .content(json(Map.of(
-                                "email", "reused-reset@example.com",
-                                "otp", otp,
-                                "newPassword", "AnotherStrongPass@123"))))
+        mockMvc.perform(
+                        post("/api/auth/reset-password")
+                                .contentType("application/json")
+                                .content(
+                                        json(
+                                                Map.of(
+                                                        "email", "reused-reset@example.com",
+                                                        "otp", otp,
+                                                        "newPassword", "AnotherStrongPass@123"))))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.message").value("Invalid or expired password reset OTP"))
@@ -708,25 +814,33 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
         String invalidOtp = differentOtpThan(otp);
 
         for (int attempt = 0; attempt < 5; attempt++) {
-            mockMvc.perform(post("/api/auth/reset-password")
-                            .contentType("application/json")
-                            .content(json(Map.of(
-                                    "email", "max-attempts@example.com",
-                                    "otp", invalidOtp,
-                                    "newPassword", "NewStrongPass@123"))))
+            mockMvc.perform(
+                            post("/api/auth/reset-password")
+                                    .contentType("application/json")
+                                    .content(
+                                            json(
+                                                    Map.of(
+                                                            "email", "max-attempts@example.com",
+                                                            "otp", invalidOtp,
+                                                            "newPassword", "NewStrongPass@123"))))
                     .andExpect(status().isBadRequest())
-                    .andExpect(jsonPath("$.message").value("Invalid or expired password reset OTP"));
+                    .andExpect(
+                            jsonPath("$.message").value("Invalid or expired password reset OTP"));
         }
 
-        mockMvc.perform(post("/api/auth/reset-password")
-                        .contentType("application/json")
-                        .content(json(Map.of(
-                                "email", "max-attempts@example.com",
-                                "otp", invalidOtp,
-                                "newPassword", "NewStrongPass@123"))))
+        mockMvc.perform(
+                        post("/api/auth/reset-password")
+                                .contentType("application/json")
+                                .content(
+                                        json(
+                                                Map.of(
+                                                        "email", "max-attempts@example.com",
+                                                        "otp", invalidOtp,
+                                                        "newPassword", "NewStrongPass@123"))))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.message").value("Maximum password reset OTP attempts exceeded"))
+                .andExpect(
+                        jsonPath("$.message").value("Maximum password reset OTP attempts exceeded"))
                 .andExpect(jsonPath("$.data").value(nullValue()))
                 .andExpect(jsonPath("$.errors").isArray());
 
@@ -738,12 +852,15 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
         saveCustomerWithPassword("weak-reset@example.com", "OldPass@123");
         String otp = requestPasswordResetOtp("weak-reset@example.com");
 
-        mockMvc.perform(post("/api/auth/reset-password")
-                        .contentType("application/json")
-                        .content(json(Map.of(
-                                "email", "weak-reset@example.com",
-                                "otp", otp,
-                                "newPassword", "weakpassword"))))
+        mockMvc.perform(
+                        post("/api/auth/reset-password")
+                                .contentType("application/json")
+                                .content(
+                                        json(
+                                                Map.of(
+                                                        "email", "weak-reset@example.com",
+                                                        "otp", otp,
+                                                        "newPassword", "weakpassword"))))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.message").value("Validation failed"))
@@ -757,15 +874,20 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
         saveCustomerWithPassword("same-reset@example.com", "OldPass@123");
         String otp = requestPasswordResetOtp("same-reset@example.com");
 
-        mockMvc.perform(post("/api/auth/reset-password")
-                        .contentType("application/json")
-                        .content(json(Map.of(
-                                "email", "same-reset@example.com",
-                                "otp", otp,
-                                "newPassword", "OldPass@123"))))
+        mockMvc.perform(
+                        post("/api/auth/reset-password")
+                                .contentType("application/json")
+                                .content(
+                                        json(
+                                                Map.of(
+                                                        "email", "same-reset@example.com",
+                                                        "otp", otp,
+                                                        "newPassword", "OldPass@123"))))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.message").value("New password must be different from current password"))
+                .andExpect(
+                        jsonPath("$.message")
+                                .value("New password must be different from current password"))
                 .andExpect(jsonPath("$.data").value(nullValue()))
                 .andExpect(jsonPath("$.errors").isArray());
     }
@@ -774,8 +896,7 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
     void customerProfileReturnsCurrentUserForValidCustomerToken() throws Exception {
         String token = tokenFor("profile@example.com", Role.CUSTOMER);
 
-        mockMvc.perform(get("/api/customer/profile")
-                        .header("Authorization", bearer(token)))
+        mockMvc.perform(get("/api/customer/profile").header("Authorization", bearer(token)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.message").value("Profile fetched successfully"))
@@ -789,10 +910,11 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
     void customerProfileUpdateChangesName() throws Exception {
         String token = tokenFor("profile-update@example.com", Role.CUSTOMER);
 
-        mockMvc.perform(put("/api/customer/profile")
-                        .header("Authorization", bearer(token))
-                        .contentType("application/json")
-                        .content(json(Map.of("name", "Updated Name"))))
+        mockMvc.perform(
+                        put("/api/customer/profile")
+                                .header("Authorization", bearer(token))
+                                .contentType("application/json")
+                                .content(json(Map.of("name", "Updated Name"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.message").value("Profile updated successfully"))
@@ -809,10 +931,11 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
     void customerProfileUpdateRejectsBlankName() throws Exception {
         String token = tokenFor("blank-name@example.com", Role.CUSTOMER);
 
-        mockMvc.perform(put("/api/customer/profile")
-                        .header("Authorization", bearer(token))
-                        .contentType("application/json")
-                        .content(json(Map.of("name", " "))))
+        mockMvc.perform(
+                        put("/api/customer/profile")
+                                .header("Authorization", bearer(token))
+                                .contentType("application/json")
+                                .content(json(Map.of("name", " "))))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.message").value("Validation failed"))
@@ -825,13 +948,16 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
     void customerProfileUpdateDoesNotAllowEmailOrRoleUpdate() throws Exception {
         String token = tokenFor("protected-profile@example.com", Role.CUSTOMER);
 
-        mockMvc.perform(put("/api/customer/profile")
-                        .header("Authorization", bearer(token))
-                        .contentType("application/json")
-                        .content(json(Map.of(
-                                "name", "Protected Name",
-                                "email", "changed@example.com",
-                                "role", "ADMIN"))))
+        mockMvc.perform(
+                        put("/api/customer/profile")
+                                .header("Authorization", bearer(token))
+                                .contentType("application/json")
+                                .content(
+                                        json(
+                                                Map.of(
+                                                        "name", "Protected Name",
+                                                        "email", "changed@example.com",
+                                                        "role", "ADMIN"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.name").value("Protected Name"))
@@ -850,31 +976,40 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
         saveCustomerWithPassword("change-password@example.com", "OldPass@123");
         String token = loginTokenWithPassword("change-password@example.com", "OldPass@123");
 
-        mockMvc.perform(put("/api/customer/profile/password")
-                        .header("Authorization", bearer(token))
-                        .contentType("application/json")
-                        .content(json(Map.of(
-                                "currentPassword", "OldPass@123",
-                                "newPassword", "NewStrongPass@123"))))
+        mockMvc.perform(
+                        put("/api/customer/profile/password")
+                                .header("Authorization", bearer(token))
+                                .contentType("application/json")
+                                .content(
+                                        json(
+                                                Map.of(
+                                                        "currentPassword", "OldPass@123",
+                                                        "newPassword", "NewStrongPass@123"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.message").value("Password changed successfully"))
                 .andExpect(jsonPath("$.data").value(nullValue()))
                 .andExpect(jsonPath("$.errors").isArray());
 
-        mockMvc.perform(post("/api/auth/login")
-                        .contentType("application/json")
-                        .content(json(Map.of(
-                                "email", "change-password@example.com",
-                                "password", "OldPass@123"))))
+        mockMvc.perform(
+                        post("/api/auth/login")
+                                .contentType("application/json")
+                                .content(
+                                        json(
+                                                Map.of(
+                                                        "email", "change-password@example.com",
+                                                        "password", "OldPass@123"))))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.message").value("Invalid credentials"));
 
-        mockMvc.perform(post("/api/auth/login")
-                        .contentType("application/json")
-                        .content(json(Map.of(
-                                "email", "change-password@example.com",
-                                "password", "NewStrongPass@123"))))
+        mockMvc.perform(
+                        post("/api/auth/login")
+                                .contentType("application/json")
+                                .content(
+                                        json(
+                                                Map.of(
+                                                        "email", "change-password@example.com",
+                                                        "password", "NewStrongPass@123"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.token").isNotEmpty());
@@ -885,12 +1020,15 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
         saveCustomerWithPassword("wrong-current@example.com", "OldPass@123");
         String token = loginTokenWithPassword("wrong-current@example.com", "OldPass@123");
 
-        mockMvc.perform(put("/api/customer/profile/password")
-                        .header("Authorization", bearer(token))
-                        .contentType("application/json")
-                        .content(json(Map.of(
-                                "currentPassword", "WrongPass@123",
-                                "newPassword", "NewStrongPass@123"))))
+        mockMvc.perform(
+                        put("/api/customer/profile/password")
+                                .header("Authorization", bearer(token))
+                                .contentType("application/json")
+                                .content(
+                                        json(
+                                                Map.of(
+                                                        "currentPassword", "WrongPass@123",
+                                                        "newPassword", "NewStrongPass@123"))))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.message").value("Current password is incorrect"))
@@ -903,12 +1041,15 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
         saveCustomerWithPassword("weak-new@example.com", "OldPass@123");
         String token = loginTokenWithPassword("weak-new@example.com", "OldPass@123");
 
-        mockMvc.perform(put("/api/customer/profile/password")
-                        .header("Authorization", bearer(token))
-                        .contentType("application/json")
-                        .content(json(Map.of(
-                                "currentPassword", "OldPass@123",
-                                "newPassword", "weakpassword"))))
+        mockMvc.perform(
+                        put("/api/customer/profile/password")
+                                .header("Authorization", bearer(token))
+                                .contentType("application/json")
+                                .content(
+                                        json(
+                                                Map.of(
+                                                        "currentPassword", "OldPass@123",
+                                                        "newPassword", "weakpassword"))))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.message").value("Validation failed"))
@@ -922,24 +1063,30 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
         saveCustomerWithPassword("same-password@example.com", "SamePass@123");
         String token = loginTokenWithPassword("same-password@example.com", "SamePass@123");
 
-        mockMvc.perform(put("/api/customer/profile/password")
-                        .header("Authorization", bearer(token))
-                        .contentType("application/json")
-                        .content(json(Map.of(
-                                "currentPassword", "SamePass@123",
-                                "newPassword", "SamePass@123"))))
+        mockMvc.perform(
+                        put("/api/customer/profile/password")
+                                .header("Authorization", bearer(token))
+                                .contentType("application/json")
+                                .content(
+                                        json(
+                                                Map.of(
+                                                        "currentPassword", "SamePass@123",
+                                                        "newPassword", "SamePass@123"))))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.message").value("New password must be different from current password"))
+                .andExpect(
+                        jsonPath("$.message")
+                                .value("New password must be different from current password"))
                 .andExpect(jsonPath("$.data").value(nullValue()))
                 .andExpect(jsonPath("$.errors").isArray());
     }
 
     @Test
     void unauthenticatedProfileUpdateReturnsUnauthorized() throws Exception {
-        mockMvc.perform(put("/api/customer/profile")
-                        .contentType("application/json")
-                        .content(json(Map.of("name", "Updated Name"))))
+        mockMvc.perform(
+                        put("/api/customer/profile")
+                                .contentType("application/json")
+                                .content(json(Map.of("name", "Updated Name"))))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.message").value("Authentication required"))
@@ -949,11 +1096,14 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     void unauthenticatedPasswordChangeReturnsUnauthorized() throws Exception {
-        mockMvc.perform(put("/api/customer/profile/password")
-                        .contentType("application/json")
-                        .content(json(Map.of(
-                                "currentPassword", "OldPass@123",
-                                "newPassword", "NewStrongPass@123"))))
+        mockMvc.perform(
+                        put("/api/customer/profile/password")
+                                .contentType("application/json")
+                                .content(
+                                        json(
+                                                Map.of(
+                                                        "currentPassword", "OldPass@123",
+                                                        "newPassword", "NewStrongPass@123"))))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.message").value("Authentication required"))
@@ -962,12 +1112,20 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
     }
 
     private void expectWeakPasswordRegistrationFails(String password) throws Exception {
-        mockMvc.perform(post("/api/auth/register")
-                        .contentType("application/json")
-                        .content(json(Map.of(
-                                "name", "Weak Password",
-                                "email", "weak-" + password.hashCode() + "@example.com",
-                                "password", password))))
+        mockMvc.perform(
+                        post("/api/auth/register")
+                                .contentType("application/json")
+                                .content(
+                                        json(
+                                                Map.of(
+                                                        "name",
+                                                        "Weak Password",
+                                                        "email",
+                                                        "weak-"
+                                                                + password.hashCode()
+                                                                + "@example.com",
+                                                        "password",
+                                                        password))))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.message").value("Validation failed"))
@@ -977,47 +1135,54 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
     }
 
     private User saveCustomerWithPassword(String email, String password) {
-        User user = User.builder()
-                .name("CUSTOMER User")
-                .email(email)
-                .password(passwordEncoder.encode(password))
-                .role(Role.CUSTOMER)
-                .authProvider(AuthProvider.LOCAL)
-                .emailVerified(false)
-                .build();
+        User user =
+                User.builder()
+                        .name("CUSTOMER User")
+                        .email(email)
+                        .password(passwordEncoder.encode(password))
+                        .role(Role.CUSTOMER)
+                        .authProvider(AuthProvider.LOCAL)
+                        .emailVerified(false)
+                        .build();
         return userRepository.save(user);
     }
 
     private User saveGoogleUser(String email, String googleId, String avatarUrl) {
-        User user = User.builder()
-                .name("Google User")
-                .email(email)
-                .password(null)
-                .role(Role.CUSTOMER)
-                .authProvider(AuthProvider.GOOGLE)
-                .googleId(googleId)
-                .avatarUrl(avatarUrl)
-                .emailVerified(true)
-                .build();
+        User user =
+                User.builder()
+                        .name("Google User")
+                        .email(email)
+                        .password(null)
+                        .role(Role.CUSTOMER)
+                        .authProvider(AuthProvider.GOOGLE)
+                        .googleId(googleId)
+                        .avatarUrl(avatarUrl)
+                        .emailVerified(true)
+                        .build();
         return userRepository.save(user);
     }
 
     private String loginTokenWithPassword(String email, String password) throws Exception {
-        var result = mockMvc.perform(post("/api/auth/login")
-                        .contentType("application/json")
-                        .content(json(Map.of("email", email, "password", password))))
-                .andExpect(status().isOk())
-                .andReturn();
-        return objectMapper.readTree(result.getResponse().getContentAsString())
+        var result =
+                mockMvc.perform(
+                                post("/api/auth/login")
+                                        .contentType("application/json")
+                                        .content(
+                                                json(Map.of("email", email, "password", password))))
+                        .andExpect(status().isOk())
+                        .andReturn();
+        return objectMapper
+                .readTree(result.getResponse().getContentAsString())
                 .path("data")
                 .path("token")
                 .asText();
     }
 
     private String requestPasswordResetOtp(String email) throws Exception {
-        mockMvc.perform(post("/api/auth/forgot-password")
-                        .contentType("application/json")
-                        .content(json(Map.of("email", email))))
+        mockMvc.perform(
+                        post("/api/auth/forgot-password")
+                                .contentType("application/json")
+                                .content(json(Map.of("email", email))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.message").value(FORGOT_PASSWORD_MESSAGE));
 
@@ -1032,26 +1197,25 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
 
     private GoogleUserInfo googleUser(String googleId, String email, boolean emailVerified) {
         return new GoogleUserInfo(
-                googleId,
-                email,
-                "Google User",
-                "https://example.com/avatar.png",
-                emailVerified);
+                googleId, email, "Google User", "https://example.com/avatar.png", emailVerified);
     }
 
     private String googleLoginToken(String idToken, String expectedEmail) throws Exception {
-        var result = mockMvc.perform(post("/api/auth/google")
-                        .contentType("application/json")
-                        .content(json(Map.of("idToken", idToken))))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.message").value("Login successful"))
-                .andExpect(jsonPath("$.data.token").isNotEmpty())
-                .andExpect(jsonPath("$.data.email").value(expectedEmail))
-                .andExpect(jsonPath("$.data.role").value("CUSTOMER"))
-                .andExpect(jsonPath("$.errors").isArray())
-                .andReturn();
-        return objectMapper.readTree(result.getResponse().getContentAsString())
+        var result =
+                mockMvc.perform(
+                                post("/api/auth/google")
+                                        .contentType("application/json")
+                                        .content(json(Map.of("idToken", idToken))))
+                        .andExpect(status().isOk())
+                        .andExpect(jsonPath("$.success").value(true))
+                        .andExpect(jsonPath("$.message").value("Login successful"))
+                        .andExpect(jsonPath("$.data.token").isNotEmpty())
+                        .andExpect(jsonPath("$.data.email").value(expectedEmail))
+                        .andExpect(jsonPath("$.data.role").value("CUSTOMER"))
+                        .andExpect(jsonPath("$.errors").isArray())
+                        .andReturn();
+        return objectMapper
+                .readTree(result.getResponse().getContentAsString())
                 .path("data")
                 .path("token")
                 .asText();

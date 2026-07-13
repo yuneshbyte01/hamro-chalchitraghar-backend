@@ -1,14 +1,11 @@
 package com.chalchitraghar.modules.users.dto.response;
 
 import java.time.LocalDateTime;
-
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-/**
- * Detailed response DTO for admin user lookup.
- */
+/** Detailed response DTO for admin user lookup. */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

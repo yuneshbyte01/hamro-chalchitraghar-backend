@@ -1,17 +1,13 @@
 package com.chalchitraghar.modules.auth.dto.request;
 
+import com.chalchitraghar.shared.validation.StrongPassword;
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
-
-import com.chalchitraghar.shared.validation.StrongPassword;
-
-import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
-/**
- * Request DTO for user registration.
- */
+/** Request DTO for user registration. */
 @Data
 public class RegistrationRequest {
 

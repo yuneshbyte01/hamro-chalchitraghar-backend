@@ -2,16 +2,11 @@ package com.chalchitraghar;
 
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-
-import java.time.LocalDate;
-import java.time.LocalTime;
-
-import org.junit.jupiter.api.Test;
 
 import com.chalchitraghar.modules.halls.entity.Hall;
 import com.chalchitraghar.modules.halls.enums.Status;
@@ -20,6 +15,9 @@ import com.chalchitraghar.modules.movies.enums.MovieStatus;
 import com.chalchitraghar.modules.shows.entity.Show;
 import com.chalchitraghar.modules.shows.enums.ShowStatus;
 import com.chalchitraghar.modules.users.enums.Role;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import org.junit.jupiter.api.Test;
 
 class ShowApiIntegrationTest extends AbstractIntegrationTest {
 
@@ -49,10 +47,14 @@ class ShowApiIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.data.totalElements").value(1));
 
         mockMvc.perform(get("/api/public/shows/movie/{movieId}", current.getId()))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.data.length()").value(1));
-        mockMvc.perform(get("/api/public/shows").param("movieId", current.getId().toString())
-                        .param("date", LocalDate.now(clock).plusDays(10).toString()))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.data.length()").value(1));
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.length()").value(1));
+        mockMvc.perform(
+                        get("/api/public/shows")
+                                .param("movieId", current.getId().toString())
+                                .param("date", LocalDate.now(clock).plusDays(10).toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.length()").value(1));
     }
 
     @Test
@@ -68,14 +70,26 @@ class ShowApiIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.data.hall.layoutRef").doesNotExist())
                 .andExpect(jsonPath("$.data.createdAt").doesNotExist());
 
-        for (Show hidden : new Show[] {
-                saveShow(current, active, ShowStatus.CANCELLED, 11),
-                saveShow(current, active, ShowStatus.COMPLETED, 12),
-                saveShow(saveMovie("Historical Movie", MovieStatus.ENDED), active, ShowStatus.SCHEDULED, 13),
-                saveShow(current, saveHall("Historical Hall", Status.INACTIVE), ShowStatus.SCHEDULED, 14) }) {
-            mockMvc.perform(get("/api/public/shows/{id}", hidden.getId())).andExpect(status().isNotFound());
+        for (Show hidden :
+                new Show[] {
+                    saveShow(current, active, ShowStatus.CANCELLED, 11),
+                    saveShow(current, active, ShowStatus.COMPLETED, 12),
+                    saveShow(
+                            saveMovie("Historical Movie", MovieStatus.ENDED),
+                            active,
+                            ShowStatus.SCHEDULED,
+                            13),
+                    saveShow(
+                            current,
+                            saveHall("Historical Hall", Status.INACTIVE),
+                            ShowStatus.SCHEDULED,
+                            14)
+                }) {
+            mockMvc.perform(get("/api/public/shows/{id}", hidden.getId()))
+                    .andExpect(status().isNotFound());
         }
-        mockMvc.perform(get("/api/public/shows/{id}", Long.MAX_VALUE)).andExpect(status().isNotFound());
+        mockMvc.perform(get("/api/public/shows/{id}", Long.MAX_VALUE))
+                .andExpect(status().isNotFound());
     }
 
     @Test
@@ -90,20 +104,28 @@ class ShowApiIntegrationTest extends AbstractIntegrationTest {
 
         mockMvc.perform(get("/api/admin/shows").header("Authorization", bearer(token)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.content[*].status", containsInAnyOrder("SCHEDULED", "RUNNING", "COMPLETED", "CANCELLED")))
+                .andExpect(
+                        jsonPath(
+                                "$.data.content[*].status",
+                                containsInAnyOrder(
+                                        "SCHEDULED", "RUNNING", "COMPLETED", "CANCELLED")))
                 .andExpect(jsonPath("$.data.content[0].movieTitle").exists())
                 .andExpect(jsonPath("$.data.content[0].createdAt").doesNotExist())
                 .andExpect(jsonPath("$.data.totalElements").value(4));
 
         for (Show show : new Show[] {scheduled, running, completed, cancelled}) {
-            mockMvc.perform(get("/api/admin/shows/{id}", show.getId()).header("Authorization", bearer(token)))
+            mockMvc.perform(
+                            get("/api/admin/shows/{id}", show.getId())
+                                    .header("Authorization", bearer(token)))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.data.createdAt").exists())
                     .andExpect(jsonPath("$.data.updatedAt").exists())
                     .andExpect(jsonPath("$.data.movie.createdAt").exists())
                     .andExpect(jsonPath("$.data.hall.layoutRef").value("standard"));
         }
-        mockMvc.perform(get("/api/admin/shows/{id}", Long.MAX_VALUE).header("Authorization", bearer(token)))
+        mockMvc.perform(
+                        get("/api/admin/shows/{id}", Long.MAX_VALUE)
+                                .header("Authorization", bearer(token)))
                 .andExpect(status().isNotFound());
     }
 
@@ -124,19 +146,44 @@ class ShowApiIntegrationTest extends AbstractIntegrationTest {
         Hall hall = saveHall("Writable Hall", Status.ACTIVE);
         postSeatLayout(hall.getId(), token);
 
-        var created = mockMvc.perform(post("/api/admin/shows")
-                        .header("Authorization", bearer(token)).contentType("application/json")
-                        .content(json(showRequest(movie.getId(), hall.getId(), 10, "10:00", "12:00"))))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.data.movie.createdAt").exists())
-                .andExpect(jsonPath("$.data.hall.layoutRef").value("standard"))
-                .andExpect(jsonPath("$.data.createdAt").exists()).andReturn();
-        Long showId = objectMapper.readTree(created.getResponse().getContentAsString()).path("data").path("id").asLong();
+        var created =
+                mockMvc.perform(
+                                post("/api/admin/shows")
+                                        .header("Authorization", bearer(token))
+                                        .contentType("application/json")
+                                        .content(
+                                                json(
+                                                        showRequest(
+                                                                movie.getId(),
+                                                                hall.getId(),
+                                                                10,
+                                                                "10:00",
+                                                                "12:00"))))
+                        .andExpect(status().isCreated())
+                        .andExpect(jsonPath("$.data.movie.createdAt").exists())
+                        .andExpect(jsonPath("$.data.hall.layoutRef").value("standard"))
+                        .andExpect(jsonPath("$.data.createdAt").exists())
+                        .andReturn();
+        Long showId =
+                objectMapper
+                        .readTree(created.getResponse().getContentAsString())
+                        .path("data")
+                        .path("id")
+                        .asLong();
         org.assertj.core.api.Assertions.assertThat(seatsForShow(showId)).hasSize(188);
 
-        mockMvc.perform(put("/api/admin/shows/{id}", showId)
-                        .header("Authorization", bearer(token)).contentType("application/json")
-                        .content(json(showRequest(movie.getId(), hall.getId(), 11, "11:00", "13:00"))))
+        mockMvc.perform(
+                        put("/api/admin/shows/{id}", showId)
+                                .header("Authorization", bearer(token))
+                                .contentType("application/json")
+                                .content(
+                                        json(
+                                                showRequest(
+                                                        movie.getId(),
+                                                        hall.getId(),
+                                                        11,
+                                                        "11:00",
+                                                        "13:00"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.movie.title").value("Writable Show"))
                 .andExpect(jsonPath("$.data.updatedAt").exists());
@@ -152,30 +199,41 @@ class ShowApiIntegrationTest extends AbstractIntegrationTest {
         saveShow(firstMovie, secondHall, ShowStatus.RUNNING, 11);
         saveShow(secondMovie, secondHall, ShowStatus.SCHEDULED, 10);
 
-        mockMvc.perform(get("/api/public/shows").param("page", "1").param("size", "1")
-                        .param("sortBy", "showDate").param("sortDir", "desc"))
+        mockMvc.perform(
+                        get("/api/public/shows")
+                                .param("page", "1")
+                                .param("size", "1")
+                                .param("sortBy", "showDate")
+                                .param("sortDir", "desc"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.page").value(1))
                 .andExpect(jsonPath("$.data.size").value(1))
                 .andExpect(jsonPath("$.data.totalElements").value(3))
                 .andExpect(jsonPath("$.data.totalPages").value(3))
-                .andExpect(jsonPath("$.data.content[0].showDate")
-                        .value(LocalDate.now(clock).plusDays(11).toString()));
+                .andExpect(
+                        jsonPath("$.data.content[0].showDate")
+                                .value(LocalDate.now(clock).plusDays(11).toString()));
 
         mockMvc.perform(get("/api/public/shows").param("search", "kAbAdDi"))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.data.totalElements").value(2));
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.totalElements").value(2));
         mockMvc.perform(get("/api/public/shows").param("search", "AUD1"))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.data.totalElements").value(1));
-        mockMvc.perform(get("/api/public/shows")
-                        .param("movieId", firstMovie.getId().toString())
-                        .param("hallId", secondHall.getId().toString())
-                        .param("showDate", LocalDate.now(clock).plusDays(11).toString()))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.data.totalElements").value(1));
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.totalElements").value(1));
+        mockMvc.perform(
+                        get("/api/public/shows")
+                                .param("movieId", firstMovie.getId().toString())
+                                .param("hallId", secondHall.getId().toString())
+                                .param("showDate", LocalDate.now(clock).plusDays(11).toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.totalElements").value(1));
 
         mockMvc.perform(get("/api/public/shows").param("sortBy", "movie"))
-                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.success").value(false));
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false));
         mockMvc.perform(get("/api/public/shows").param("sortDir", "sideways"))
-                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.success").value(false));
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false));
     }
 
     @Test
@@ -189,19 +247,25 @@ class ShowApiIntegrationTest extends AbstractIntegrationTest {
         saveShow(movie, hall, ShowStatus.COMPLETED, 11);
         saveShow(otherMovie, otherHall, ShowStatus.SCHEDULED, 10);
 
-        mockMvc.perform(get("/api/admin/shows").header("Authorization", bearer(token))
-                        .param("search", "admin search")
-                        .param("movieId", movie.getId().toString())
-                        .param("hallId", hall.getId().toString())
-                        .param("status", "cancelled")
-                        .param("showDate", LocalDate.now(clock).plusDays(12).toString())
-                        .param("sortBy", "showTime").param("sortDir", "desc"))
+        mockMvc.perform(
+                        get("/api/admin/shows")
+                                .header("Authorization", bearer(token))
+                                .param("search", "admin search")
+                                .param("movieId", movie.getId().toString())
+                                .param("hallId", hall.getId().toString())
+                                .param("status", "cancelled")
+                                .param("showDate", LocalDate.now(clock).plusDays(12).toString())
+                                .param("sortBy", "showTime")
+                                .param("sortDir", "desc"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.totalElements").value(1))
                 .andExpect(jsonPath("$.data.content[0].status").value("CANCELLED"));
 
-        mockMvc.perform(get("/api/admin/shows").header("Authorization", bearer(token))
-                        .param("page", "1").param("size", "2"))
+        mockMvc.perform(
+                        get("/api/admin/shows")
+                                .header("Authorization", bearer(token))
+                                .param("page", "1")
+                                .param("size", "2"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.page").value(1))
                 .andExpect(jsonPath("$.data.size").value(2))
@@ -220,27 +284,76 @@ class ShowApiIntegrationTest extends AbstractIntegrationTest {
         if (!futureStart.plusHours(2).isAfter(futureStart)) {
             futureStart = LocalTime.of(20, 0);
         }
-        mockMvc.perform(post("/api/admin/shows").header("Authorization", bearer(token))
-                        .contentType("application/json")
-                        .content(json(scheduleRequest(movie, hall, LocalDate.now(clock).plusDays(1), futureStart, futureStart.plusHours(2)))))
+        mockMvc.perform(
+                        post("/api/admin/shows")
+                                .header("Authorization", bearer(token))
+                                .contentType("application/json")
+                                .content(
+                                        json(
+                                                scheduleRequest(
+                                                        movie,
+                                                        hall,
+                                                        LocalDate.now(clock).plusDays(1),
+                                                        futureStart,
+                                                        futureStart.plusHours(2)))))
                 .andExpect(status().isCreated());
 
-        assertScheduleRejected(token, movie, hall, LocalDate.now(clock).minusDays(1), LocalTime.of(10, 0), LocalTime.of(12, 0));
-        assertScheduleRejected(token, movie, hall, LocalDate.now(clock), LocalTime.now(clock).minusMinutes(1), LocalTime.now(clock).plusMinutes(119));
-        assertScheduleRejected(token, movie, hall, LocalDate.now(clock).plusDays(20), LocalTime.of(14, 0), LocalTime.of(14, 0));
-        assertScheduleRejected(token, movie, hall, LocalDate.now(clock).plusDays(20), LocalTime.of(14, 0), LocalTime.of(13, 59));
+        assertScheduleRejected(
+                token,
+                movie,
+                hall,
+                LocalDate.now(clock).minusDays(1),
+                LocalTime.of(10, 0),
+                LocalTime.of(12, 0));
+        assertScheduleRejected(
+                token,
+                movie,
+                hall,
+                LocalDate.now(clock),
+                LocalTime.now(clock).minusMinutes(1),
+                LocalTime.now(clock).plusMinutes(119));
+        assertScheduleRejected(
+                token,
+                movie,
+                hall,
+                LocalDate.now(clock).plusDays(20),
+                LocalTime.of(14, 0),
+                LocalTime.of(14, 0));
+        assertScheduleRejected(
+                token,
+                movie,
+                hall,
+                LocalDate.now(clock).plusDays(20),
+                LocalTime.of(14, 0),
+                LocalTime.of(13, 59));
 
         Hall durationHall = saveHall("Duration Rules Hall", Status.ACTIVE);
         postSeatLayout(durationHall.getId(), token);
-        mockMvc.perform(post("/api/admin/shows").header("Authorization", bearer(token))
-                        .contentType("application/json")
-                        .content(json(scheduleRequest(movie, durationHall, LocalDate.now().plusDays(21),
-                                LocalTime.of(10, 0), LocalTime.of(12, 5)))))
+        mockMvc.perform(
+                        post("/api/admin/shows")
+                                .header("Authorization", bearer(token))
+                                .contentType("application/json")
+                                .content(
+                                        json(
+                                                scheduleRequest(
+                                                        movie,
+                                                        durationHall,
+                                                        LocalDate.now().plusDays(21),
+                                                        LocalTime.of(10, 0),
+                                                        LocalTime.of(12, 5)))))
                 .andExpect(status().isCreated());
-        mockMvc.perform(post("/api/admin/shows").header("Authorization", bearer(token))
-                        .contentType("application/json")
-                        .content(json(scheduleRequest(movie, durationHall, LocalDate.now().plusDays(22),
-                                LocalTime.of(10, 0), LocalTime.of(12, 6)))))
+        mockMvc.perform(
+                        post("/api/admin/shows")
+                                .header("Authorization", bearer(token))
+                                .contentType("application/json")
+                                .content(
+                                        json(
+                                                scheduleRequest(
+                                                        movie,
+                                                        durationHall,
+                                                        LocalDate.now().plusDays(22),
+                                                        LocalTime.of(10, 0),
+                                                        LocalTime.of(12, 6)))))
                 .andExpect(status().isConflict());
 
         Show existing = saveShow(movie, hall, ShowStatus.SCHEDULED, 30);
@@ -256,10 +369,18 @@ class ShowApiIntegrationTest extends AbstractIntegrationTest {
         buffered.setShowTime(LocalTime.of(10, 0));
         buffered.setEndTime(LocalTime.of(12, 0));
         showRepository.save(buffered);
-        mockMvc.perform(post("/api/admin/shows").header("Authorization", bearer(token))
-                        .contentType("application/json")
-                        .content(json(scheduleRequest(movie, bufferHall, LocalDate.now().plusDays(31),
-                                LocalTime.of(12, 15), LocalTime.of(14, 15)))))
+        mockMvc.perform(
+                        post("/api/admin/shows")
+                                .header("Authorization", bearer(token))
+                                .contentType("application/json")
+                                .content(
+                                        json(
+                                                scheduleRequest(
+                                                        movie,
+                                                        bufferHall,
+                                                        LocalDate.now().plusDays(31),
+                                                        LocalTime.of(12, 15),
+                                                        LocalTime.of(14, 15)))))
                 .andExpect(status().isCreated());
 
         Hall cancelledHall = saveHall("Cancelled Gap Hall", Status.ACTIVE);
@@ -268,10 +389,18 @@ class ShowApiIntegrationTest extends AbstractIntegrationTest {
         cancelled.setShowTime(LocalTime.of(10, 0));
         cancelled.setEndTime(LocalTime.of(12, 0));
         showRepository.save(cancelled);
-        mockMvc.perform(post("/api/admin/shows").header("Authorization", bearer(token))
-                        .contentType("application/json")
-                        .content(json(scheduleRequest(movie, cancelledHall, LocalDate.now().plusDays(32),
-                                LocalTime.of(10, 0), LocalTime.of(12, 0)))))
+        mockMvc.perform(
+                        post("/api/admin/shows")
+                                .header("Authorization", bearer(token))
+                                .contentType("application/json")
+                                .content(
+                                        json(
+                                                scheduleRequest(
+                                                        movie,
+                                                        cancelledHall,
+                                                        LocalDate.now().plusDays(32),
+                                                        LocalTime.of(10, 0),
+                                                        LocalTime.of(12, 0)))))
                 .andExpect(status().isCreated());
     }
 
@@ -283,9 +412,18 @@ class ShowApiIntegrationTest extends AbstractIntegrationTest {
         Show runningPath = saveShow(movie, hall, ShowStatus.SCHEDULED, 40);
 
         patchStatus(token, runningPath.getId(), "RUNNING", 200);
-        mockMvc.perform(put("/api/admin/shows/{id}", runningPath.getId())
-                        .header("Authorization", bearer(token)).contentType("application/json")
-                        .content(json(showRequest(movie.getId(), hall.getId(), 41, "10:00", "12:00"))))
+        mockMvc.perform(
+                        put("/api/admin/shows/{id}", runningPath.getId())
+                                .header("Authorization", bearer(token))
+                                .contentType("application/json")
+                                .content(
+                                        json(
+                                                showRequest(
+                                                        movie.getId(),
+                                                        hall.getId(),
+                                                        41,
+                                                        "10:00",
+                                                        "12:00"))))
                 .andExpect(status().isConflict());
         patchStatus(token, runningPath.getId(), "COMPLETED", 200);
         patchStatus(token, runningPath.getId(), "CANCELLED", 409);
@@ -298,16 +436,36 @@ class ShowApiIntegrationTest extends AbstractIntegrationTest {
         patchStatus(token, runningCancel.getId(), "CANCELLED", 200);
 
         Show scheduledUpdate = saveShow(movie, hall, ShowStatus.SCHEDULED, 44);
-        mockMvc.perform(put("/api/admin/shows/{id}", scheduledUpdate.getId())
-                        .header("Authorization", bearer(token)).contentType("application/json")
-                        .content(json(showRequest(movie.getId(), hall.getId(), 45, "10:00", "12:00"))))
+        mockMvc.perform(
+                        put("/api/admin/shows/{id}", scheduledUpdate.getId())
+                                .header("Authorization", bearer(token))
+                                .contentType("application/json")
+                                .content(
+                                        json(
+                                                showRequest(
+                                                        movie.getId(),
+                                                        hall.getId(),
+                                                        45,
+                                                        "10:00",
+                                                        "12:00"))))
                 .andExpect(status().isOk());
-        for (Show terminal : new Show[] {
-                saveShow(movie, hall, ShowStatus.COMPLETED, 46),
-                saveShow(movie, hall, ShowStatus.CANCELLED, 47) }) {
-            mockMvc.perform(put("/api/admin/shows/{id}", terminal.getId())
-                            .header("Authorization", bearer(token)).contentType("application/json")
-                            .content(json(showRequest(movie.getId(), hall.getId(), 48, "10:00", "12:00"))))
+        for (Show terminal :
+                new Show[] {
+                    saveShow(movie, hall, ShowStatus.COMPLETED, 46),
+                    saveShow(movie, hall, ShowStatus.CANCELLED, 47)
+                }) {
+            mockMvc.perform(
+                            put("/api/admin/shows/{id}", terminal.getId())
+                                    .header("Authorization", bearer(token))
+                                    .contentType("application/json")
+                                    .content(
+                                            json(
+                                                    showRequest(
+                                                            movie.getId(),
+                                                            hall.getId(),
+                                                            48,
+                                                            "10:00",
+                                                            "12:00"))))
                     .andExpect(status().isConflict());
         }
     }
@@ -333,44 +491,79 @@ class ShowApiIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.data.totalElements").value(2));
         mockMvc.perform(get("/api/public/shows/{id}", future.getId())).andExpect(status().isOk());
         mockMvc.perform(get("/api/public/shows/{id}", running.getId()))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.data.status").value("RUNNING"));
-        mockMvc.perform(get("/api/public/shows/{id}", staleEnded.getId())).andExpect(status().isNotFound());
-        org.assertj.core.api.Assertions.assertThat(showRepository.findById(staleEnded.getId()).orElseThrow().getStatus())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.status").value("RUNNING"));
+        mockMvc.perform(get("/api/public/shows/{id}", staleEnded.getId()))
+                .andExpect(status().isNotFound());
+        org.assertj.core.api.Assertions.assertThat(
+                        showRepository.findById(staleEnded.getId()).orElseThrow().getStatus())
                 .isEqualTo(ShowStatus.COMPLETED);
     }
 
     private java.util.Map<String, Object> scheduleRequest(
             Movie movie, Hall hall, LocalDate date, LocalTime start, LocalTime end) {
-        return java.util.Map.of("movieId", movie.getId(), "hallId", hall.getId(),
-                "showDate", date.toString(), "showTime", start.toString(), "endTime", end.toString());
+        return java.util.Map.of(
+                "movieId",
+                movie.getId(),
+                "hallId",
+                hall.getId(),
+                "showDate",
+                date.toString(),
+                "showTime",
+                start.toString(),
+                "endTime",
+                end.toString());
     }
 
-    private void assertScheduleRejected(String token, Movie movie, Hall hall, LocalDate date, LocalTime start, LocalTime end)
+    private void assertScheduleRejected(
+            String token, Movie movie, Hall hall, LocalDate date, LocalTime start, LocalTime end)
             throws Exception {
-        mockMvc.perform(post("/api/admin/shows").header("Authorization", bearer(token))
-                        .contentType("application/json").content(json(scheduleRequest(movie, hall, date, start, end))))
+        mockMvc.perform(
+                        post("/api/admin/shows")
+                                .header("Authorization", bearer(token))
+                                .contentType("application/json")
+                                .content(json(scheduleRequest(movie, hall, date, start, end))))
                 .andExpect(status().isBadRequest());
     }
 
-    private void assertConflict(String token, Movie movie, Hall hall, int day, LocalTime start, LocalTime end)
+    private void assertConflict(
+            String token, Movie movie, Hall hall, int day, LocalTime start, LocalTime end)
             throws Exception {
-        mockMvc.perform(post("/api/admin/shows").header("Authorization", bearer(token))
-                        .contentType("application/json")
-                        .content(json(scheduleRequest(movie, hall, LocalDate.now(clock).plusDays(day), start, end))))
+        mockMvc.perform(
+                        post("/api/admin/shows")
+                                .header("Authorization", bearer(token))
+                                .contentType("application/json")
+                                .content(
+                                        json(
+                                                scheduleRequest(
+                                                        movie,
+                                                        hall,
+                                                        LocalDate.now(clock).plusDays(day),
+                                                        start,
+                                                        end))))
                 .andExpect(status().isConflict());
     }
 
-    private void patchStatus(String token, Long showId, String target, int expectedStatus) throws Exception {
-        mockMvc.perform(patch("/api/admin/shows/{id}/status", showId)
-                        .header("Authorization", bearer(token)).contentType("application/json")
-                        .content(json(java.util.Map.of("status", target))))
+    private void patchStatus(String token, Long showId, String target, int expectedStatus)
+            throws Exception {
+        mockMvc.perform(
+                        patch("/api/admin/shows/{id}/status", showId)
+                                .header("Authorization", bearer(token))
+                                .contentType("application/json")
+                                .content(json(java.util.Map.of("status", target))))
                 .andExpect(status().is(expectedStatus));
     }
 
     private Show saveShow(Movie movie, Hall hall, ShowStatus status, int daysFromNow) {
-        Show show = showRepository.save(Show.builder()
-                .movie(movie).hall(hall).showDate(LocalDate.now(clock).plusDays(daysFromNow))
-                .showTime(LocalTime.of(10, 0)).endTime(LocalTime.of(12, 0)).build());
+        Show show =
+                showRepository.save(
+                        Show.builder()
+                                .movie(movie)
+                                .hall(hall)
+                                .showDate(LocalDate.now(clock).plusDays(daysFromNow))
+                                .showTime(LocalTime.of(10, 0))
+                                .endTime(LocalTime.of(12, 0))
+                                .build());
         show.setStatus(status);
         return showRepository.save(show);
     }

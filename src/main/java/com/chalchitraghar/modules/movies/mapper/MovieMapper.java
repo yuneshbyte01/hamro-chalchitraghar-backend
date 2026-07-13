@@ -1,7 +1,5 @@
 package com.chalchitraghar.modules.movies.mapper;
 
-import org.springframework.stereotype.Component;
-
 import com.chalchitraghar.modules.movies.dto.request.MovieRequest;
 import com.chalchitraghar.modules.movies.dto.response.AdminMovieDetailResponse;
 import com.chalchitraghar.modules.movies.dto.response.AdminMovieSummaryResponse;
@@ -9,10 +7,9 @@ import com.chalchitraghar.modules.movies.dto.response.MovieResponse;
 import com.chalchitraghar.modules.movies.dto.response.PublicMovieDetailResponse;
 import com.chalchitraghar.modules.movies.dto.response.PublicMovieSummaryResponse;
 import com.chalchitraghar.modules.movies.entity.Movie;
+import org.springframework.stereotype.Component;
 
-/**
- * Mapper for converting between Movie entity and DTOs.
- */
+/** Mapper for converting between Movie entity and DTOs. */
 @Component
 public class MovieMapper {
 

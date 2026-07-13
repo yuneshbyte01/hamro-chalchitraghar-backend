@@ -2,14 +2,11 @@ package com.chalchitraghar.shared.response;
 
 import java.util.Collections;
 import java.util.List;
-
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-/**
- * Standard response body for all API success and error responses.
- */
+/** Standard response body for all API success and error responses. */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -33,6 +30,7 @@ public class ApiResponse<T> {
     }
 
     public static <T> ApiResponse<T> error(String message, List<String> errors) {
-        return new ApiResponse<>(false, message, null, errors == null ? Collections.emptyList() : errors);
+        return new ApiResponse<>(
+                false, message, null, errors == null ? Collections.emptyList() : errors);
     }
 }

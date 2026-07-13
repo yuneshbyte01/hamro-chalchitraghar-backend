@@ -1,7 +1,6 @@
 package com.chalchitraghar.modules.halls.dto.response;
 
 import com.chalchitraghar.modules.seats.enums.SeatType;
-
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;

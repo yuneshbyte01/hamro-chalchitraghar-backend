@@ -1,25 +1,21 @@
 package com.chalchitraghar.modules.shows.mapper;
 
+import com.chalchitraghar.modules.halls.entity.Hall;
 import com.chalchitraghar.modules.halls.mapper.HallMapper;
-
+import com.chalchitraghar.modules.movies.entity.Movie;
 import com.chalchitraghar.modules.movies.mapper.MovieMapper;
-
-import org.springframework.stereotype.Component;
-
 import com.chalchitraghar.modules.shows.dto.request.ShowRequest;
 import com.chalchitraghar.modules.shows.dto.response.AdminShowDetailResponse;
 import com.chalchitraghar.modules.shows.dto.response.AdminShowSummaryResponse;
 import com.chalchitraghar.modules.shows.dto.response.PublicShowDetailResponse;
 import com.chalchitraghar.modules.shows.dto.response.PublicShowSummaryResponse;
-import com.chalchitraghar.modules.halls.entity.Hall;
-import com.chalchitraghar.modules.movies.entity.Movie;
 import com.chalchitraghar.modules.shows.entity.Show;
-
 import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Component;
 
 /**
- * Mapper for converting between Show entity and DTOs.
- * Handles nested mapping of associated Movie and Hall entities.
+ * Mapper for converting between Show entity and DTOs. Handles nested mapping of associated Movie
+ * and Hall entities.
  */
 @Component
 @RequiredArgsConstructor

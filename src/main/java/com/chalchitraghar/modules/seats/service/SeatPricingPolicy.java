@@ -1,10 +1,8 @@
 package com.chalchitraghar.modules.seats.service;
 
-import java.math.BigDecimal;
-
-import org.springframework.stereotype.Component;
-
 import com.chalchitraghar.modules.seats.enums.SeatType;
+import java.math.BigDecimal;
+import org.springframework.stereotype.Component;
 
 /** Authoritative pricing policy for generated show seats. */
 @Component

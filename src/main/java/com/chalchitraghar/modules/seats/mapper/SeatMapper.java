@@ -1,13 +1,10 @@
 package com.chalchitraghar.modules.seats.mapper;
 
-import org.springframework.stereotype.Component;
-
 import com.chalchitraghar.modules.seats.dto.response.SeatResponse;
 import com.chalchitraghar.modules.seats.entity.Seat;
+import org.springframework.stereotype.Component;
 
-/**
- * Mapper for converting Seat entity to DTOs.
- */
+/** Mapper for converting Seat entity to DTOs. */
 @Component
 public class SeatMapper {
 

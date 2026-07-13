@@ -4,9 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-/**
- * Public list response for active cinema halls.
- */
+/** Public list response for active cinema halls. */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

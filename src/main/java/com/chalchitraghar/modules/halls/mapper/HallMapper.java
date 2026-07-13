@@ -1,17 +1,14 @@
 package com.chalchitraghar.modules.halls.mapper;
 
-import org.springframework.stereotype.Component;
-
 import com.chalchitraghar.modules.halls.dto.request.HallRequest;
 import com.chalchitraghar.modules.halls.dto.response.AdminHallDetailResponse;
 import com.chalchitraghar.modules.halls.dto.response.AdminHallSummaryResponse;
 import com.chalchitraghar.modules.halls.dto.response.PublicHallDetailResponse;
 import com.chalchitraghar.modules.halls.dto.response.PublicHallSummaryResponse;
 import com.chalchitraghar.modules.halls.entity.Hall;
+import org.springframework.stereotype.Component;
 
-/**
- * Mapper for converting between Hall entity and DTOs.
- */
+/** Mapper for converting between Hall entity and DTOs. */
 @Component
 public class HallMapper {
 

@@ -4,9 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-/**
- * Response DTO for authenticated customer profile details.
- */
+/** Response DTO for authenticated customer profile details. */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

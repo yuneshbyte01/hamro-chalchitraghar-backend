@@ -1,14 +1,11 @@
 package com.chalchitraghar.modules.halls.dto.response;
 
 import com.chalchitraghar.modules.halls.enums.Status;
-
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-/**
- * Admin list response for cinema halls.
- */
+/** Admin list response for cinema halls. */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

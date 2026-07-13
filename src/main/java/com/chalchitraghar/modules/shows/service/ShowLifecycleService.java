@@ -1,20 +1,17 @@
 package com.chalchitraghar.modules.shows.service;
 
-import java.time.Clock;
-import java.time.LocalDateTime;
-
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
-
 import com.chalchitraghar.modules.halls.enums.Status;
 import com.chalchitraghar.modules.movies.enums.MovieStatus;
 import com.chalchitraghar.modules.shows.entity.Show;
 import com.chalchitraghar.modules.shows.enums.ShowStatus;
-import com.chalchitraghar.shared.exception.ShowConflictException;
 import com.chalchitraghar.modules.shows.repository.ShowRepository;
-
+import com.chalchitraghar.shared.exception.ShowConflictException;
+import java.time.Clock;
+import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 /** Authoritative time-based lifecycle and booking eligibility policy for shows. */
 @Service
@@ -43,7 +40,8 @@ public class ShowLifecycleService {
     public boolean reconcile(Show show) {
         ShowStatus effective = effectiveStatus(show);
         if ((show.getStatus() == ShowStatus.SCHEDULED && effective == ShowStatus.RUNNING)
-                || ((show.getStatus() == ShowStatus.SCHEDULED || show.getStatus() == ShowStatus.RUNNING)
+                || ((show.getStatus() == ShowStatus.SCHEDULED
+                                || show.getStatus() == ShowStatus.RUNNING)
                         && effective == ShowStatus.COMPLETED)) {
             show.setStatus(effective);
             return true;
@@ -63,10 +61,13 @@ public class ShowLifecycleService {
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void reconcilePersisted(Long showId) {
-        showRepository.findById(showId).ifPresent(show -> {
-            if (reconcile(show)) {
-                showRepository.save(show);
-            }
-        });
+        showRepository
+                .findById(showId)
+                .ifPresent(
+                        show -> {
+                            if (reconcile(show)) {
+                                showRepository.save(show);
+                            }
+                        });
     }
 }

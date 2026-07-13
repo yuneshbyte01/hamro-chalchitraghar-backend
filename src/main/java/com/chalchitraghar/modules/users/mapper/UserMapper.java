@@ -1,15 +1,12 @@
 package com.chalchitraghar.modules.users.mapper;
 
-import org.springframework.stereotype.Component;
-
 import com.chalchitraghar.modules.users.dto.response.AdminUserDetailResponse;
 import com.chalchitraghar.modules.users.dto.response.AdminUserSummaryResponse;
 import com.chalchitraghar.modules.users.dto.response.UserResponse;
 import com.chalchitraghar.modules.users.entity.User;
+import org.springframework.stereotype.Component;
 
-/**
- * Mapper for converting User entities to safe response DTOs.
- */
+/** Mapper for converting User entities to safe response DTOs. */
 @Component
 public class UserMapper {
 

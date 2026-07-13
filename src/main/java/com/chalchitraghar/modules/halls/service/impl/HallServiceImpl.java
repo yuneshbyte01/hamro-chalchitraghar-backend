@@ -1,16 +1,5 @@
 package com.chalchitraghar.modules.halls.service.impl;
 
-import java.time.LocalDate;
-import java.time.LocalTime;
-import java.util.Arrays;
-import java.util.List;
-
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import com.chalchitraghar.modules.halls.dto.request.HallRequest;
 import com.chalchitraghar.modules.halls.dto.request.HallSearchCriteria;
 import com.chalchitraghar.modules.halls.dto.response.AdminHallDetailResponse;
@@ -29,23 +18,24 @@ import com.chalchitraghar.modules.shows.repository.ShowRepository;
 import com.chalchitraghar.shared.exception.HallConflictException;
 import com.chalchitraghar.shared.exception.ResourceNotFoundException;
 import com.chalchitraghar.shared.response.PageResponse;
-
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.util.Arrays;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
 @Transactional
 public class HallServiceImpl implements HallService {
 
-    private static final List<String> HALL_SORT_FIELDS = List.of(
-            "id",
-            "name",
-            "capacity",
-            "layoutRef",
-            "status",
-            "createdAt",
-            "updatedAt"
-    );
+    private static final List<String> HALL_SORT_FIELDS =
+            List.of("id", "name", "capacity", "layoutRef", "status", "createdAt", "updatedAt");
 
     private final HallRepository hallRepository;
     private final SeatTemplateRepository seatTemplateRepository;
@@ -62,8 +52,10 @@ public class HallServiceImpl implements HallService {
 
     @Override
     public AdminHallDetailResponse updateHall(Long id, HallRequest dto) {
-        Hall hall = hallRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Hall", id));
+        Hall hall =
+                hallRepository
+                        .findById(id)
+                        .orElseThrow(() -> new ResourceNotFoundException("Hall", id));
         normalize(dto);
         ensureUniqueName(dto.getName(), id);
         validateStatusTransition(hall.getStatus(), dto.getStatus());
@@ -77,8 +69,10 @@ public class HallServiceImpl implements HallService {
 
     @Override
     public void deleteHall(Long id) {
-        Hall hall = hallRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Hall", id));
+        Hall hall =
+                hallRepository
+                        .findById(id)
+                        .orElseThrow(() -> new ResourceNotFoundException("Hall", id));
         if (hall.getStatus() == Status.ACTIVE) {
             ensureNoFutureActiveShows(hall.getId());
         }
@@ -89,23 +83,20 @@ public class HallServiceImpl implements HallService {
     @Override
     @Transactional(readOnly = true)
     public PageResponse<PublicHallSummaryResponse> getPublicHalls(
-            HallSearchCriteria criteria,
-            int page,
-            int size,
-            String sortBy,
-            String sortDir) {
+            HallSearchCriteria criteria, int page, int size, String sortBy, String sortDir) {
         Page<Hall> halls = searchPublicHalls(criteria, page, size, sortBy, sortDir);
-        List<PublicHallSummaryResponse> content = halls.getContent().stream()
-                .map(hallMapper::toPublicSummary)
-                .toList();
+        List<PublicHallSummaryResponse> content =
+                halls.getContent().stream().map(hallMapper::toPublicSummary).toList();
         return PageResponse.from(halls, content);
     }
 
     @Override
     @Transactional(readOnly = true)
     public PublicHallDetailResponse getPublicHallById(Long id) {
-        Hall hall = hallRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Hall", id));
+        Hall hall =
+                hallRepository
+                        .findById(id)
+                        .orElseThrow(() -> new ResourceNotFoundException("Hall", id));
         if (hall.getStatus() != Status.ACTIVE) {
             throw new ResourceNotFoundException("Hall", id);
         }
@@ -123,23 +114,20 @@ public class HallServiceImpl implements HallService {
     @Override
     @Transactional(readOnly = true)
     public PageResponse<AdminHallSummaryResponse> getAdminHalls(
-            HallSearchCriteria criteria,
-            int page,
-            int size,
-            String sortBy,
-            String sortDir) {
+            HallSearchCriteria criteria, int page, int size, String sortBy, String sortDir) {
         Page<Hall> halls = searchAdminHalls(criteria, page, size, sortBy, sortDir);
-        List<AdminHallSummaryResponse> content = halls.getContent().stream()
-                .map(hallMapper::toAdminSummary)
-                .toList();
+        List<AdminHallSummaryResponse> content =
+                halls.getContent().stream().map(hallMapper::toAdminSummary).toList();
         return PageResponse.from(halls, content);
     }
 
     @Override
     @Transactional(readOnly = true)
     public AdminHallDetailResponse getAdminHallById(Long id) {
-        Hall hall = hallRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Hall", id));
+        Hall hall =
+                hallRepository
+                        .findById(id)
+                        .orElseThrow(() -> new ResourceNotFoundException("Hall", id));
         return hallMapper.toAdminDetail(hall);
     }
 
@@ -152,11 +140,7 @@ public class HallServiceImpl implements HallService {
     }
 
     private Page<Hall> searchPublicHalls(
-            HallSearchCriteria criteria,
-            int page,
-            int size,
-            String sortBy,
-            String sortDir) {
+            HallSearchCriteria criteria, int page, int size, String sortBy, String sortDir) {
         validatePageRequest(page, size, sortBy);
         Sort.Direction direction = parseSortDirection(sortDir);
         var pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
@@ -164,14 +148,11 @@ public class HallServiceImpl implements HallService {
     }
 
     private Page<Hall> searchAdminHalls(
-            HallSearchCriteria criteria,
-            int page,
-            int size,
-            String sortBy,
-            String sortDir) {
+            HallSearchCriteria criteria, int page, int size, String sortBy, String sortDir) {
         validatePageRequest(page, size, sortBy);
         Sort.Direction direction = parseSortDirection(sortDir);
-        Status status = parseEnum(Status.class, criteria == null ? null : criteria.status(), "status");
+        Status status =
+                parseEnum(Status.class, criteria == null ? null : criteria.status(), "status");
         var pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
         return hallRepository.findAll(HallSpecification.adminSearch(criteria, status), pageable);
     }
@@ -184,8 +165,8 @@ public class HallServiceImpl implements HallService {
             throw new IllegalArgumentException("Size must be at least 1");
         }
         if (!HALL_SORT_FIELDS.contains(sortBy)) {
-            throw new IllegalArgumentException("Invalid sortBy. Allowed values: "
-                    + String.join(", ", HALL_SORT_FIELDS));
+            throw new IllegalArgumentException(
+                    "Invalid sortBy. Allowed values: " + String.join(", ", HALL_SORT_FIELDS));
         }
     }
 
@@ -206,14 +187,18 @@ public class HallServiceImpl implements HallService {
         return Arrays.stream(enumType.getEnumConstants())
                 .filter(enumValue -> enumValue.name().equalsIgnoreCase(value.trim()))
                 .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "Invalid " + fieldName + ". Allowed values: " + allowedEnumValues(enumType)));
+                .orElseThrow(
+                        () ->
+                                new IllegalArgumentException(
+                                        "Invalid "
+                                                + fieldName
+                                                + ". Allowed values: "
+                                                + allowedEnumValues(enumType)));
     }
 
     private <E extends Enum<E>> String allowedEnumValues(Class<E> enumType) {
-        return String.join(", ", Arrays.stream(enumType.getEnumConstants())
-                .map(Enum::name)
-                .toList());
+        return String.join(
+                ", ", Arrays.stream(enumType.getEnumConstants()).map(Enum::name).toList());
     }
 
     private void normalize(HallRequest dto) {
@@ -226,9 +211,10 @@ public class HallServiceImpl implements HallService {
     }
 
     private void ensureUniqueName(String name, Long currentHallId) {
-        boolean exists = currentHallId == null
-                ? hallRepository.existsByNameIgnoreCase(name)
-                : hallRepository.existsByNameIgnoreCaseAndIdNot(name, currentHallId);
+        boolean exists =
+                currentHallId == null
+                        ? hallRepository.existsByNameIgnoreCase(name)
+                        : hallRepository.existsByNameIgnoreCaseAndIdNot(name, currentHallId);
         if (exists) {
             throw new HallConflictException("Hall with this name already exists");
         }
@@ -238,8 +224,9 @@ public class HallServiceImpl implements HallService {
         if (currentStatus == nextStatus) {
             return;
         }
-        boolean allowed = (currentStatus == Status.ACTIVE && nextStatus == Status.INACTIVE)
-                || (currentStatus == Status.INACTIVE && nextStatus == Status.ACTIVE);
+        boolean allowed =
+                (currentStatus == Status.ACTIVE && nextStatus == Status.INACTIVE)
+                        || (currentStatus == Status.INACTIVE && nextStatus == Status.ACTIVE);
         if (!allowed) {
             throw new HallConflictException(
                     "Invalid hall status transition from " + currentStatus + " to " + nextStatus);
@@ -251,21 +238,25 @@ public class HallServiceImpl implements HallService {
             return;
         }
         if (!hall.getCapacity().equals(dto.getCapacity())) {
-            throw new HallConflictException("Cannot change hall capacity after seat layout has been generated");
+            throw new HallConflictException(
+                    "Cannot change hall capacity after seat layout has been generated");
         }
         if (!hall.getLayoutRef().equals(dto.getLayoutRef())) {
-            throw new HallConflictException("Cannot change hall layout reference after seat layout has been generated");
+            throw new HallConflictException(
+                    "Cannot change hall layout reference after seat layout has been generated");
         }
     }
 
     private void ensureNoFutureActiveShows(Long hallId) {
-        boolean hasFutureActiveShows = showRepository.existsFutureActiveShowForHall(
-                hallId,
-                List.of(ShowStatus.SCHEDULED, ShowStatus.RUNNING),
-                LocalDate.now(),
-                LocalTime.now());
+        boolean hasFutureActiveShows =
+                showRepository.existsFutureActiveShowForHall(
+                        hallId,
+                        List.of(ShowStatus.SCHEDULED, ShowStatus.RUNNING),
+                        LocalDate.now(),
+                        LocalTime.now());
         if (hasFutureActiveShows) {
-            throw new HallConflictException("Cannot inactivate hall while future active shows exist");
+            throw new HallConflictException(
+                    "Cannot inactivate hall while future active shows exist");
         }
     }
 }

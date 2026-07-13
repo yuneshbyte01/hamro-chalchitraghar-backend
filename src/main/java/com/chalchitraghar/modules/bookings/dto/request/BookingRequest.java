@@ -1,20 +1,16 @@
 package com.chalchitraghar.modules.bookings.dto.request;
 
-import com.chalchitraghar.modules.shows.entity.Show;
+import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-
-import jakarta.validation.constraints.NotEmpty;
-import jakarta.validation.constraints.NotNull;
-import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-/**
- * Request DTO for creating a new booking.
- */
+/** Request DTO for creating a new booking. */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -29,8 +25,8 @@ public class BookingRequest {
     private List<Long> seatIds;
 
     /**
-     * Validates that seatIds contains no duplicates.
-     * This method should be called before processing the request.
+     * Validates that seatIds contains no duplicates. This method should be called before processing
+     * the request.
      *
      * @return true if seatIds has no duplicates, false otherwise
      */

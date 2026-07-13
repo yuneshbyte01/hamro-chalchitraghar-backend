@@ -8,6 +8,10 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.time.LocalDateTime;
+import java.util.Collections;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -16,14 +20,9 @@ import org.springframework.security.web.authentication.WebAuthenticationDetailsS
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-import java.io.IOException;
-import java.time.LocalDateTime;
-import java.util.Collections;
-import java.util.List;
-
 /**
- * Filter that intercepts HTTP requests to extract and validate JWT tokens.
- * Sets up Spring Security authentication context for authenticated users.
+ * Filter that intercepts HTTP requests to extract and validate JWT tokens. Sets up Spring Security
+ * authentication context for authenticated users.
  */
 @Component
 @RequiredArgsConstructor
@@ -34,8 +33,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final ObjectMapper objectMapper;
 
     /**
-     * Processes each request to extract JWT token from Authorization header,
-     * validates it, and sets up authentication context if valid.
+     * Processes each request to extract JWT token from Authorization header, validates it, and sets
+     * up authentication context if valid.
      *
      * @param request the HTTP request
      * @param response the HTTP response
@@ -44,9 +43,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
      * @throws IOException if an I/O error occurs
      */
     @Override
-    protected void doFilterInternal(HttpServletRequest request,
-                                    HttpServletResponse response,
-                                    FilterChain filterChain)
+    protected void doFilterInternal(
+            HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
 
         final String authHeader = request.getHeader("Authorization");
@@ -81,22 +79,24 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     return;
                 }
                 if (isLocked(user)) {
-                    writeUnauthorizedResponse(response, "Account is temporarily locked. Please try again later.");
+                    writeUnauthorizedResponse(
+                            response, "Account is temporarily locked. Please try again later.");
                     return;
                 }
                 if (jwtUtil.wasIssuedBeforePasswordChanged(token, user)) {
-                    writeUnauthorizedResponse(response, "Token is no longer valid after password change");
+                    writeUnauthorizedResponse(
+                            response, "Token is no longer valid after password change");
                     return;
                 }
 
                 String role = jwtUtil.extractRole(token);
-                List<SimpleGrantedAuthority> authorities = role != null
-                        ? Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + role))
-                        : Collections.emptyList();
+                List<SimpleGrantedAuthority> authorities =
+                        role != null
+                                ? Collections.singletonList(
+                                        new SimpleGrantedAuthority("ROLE_" + role))
+                                : Collections.emptyList();
 
-                var authToken = new UsernamePasswordAuthenticationToken(
-                        user, null, authorities
-                );
+                var authToken = new UsernamePasswordAuthenticationToken(user, null, authorities);
 
                 authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 SecurityContextHolder.getContext().setAuthentication(authToken);
@@ -106,7 +106,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         filterChain.doFilter(request, response);
     }
 
-    private void writeUnauthorizedResponse(HttpServletResponse response, String message) throws IOException {
+    private void writeUnauthorizedResponse(HttpServletResponse response, String message)
+            throws IOException {
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         response.setContentType("application/json");
         response.getWriter().write(objectMapper.writeValueAsString(ApiResponse.error(message)));
@@ -114,6 +115,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private boolean isLocked(com.chalchitraghar.modules.users.entity.User user) {
         return user.isLocked()
-                && (user.getLockedUntil() == null || user.getLockedUntil().isAfter(LocalDateTime.now()));
+                && (user.getLockedUntil() == null
+                        || user.getLockedUntil().isAfter(LocalDateTime.now()));
     }
 }

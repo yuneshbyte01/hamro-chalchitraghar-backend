@@ -1,18 +1,14 @@
 package com.chalchitraghar.modules.shows.dto.request;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.NotNull;
+import java.time.LocalDate;
+import java.time.LocalTime;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import io.swagger.v3.oas.annotations.media.Schema;
 
-import jakarta.validation.constraints.NotNull;
-
-import java.time.LocalDate;
-import java.time.LocalTime;
-
-/**
- * Request DTO for creating or updating a show.
- */
+/** Request DTO for creating or updating a show. */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -37,5 +33,4 @@ public class ShowRequest {
     @NotNull(message = "End time is required")
     @Schema(example = "21:00:00")
     private LocalTime endTime;
-
 }

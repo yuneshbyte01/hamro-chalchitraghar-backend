@@ -1,25 +1,22 @@
 package com.chalchitraghar.modules.auth.service.impl;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.security.SecureRandom;
-import java.time.LocalDateTime;
-import java.util.Base64;
-
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import com.chalchitraghar.modules.auth.entity.PasswordResetOtp;
 import com.chalchitraghar.modules.auth.repository.PasswordResetOtpRepository;
 import com.chalchitraghar.modules.auth.service.EmailService;
 import com.chalchitraghar.modules.auth.service.PasswordResetService;
 import com.chalchitraghar.modules.users.entity.User;
 import com.chalchitraghar.modules.users.repository.UserRepository;
-
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
+import java.time.LocalDateTime;
+import java.util.Base64;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -43,32 +40,39 @@ public class PasswordResetServiceImpl implements PasswordResetService {
     @Override
     @Transactional
     public void requestPasswordReset(String email) {
-        userRepository.findByEmail(email).ifPresent(user -> {
-            if (!isPasswordResetRequestAllowed(user)) {
-                return;
-            }
+        userRepository
+                .findByEmail(email)
+                .ifPresent(
+                        user -> {
+                            if (!isPasswordResetRequestAllowed(user)) {
+                                return;
+                            }
 
-            invalidatePreviousOtps(user);
+                            invalidatePreviousOtps(user);
 
-            String otp = generateOtp();
-            PasswordResetOtp resetOtp = PasswordResetOtp.builder()
-                    .user(user)
-                    .otpHash(hashOtp(otp))
-                    .expiresAt(LocalDateTime.now().plusMinutes(otpExpirationMinutes))
-                    .attemptCount(0)
-                    .build();
-            passwordResetOtpRepository.save(resetOtp);
+                            String otp = generateOtp();
+                            PasswordResetOtp resetOtp =
+                                    PasswordResetOtp.builder()
+                                            .user(user)
+                                            .otpHash(hashOtp(otp))
+                                            .expiresAt(
+                                                    LocalDateTime.now()
+                                                            .plusMinutes(otpExpirationMinutes))
+                                            .attemptCount(0)
+                                            .build();
+                            passwordResetOtpRepository.save(resetOtp);
 
-            emailService.sendPasswordResetOtpEmail(user, otp);
-        });
+                            emailService.sendPasswordResetOtpEmail(user, otp);
+                        });
     }
 
     @Override
     @Transactional(noRollbackFor = IllegalArgumentException.class)
     public void resetPassword(String email, String otp, String newPassword) {
-        PasswordResetOtp resetOtp = passwordResetOtpRepository
-                .findFirstByUserEmailAndUsedAtIsNullOrderByCreatedAtDesc(email)
-                .orElseThrow(() -> new IllegalArgumentException(INVALID_OTP_MESSAGE));
+        PasswordResetOtp resetOtp =
+                passwordResetOtpRepository
+                        .findFirstByUserEmailAndUsedAtIsNullOrderByCreatedAtDesc(email)
+                        .orElseThrow(() -> new IllegalArgumentException(INVALID_OTP_MESSAGE));
 
         if (resetOtp.getUsedAt() != null) {
             throw new IllegalArgumentException("Password reset OTP has already been used");
@@ -87,7 +91,8 @@ public class PasswordResetServiceImpl implements PasswordResetService {
 
         User user = resetOtp.getUser();
         if (passwordEncoder.matches(newPassword, user.getPassword())) {
-            throw new IllegalArgumentException("New password must be different from current password");
+            throw new IllegalArgumentException(
+                    "New password must be different from current password");
         }
 
         user.setPassword(passwordEncoder.encode(newPassword));
@@ -116,7 +121,8 @@ public class PasswordResetServiceImpl implements PasswordResetService {
 
     private void invalidatePreviousOtps(User user) {
         LocalDateTime now = LocalDateTime.now();
-        passwordResetOtpRepository.findByUserIdAndUsedAtIsNull(user.getId())
+        passwordResetOtpRepository
+                .findByUserIdAndUsedAtIsNull(user.getId())
                 .forEach(otp -> otp.setUsedAt(now));
     }
 

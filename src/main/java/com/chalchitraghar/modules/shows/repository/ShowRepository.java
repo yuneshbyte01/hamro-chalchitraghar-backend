@@ -1,23 +1,19 @@
 package com.chalchitraghar.modules.shows.repository;
 
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.jpa.repository.Lock;
-import org.springframework.data.repository.query.Param;
-
+import com.chalchitraghar.modules.shows.entity.Show;
+import com.chalchitraghar.modules.shows.enums.ShowStatus;
+import jakarta.persistence.LockModeType;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
-
-import com.chalchitraghar.modules.shows.enums.ShowStatus;
-import com.chalchitraghar.modules.shows.entity.Show;
-import jakarta.persistence.LockModeType;
 import java.util.Optional;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
-/**
- * Repository interface for Show entity persistence operations.
- */
+/** Repository interface for Show entity persistence operations. */
 public interface ShowRepository extends JpaRepository<Show, Long>, JpaSpecificationExecutor<Show> {
 
     List<Show> findByStatusIn(List<ShowStatus> statuses);
@@ -31,8 +27,8 @@ public interface ShowRepository extends JpaRepository<Show, Long>, JpaSpecificat
     long countByHallId(Long hallId);
 
     /**
-     * Checks if there's an overlapping show for the same hall on the same date.
-     * A show overlaps if: new show starts before existing show ends AND new show ends after existing show starts.
+     * Checks if there's an overlapping show for the same hall on the same date. A show overlaps if:
+     * new show starts before existing show ends AND new show ends after existing show starts.
      *
      * @param hallId the hall ID to check
      * @param showDate the show date
@@ -41,7 +37,8 @@ public interface ShowRepository extends JpaRepository<Show, Long>, JpaSpecificat
      * @param excludeShowId optional show ID to exclude from the check (for updates)
      * @return true if an overlapping show exists, false otherwise
      */
-    @Query("""
+    @Query(
+            """
         SELECT COUNT(s) > 0
         FROM Show s
         WHERE s.hall.id = :hallId
@@ -55,10 +52,10 @@ public interface ShowRepository extends JpaRepository<Show, Long>, JpaSpecificat
             @Param("showDate") LocalDate showDate,
             @Param("bufferedShowTime") LocalTime bufferedShowTime,
             @Param("bufferedEndTime") LocalTime bufferedEndTime,
-            @Param("excludeShowId") Long excludeShowId
-    );
+            @Param("excludeShowId") Long excludeShowId);
 
-    @Query("""
+    @Query(
+            """
         SELECT COUNT(s) > 0
         FROM Show s
         WHERE s.movie.id = :movieId
@@ -72,10 +69,10 @@ public interface ShowRepository extends JpaRepository<Show, Long>, JpaSpecificat
             @Param("movieId") Long movieId,
             @Param("statuses") List<ShowStatus> statuses,
             @Param("currentDate") LocalDate currentDate,
-            @Param("currentTime") LocalTime currentTime
-    );
+            @Param("currentTime") LocalTime currentTime);
 
-    @Query("""
+    @Query(
+            """
         SELECT COUNT(s) > 0
         FROM Show s
         WHERE s.hall.id = :hallId
@@ -89,8 +86,7 @@ public interface ShowRepository extends JpaRepository<Show, Long>, JpaSpecificat
             @Param("hallId") Long hallId,
             @Param("statuses") List<ShowStatus> statuses,
             @Param("currentDate") LocalDate currentDate,
-            @Param("currentTime") LocalTime currentTime
-    );
+            @Param("currentTime") LocalTime currentTime);
 
     /**
      * Finds all shows for a specific hall.
@@ -127,9 +123,5 @@ public interface ShowRepository extends JpaRepository<Show, Long>, JpaSpecificat
      * @return list of shows matching all criteria
      */
     List<Show> findByMovieIdAndShowDateAndShowTimeAndStatusIn(
-            Long movieId,
-            LocalDate showDate,
-            LocalTime showTime,
-            List<ShowStatus> statuses
-    );
+            Long movieId, LocalDate showDate, LocalTime showTime, List<ShowStatus> statuses);
 }

@@ -1,7 +1,6 @@
 package com.chalchitraghar.modules.halls.dto.response;
 
 import java.util.List;
-
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;

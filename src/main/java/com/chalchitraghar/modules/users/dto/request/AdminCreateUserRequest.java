@@ -1,7 +1,6 @@
 package com.chalchitraghar.modules.users.dto.request;
 
 import com.chalchitraghar.shared.validation.StrongPassword;
-
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -27,6 +26,8 @@ public class AdminCreateUserRequest {
     private String password;
 
     @NotBlank(message = "Role is required")
-    @Schema(example = "STAFF", allowableValues = {"CUSTOMER", "STAFF", "ADMIN"})
+    @Schema(
+            example = "STAFF",
+            allowableValues = {"CUSTOMER", "STAFF", "ADMIN"})
     private String role;
 }

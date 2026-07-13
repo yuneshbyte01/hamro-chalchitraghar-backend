@@ -1,14 +1,11 @@
 package com.chalchitraghar.modules.halls.dto.response;
 
 import com.chalchitraghar.modules.halls.enums.Status;
-
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-/**
- * Public detail response for an active cinema hall.
- */
+/** Public detail response for an active cinema hall. */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

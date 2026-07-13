@@ -11,9 +11,7 @@ import com.chalchitraghar.modules.bookings.dto.response.StaffBookingSummaryRespo
 import com.chalchitraghar.modules.users.entity.User;
 import com.chalchitraghar.shared.response.PageResponse;
 
-/**
- * Service for managing booking operations.
- */
+/** Service for managing booking operations. */
 public interface BookingService {
 
     CustomerBookingDetailResponse createBooking(BookingRequest request, User user);
@@ -21,7 +19,12 @@ public interface BookingService {
     CustomerBookingDetailResponse confirmBooking(Long bookingId, User user);
 
     PageResponse<CustomerBookingSummaryResponse> getCustomerBookings(
-            User user, BookingSearchCriteria criteria, int page, int size, String sortBy, String sortDir);
+            User user,
+            BookingSearchCriteria criteria,
+            int page,
+            int size,
+            String sortBy,
+            String sortDir);
 
     CustomerBookingDetailResponse cancelBooking(Long bookingId, User user);
 

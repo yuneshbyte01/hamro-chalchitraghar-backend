@@ -1,5 +1,8 @@
 package com.chalchitraghar.modules.auth.service.impl;
 
+import com.chalchitraghar.modules.auth.service.EmailService;
+import com.chalchitraghar.modules.users.entity.User;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -7,11 +10,6 @@ import org.springframework.core.env.Environment;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
-
-import com.chalchitraghar.modules.auth.service.EmailService;
-import com.chalchitraghar.modules.users.entity.User;
-
-import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
@@ -46,7 +44,8 @@ public class EmailServiceImpl implements EmailService {
         message.setFrom(mailFrom);
         message.setTo(user.getEmail());
         message.setSubject("Hamro Chalchitraghar Password Reset OTP");
-        message.setText("""
+        message.setText(
+                """
                 Hello %s,
 
                 We received a request to reset your password.
@@ -59,7 +58,8 @@ public class EmailServiceImpl implements EmailService {
                 If you did not request this password reset, please ignore this email.
 
                 Hamro Chalchitraghar Team
-                """.formatted(user.getName(), otp, otpExpirationMinutes));
+                """
+                        .formatted(user.getName(), otp, otpExpirationMinutes));
 
         mailSender.send(message);
     }

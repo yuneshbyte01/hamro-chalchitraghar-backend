@@ -1,15 +1,12 @@
 package com.chalchitraghar.modules.movies.validation;
 
+import jakarta.validation.ConstraintValidator;
+import jakarta.validation.ConstraintValidatorContext;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Locale;
 
-import jakarta.validation.ConstraintValidator;
-import jakarta.validation.ConstraintValidatorContext;
-
-/**
- * Accepts absolute http and https URLs with a host component.
- */
+/** Accepts absolute http and https URLs with a host component. */
 public class PosterUrlValidator implements ConstraintValidator<ValidPosterUrl, String> {
 
     @Override

@@ -1,8 +1,6 @@
 package com.chalchitraghar.modules.seats.enums;
 
-/**
- * Represents the availability and booking status of a seat.
- */
+/** Represents the availability and booking status of a seat. */
 public enum SeatStatus {
     AVAILABLE,
     LOCKED,

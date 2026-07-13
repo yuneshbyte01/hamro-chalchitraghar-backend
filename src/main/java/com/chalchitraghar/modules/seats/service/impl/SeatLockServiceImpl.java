@@ -1,29 +1,26 @@
 package com.chalchitraghar.modules.seats.service.impl;
 
-import com.chalchitraghar.modules.seats.service.SeatLockService;
-import java.time.LocalDateTime;
-import java.time.Clock;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
-
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import com.chalchitraghar.shared.exception.InvalidSeatSelectionException;
-import com.chalchitraghar.shared.exception.SeatAlreadyBookedException;
-import com.chalchitraghar.shared.exception.SeatLockedException;
 import com.chalchitraghar.modules.bookings.dto.response.SeatHoldResponse;
 import com.chalchitraghar.modules.seats.entity.Seat;
 import com.chalchitraghar.modules.seats.enums.SeatStatus;
 import com.chalchitraghar.modules.seats.repository.SeatRepository;
-import com.chalchitraghar.modules.shows.repository.ShowRepository;
+import com.chalchitraghar.modules.seats.service.SeatLockService;
 import com.chalchitraghar.modules.shows.entity.Show;
-import com.chalchitraghar.shared.exception.ResourceNotFoundException;
+import com.chalchitraghar.modules.shows.repository.ShowRepository;
 import com.chalchitraghar.modules.shows.service.ShowLifecycleService;
-
+import com.chalchitraghar.shared.exception.InvalidSeatSelectionException;
+import com.chalchitraghar.shared.exception.ResourceNotFoundException;
+import com.chalchitraghar.shared.exception.SeatAlreadyBookedException;
+import com.chalchitraghar.shared.exception.SeatLockedException;
+import java.time.Clock;
+import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -38,8 +35,10 @@ public class SeatLockServiceImpl implements SeatLockService {
 
     @Override
     public SeatHoldResponse holdSeats(Long showId, List<Long> seatIds, Long userId) {
-        Show show = showRepository.findById(showId)
-                .orElseThrow(() -> new ResourceNotFoundException("Show", showId));
+        Show show =
+                showRepository
+                        .findById(showId)
+                        .orElseThrow(() -> new ResourceNotFoundException("Show", showId));
         showLifecycleService.assertBookable(show);
         if (seatIds == null || seatIds.isEmpty()) {
             throw new InvalidSeatSelectionException("At least one seat must be selected");
@@ -50,8 +49,10 @@ public class SeatLockServiceImpl implements SeatLockService {
         List<Seat> seats = seatRepository.findByShowIdAndSeatIdsWithLock(showId, seatIds);
         if (seats.size() != seatIds.size()) {
             Set<Long> foundSeatIds = seats.stream().map(Seat::getId).collect(Collectors.toSet());
-            List<Long> missingSeatIds = seatIds.stream().filter(id -> !foundSeatIds.contains(id)).toList();
-            throw new InvalidSeatSelectionException(String.format("Seats not found: %s", missingSeatIds));
+            List<Long> missingSeatIds =
+                    seatIds.stream().filter(id -> !foundSeatIds.contains(id)).toList();
+            throw new InvalidSeatSelectionException(
+                    String.format("Seats not found: %s", missingSeatIds));
         }
         if (!seats.stream().allMatch(seat -> seat.getShow().getId().equals(showId))) {
             throw new InvalidSeatSelectionException("All seats must belong to the same show");
@@ -68,20 +69,27 @@ public class SeatLockServiceImpl implements SeatLockService {
                     continue;
                 } else {
                     throw new SeatLockedException(
-                            String.format("Seat %s (%s) is currently locked by another user", seat.getSeatCode(), seat.getId()));
+                            String.format(
+                                    "Seat %s (%s) is currently locked by another user",
+                                    seat.getSeatCode(), seat.getId()));
                 }
             }
             if (seat.getSeatStatus() == SeatStatus.BOOKED) {
                 throw new SeatAlreadyBookedException(
-                        String.format("Seat %s (%s) is already booked", seat.getSeatCode(), seat.getId()));
+                        String.format(
+                                "Seat %s (%s) is already booked",
+                                seat.getSeatCode(), seat.getId()));
             }
             if (seat.getSeatStatus() == SeatStatus.RESERVED) {
                 throw new SeatAlreadyBookedException(
-                        String.format("Seat %s (%s) is already reserved", seat.getSeatCode(), seat.getId()));
+                        String.format(
+                                "Seat %s (%s) is already reserved",
+                                seat.getSeatCode(), seat.getId()));
             }
             if (seat.getSeatStatus() != SeatStatus.AVAILABLE) {
                 throw new InvalidSeatSelectionException(
-                        String.format("Seat %s (%s) is not available for booking. Current status: %s",
+                        String.format(
+                                "Seat %s (%s) is not available for booking. Current status: %s",
                                 seat.getSeatCode(), seat.getId(), seat.getSeatStatus()));
             }
             seat.setSeatStatus(SeatStatus.LOCKED);

@@ -1,10 +1,7 @@
 package com.chalchitraghar.modules.auth.entity;
 
-import java.time.LocalDateTime;
-
 import com.chalchitraghar.modules.users.entity.User;
 import com.chalchitraghar.shared.GenericEntity;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -14,6 +11,7 @@ import jakarta.persistence.Table;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -42,8 +40,7 @@ public class PasswordResetOtp extends GenericEntity {
     @NotNull(message = "Expiration time is required")
     private LocalDateTime expiresAt;
 
-    @Column
-    private LocalDateTime usedAt;
+    @Column private LocalDateTime usedAt;
 
     @Column(nullable = false)
     @Min(value = 0, message = "Attempt count cannot be negative")

@@ -1,14 +1,12 @@
 package com.chalchitraghar.modules.bookings.dto.response;
 
-import java.time.LocalDateTime;
-import java.util.List;
-import java.math.BigDecimal;
-
 import com.chalchitraghar.modules.bookings.enums.BookingStatus;
 import com.chalchitraghar.modules.bookings.enums.ConfirmationSource;
 import com.chalchitraghar.modules.seats.dto.response.SeatResponse;
-
 import io.swagger.v3.oas.annotations.media.Schema;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;

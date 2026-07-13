@@ -2,15 +2,13 @@ package com.chalchitraghar.modules.users.repository;
 
 import com.chalchitraghar.modules.users.entity.User;
 import com.chalchitraghar.modules.users.enums.Role;
+import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
-import java.util.Optional;
 
-/**
- * Repository interface for User entity persistence operations.
- */
+/** Repository interface for User entity persistence operations. */
 public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificationExecutor<User> {
-    
+
     /**
      * Finds a user by email address.
      *
@@ -18,7 +16,7 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
      * @return optional user matching the email
      */
     Optional<User> findByEmail(String email);
-    
+
     /**
      * Checks if a user with the given email already exists.
      *

@@ -1,8 +1,11 @@
 package com.chalchitraghar.shared.config;
 
+import com.chalchitraghar.shared.response.ApiResponse;
+import com.chalchitraghar.shared.security.JwtAuthenticationFilter;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Arrays;
 import java.util.List;
-
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -17,19 +20,10 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-import com.chalchitraghar.shared.response.ApiResponse;
-import com.chalchitraghar.shared.security.JwtAuthenticationFilter;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import lombok.RequiredArgsConstructor;
-
 /**
- * Security configuration for Spring Security.
- * Access control is enforced here via requestMatchers; controllers do not use @PreAuthorize.
- * - Public: /api/auth/**, /api/public/**
- * - Customer: /api/customer/**
- * - Staff: /api/staff/**
- * - Admin: /api/admin/**
+ * Security configuration for Spring Security. Access control is enforced here via requestMatchers;
+ * controllers do not use @PreAuthorize. - Public: /api/auth/**, /api/public/** - Customer:
+ * /api/customer/** - Staff: /api/staff/** - Admin: /api/admin/**
  */
 @Configuration
 @RequiredArgsConstructor
@@ -64,7 +58,7 @@ public class SecurityConfig {
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);
         configuration.setMaxAge(3600L);
-        
+
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         return source;
@@ -86,40 +80,61 @@ public class SecurityConfig {
      */
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http
-            .csrf(AbstractHttpConfigurer::disable)
-            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-            .sessionManagement(session -> session
-                    .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .authorizeHttpRequests(auth -> auth
-                    .requestMatchers(
-                            "/swagger-ui.html",
-                            "/swagger-ui/**",
-                            "/v3/api-docs",
-                            "/v3/api-docs/**"
-                    ).permitAll()
-                    .requestMatchers("/api/auth/**").permitAll()
-                    .requestMatchers("/api/public/**").permitAll()
-                    .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/payments/esewa/verify").permitAll()
-                    .requestMatchers("/api/customer/**").hasAnyRole("CUSTOMER", "STAFF", "ADMIN")
-                    .requestMatchers("/api/staff/**").hasAnyRole("STAFF", "ADMIN")
-                    .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                    .anyRequest().authenticated()
-            )
-            .exceptionHandling(exception -> exception
-                    .authenticationEntryPoint((request, response, authException) -> {
-                        response.setStatus(401);
-                        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-                        response.getWriter().write(objectMapper.writeValueAsString(
-                                ApiResponse.error("Authentication required")));
-                    })
-                    .accessDeniedHandler((request, response, accessDeniedException) -> {
-                        response.setStatus(403);
-                        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-                        response.getWriter().write(objectMapper.writeValueAsString(
-                                ApiResponse.error("Access denied")));
-                    }))
-            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+        http.csrf(AbstractHttpConfigurer::disable)
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                .sessionManagement(
+                        session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(
+                        auth ->
+                                auth.requestMatchers(
+                                                "/swagger-ui.html",
+                                                "/swagger-ui/**",
+                                                "/v3/api-docs",
+                                                "/v3/api-docs/**")
+                                        .permitAll()
+                                        .requestMatchers("/api/auth/**")
+                                        .permitAll()
+                                        .requestMatchers("/api/public/**")
+                                        .permitAll()
+                                        .requestMatchers(
+                                                org.springframework.http.HttpMethod.POST,
+                                                "/api/payments/esewa/verify")
+                                        .permitAll()
+                                        .requestMatchers("/api/customer/**")
+                                        .hasAnyRole("CUSTOMER", "STAFF", "ADMIN")
+                                        .requestMatchers("/api/staff/**")
+                                        .hasAnyRole("STAFF", "ADMIN")
+                                        .requestMatchers("/api/admin/**")
+                                        .hasRole("ADMIN")
+                                        .anyRequest()
+                                        .authenticated())
+                .exceptionHandling(
+                        exception ->
+                                exception
+                                        .authenticationEntryPoint(
+                                                (request, response, authException) -> {
+                                                    response.setStatus(401);
+                                                    response.setContentType(
+                                                            MediaType.APPLICATION_JSON_VALUE);
+                                                    response.getWriter()
+                                                            .write(
+                                                                    objectMapper.writeValueAsString(
+                                                                            ApiResponse.error(
+                                                                                    "Authentication required")));
+                                                })
+                                        .accessDeniedHandler(
+                                                (request, response, accessDeniedException) -> {
+                                                    response.setStatus(403);
+                                                    response.setContentType(
+                                                            MediaType.APPLICATION_JSON_VALUE);
+                                                    response.getWriter()
+                                                            .write(
+                                                                    objectMapper.writeValueAsString(
+                                                                            ApiResponse.error(
+                                                                                    "Access denied")));
+                                                }))
+                .addFilterBefore(
+                        jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }

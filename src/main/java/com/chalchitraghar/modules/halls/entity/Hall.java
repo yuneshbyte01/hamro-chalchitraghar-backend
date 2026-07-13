@@ -1,9 +1,7 @@
 package com.chalchitraghar.modules.halls.entity;
 
-import com.chalchitraghar.shared.GenericEntity;
-
 import com.chalchitraghar.modules.halls.enums.Status;
-
+import com.chalchitraghar.shared.GenericEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -22,14 +20,18 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
-/**
- * Represents a cinema hall with seating capacity and layout configuration.
- */
+/** Represents a cinema hall with seating capacity and layout configuration. */
 @Entity
-@Table(name = "halls", indexes = {
-    @jakarta.persistence.Index(name = "idx_hall_name", columnList = "name"), // Index for name lookup
-    @jakarta.persistence.Index(name = "idx_hall_status", columnList = "status") // Index for status lookup
-})
+@Table(
+        name = "halls",
+        indexes = {
+            @jakarta.persistence.Index(
+                    name = "idx_hall_name",
+                    columnList = "name"), // Index for name lookup
+            @jakarta.persistence.Index(
+                    name = "idx_hall_status",
+                    columnList = "status") // Index for status lookup
+        })
 @Data
 @EqualsAndHashCode(callSuper = true)
 @NoArgsConstructor
@@ -37,41 +39,33 @@ import lombok.NoArgsConstructor;
 @Builder
 public class Hall extends GenericEntity {
 
-    /**
-     * Unique name identifier for the hall.
-     */
+    /** Unique name identifier for the hall. */
     @Column(nullable = false, unique = true)
     @NotBlank(message = "Name is required")
     private String name;
 
-    /**
-     * Maximum seating capacity of the hall.
-     */
+    /** Maximum seating capacity of the hall. */
     @Column(nullable = false)
     @Positive(message = "Capacity must be at least 1")
     @Max(value = 1000, message = "Capacity must not exceed 1000")
     private Integer capacity;
 
-    /**
-     * Reference to the layout configuration for the hall.
-     */
+    /** Reference to the layout configuration for the hall. */
     @Column(nullable = false)
     @NotBlank(message = "Layout reference is required")
     @Size(max = 100, message = "Layout reference must not exceed 100 characters")
-    @Pattern(regexp = "^[A-Za-z0-9_-]+$", message = "Layout reference may contain only letters, numbers, hyphen, and underscore")
+    @Pattern(
+            regexp = "^[A-Za-z0-9_-]+$",
+            message = "Layout reference may contain only letters, numbers, hyphen, and underscore")
     private String layoutRef;
 
-    /**
-     * Operational status of the hall.
-     */
+    /** Operational status of the hall. */
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)
     @NotNull(message = "Status is required")
     private Status status;
 
-    /**
-     * Lifecycle callback invoked before entity persistence.
-     */
+    /** Lifecycle callback invoked before entity persistence. */
     @PrePersist
     @Override
     protected void onCreate() {

@@ -1,47 +1,44 @@
 package com.chalchitraghar.modules.users.service.impl;
 
-import com.chalchitraghar.modules.users.service.UserService;
-import java.time.LocalDateTime;
-import java.util.Arrays;
-import java.util.List;
-
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import com.chalchitraghar.shared.exception.ResourceNotFoundException;
-import com.chalchitraghar.shared.response.PageResponse;
 import com.chalchitraghar.modules.users.dto.request.AdminCreateUserRequest;
-import com.chalchitraghar.modules.users.dto.request.AdminUserSearchCriteria;
 import com.chalchitraghar.modules.users.dto.request.AdminUpdateUserRequest;
+import com.chalchitraghar.modules.users.dto.request.AdminUserSearchCriteria;
 import com.chalchitraghar.modules.users.dto.response.AdminUserSummaryResponse;
 import com.chalchitraghar.modules.users.entity.User;
 import com.chalchitraghar.modules.users.enums.AuthProvider;
 import com.chalchitraghar.modules.users.enums.Role;
 import com.chalchitraghar.modules.users.mapper.UserMapper;
 import com.chalchitraghar.modules.users.repository.UserRepository;
+import com.chalchitraghar.modules.users.service.UserService;
 import com.chalchitraghar.modules.users.specification.UserSpecification;
-
+import com.chalchitraghar.shared.exception.ResourceNotFoundException;
+import com.chalchitraghar.shared.response.PageResponse;
+import java.time.LocalDateTime;
+import java.util.Arrays;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
 
-    private static final List<String> ADMIN_USER_SORT_FIELDS = List.of(
-            "id",
-            "name",
-            "email",
-            "role",
-            "enabled",
-            "locked",
-            "authProvider",
-            "createdAt",
-            "updatedAt",
-            "lastLoginAt"
-    );
+    private static final List<String> ADMIN_USER_SORT_FIELDS =
+            List.of(
+                    "id",
+                    "name",
+                    "email",
+                    "role",
+                    "enabled",
+                    "locked",
+                    "authProvider",
+                    "createdAt",
+                    "updatedAt",
+                    "lastLoginAt");
 
     private final UserRepository userRepository;
     private final BCryptPasswordEncoder passwordEncoder;
@@ -52,21 +49,23 @@ public class UserServiceImpl implements UserService {
         if (userRepository.existsByEmail(email)) {
             throw new IllegalArgumentException("Email is already registered");
         }
-        User user = User.builder()
-                .name(name)
-                .email(email)
-                .password(passwordEncoder.encode(password))
-                .role(Role.CUSTOMER)
-                .authProvider(AuthProvider.LOCAL)
-                .emailVerified(false)
-                .passwordChangedAt(LocalDateTime.now())
-                .build();
+        User user =
+                User.builder()
+                        .name(name)
+                        .email(email)
+                        .password(passwordEncoder.encode(password))
+                        .role(Role.CUSTOMER)
+                        .authProvider(AuthProvider.LOCAL)
+                        .emailVerified(false)
+                        .passwordChangedAt(LocalDateTime.now())
+                        .build();
         return userRepository.save(user);
     }
 
     @Override
     public User getUserByEmail(String email) {
-        return userRepository.findByEmail(email)
+        return userRepository
+                .findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found with email: " + email));
     }
 
@@ -77,11 +76,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public PageResponse<AdminUserSummaryResponse> getAdminUsers(
-            AdminUserSearchCriteria criteria,
-            int page,
-            int size,
-            String sortBy,
-            String sortDir) {
+            AdminUserSearchCriteria criteria, int page, int size, String sortBy, String sortDir) {
         if (page < 0) {
             throw new IllegalArgumentException("Page must be zero or greater");
         }
@@ -89,28 +84,29 @@ public class UserServiceImpl implements UserService {
             throw new IllegalArgumentException("Size must be at least 1");
         }
         if (!ADMIN_USER_SORT_FIELDS.contains(sortBy)) {
-            throw new IllegalArgumentException("Invalid sortBy. Allowed values: "
-                    + String.join(", ", ADMIN_USER_SORT_FIELDS));
+            throw new IllegalArgumentException(
+                    "Invalid sortBy. Allowed values: " + String.join(", ", ADMIN_USER_SORT_FIELDS));
         }
 
         Sort.Direction direction = parseSortDirection(sortDir);
         Role role = parseEnum(Role.class, criteria.role(), "role");
-        AuthProvider authProvider = parseEnum(AuthProvider.class, criteria.authProvider(), "authProvider");
+        AuthProvider authProvider =
+                parseEnum(AuthProvider.class, criteria.authProvider(), "authProvider");
 
         var pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
-        var users = userRepository.findAll(
-                UserSpecification.adminSearch(criteria, role, authProvider),
-                pageable);
-        List<AdminUserSummaryResponse> content = users.getContent().stream()
-                .map(userMapper::toAdminSummaryResponse)
-                .toList();
+        var users =
+                userRepository.findAll(
+                        UserSpecification.adminSearch(criteria, role, authProvider), pageable);
+        List<AdminUserSummaryResponse> content =
+                users.getContent().stream().map(userMapper::toAdminSummaryResponse).toList();
 
         return PageResponse.from(users, content);
     }
 
     @Override
     public User getUserById(Long id) {
-        return userRepository.findById(id)
+        return userRepository
+                .findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User", id));
     }
 
@@ -121,20 +117,21 @@ public class UserServiceImpl implements UserService {
             throw new IllegalArgumentException("Email is already registered");
         }
         Role role = parseEnum(Role.class, request.getRole(), "role");
-        User user = User.builder()
-                .name(request.getName())
-                .email(request.getEmail())
-                .password(passwordEncoder.encode(request.getPassword()))
-                .role(role)
-                .authProvider(AuthProvider.LOCAL)
-                .emailVerified(false)
-                .enabled(true)
-                .locked(false)
-                .failedLoginAttempts(0)
-                .lockedUntil(null)
-                .lastLoginAt(null)
-                .passwordChangedAt(LocalDateTime.now())
-                .build();
+        User user =
+                User.builder()
+                        .name(request.getName())
+                        .email(request.getEmail())
+                        .password(passwordEncoder.encode(request.getPassword()))
+                        .role(role)
+                        .authProvider(AuthProvider.LOCAL)
+                        .emailVerified(false)
+                        .enabled(true)
+                        .locked(false)
+                        .failedLoginAttempts(0)
+                        .lockedUntil(null)
+                        .lastLoginAt(null)
+                        .passwordChangedAt(LocalDateTime.now())
+                        .build();
         return userRepository.save(user);
     }
 
@@ -228,13 +225,15 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public void changeCurrentUserPassword(User currentUser, String currentPassword, String newPassword) {
+    public void changeCurrentUserPassword(
+            User currentUser, String currentPassword, String newPassword) {
         User user = getUserById(currentUser.getId());
         if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
             throw new IllegalArgumentException("Current password is incorrect");
         }
         if (passwordEncoder.matches(newPassword, user.getPassword())) {
-            throw new IllegalArgumentException("New password must be different from current password");
+            throw new IllegalArgumentException(
+                    "New password must be different from current password");
         }
         user.setPassword(passwordEncoder.encode(newPassword));
         user.setPasswordChangedAt(LocalDateTime.now());
@@ -258,14 +257,18 @@ public class UserServiceImpl implements UserService {
         return Arrays.stream(enumType.getEnumConstants())
                 .filter(enumValue -> enumValue.name().equalsIgnoreCase(value.trim()))
                 .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "Invalid " + fieldName + ". Allowed values: " + allowedEnumValues(enumType)));
+                .orElseThrow(
+                        () ->
+                                new IllegalArgumentException(
+                                        "Invalid "
+                                                + fieldName
+                                                + ". Allowed values: "
+                                                + allowedEnumValues(enumType)));
     }
 
     private <E extends Enum<E>> String allowedEnumValues(Class<E> enumType) {
-        return String.join(", ", Arrays.stream(enumType.getEnumConstants())
-                .map(Enum::name)
-                .toList());
+        return String.join(
+                ", ", Arrays.stream(enumType.getEnumConstants()).map(Enum::name).toList());
     }
 
     private void ensureNotSelf(User targetUser, User currentAdmin, String message) {
@@ -285,7 +288,8 @@ public class UserServiceImpl implements UserService {
             return;
         }
         if (targetUser.getRole() == Role.ADMIN && newRole != Role.ADMIN) {
-            ensureNotLastEnabledAdmin(targetUser, "Cannot change the last enabled admin to another role");
+            ensureNotLastEnabledAdmin(
+                    targetUser, "Cannot change the last enabled admin to another role");
             if (isSameUser(targetUser, currentAdmin)) {
                 throw new IllegalArgumentException("You cannot remove your own ADMIN role");
             }

@@ -1,15 +1,13 @@
 package com.chalchitraghar.modules.halls.repository;
 
+import com.chalchitraghar.modules.halls.entity.SeatTemplate;
+import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
-import java.util.List;
-import com.chalchitraghar.modules.halls.entity.SeatTemplate;
 
-/**
- * Repository interface for SeatTemplate entity persistence operations.
- */
+/** Repository interface for SeatTemplate entity persistence operations. */
 public interface SeatTemplateRepository extends JpaRepository<SeatTemplate, Long> {
 
     /**
@@ -33,5 +31,4 @@ public interface SeatTemplateRepository extends JpaRepository<SeatTemplate, Long
     @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query("DELETE FROM SeatTemplate template WHERE template.hall.id = :hallId")
     void deleteByHallId(@Param("hallId") Long hallId);
-
 }

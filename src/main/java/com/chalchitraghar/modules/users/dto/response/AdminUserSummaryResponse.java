@@ -4,9 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-/**
- * Summary response DTO for admin user lists.
- */
+/** Summary response DTO for admin user lists. */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

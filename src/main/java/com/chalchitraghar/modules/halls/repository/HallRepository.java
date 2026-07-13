@@ -1,16 +1,12 @@
 package com.chalchitraghar.modules.halls.repository;
 
-import java.util.List;
-
+import com.chalchitraghar.modules.halls.entity.Hall;
 import com.chalchitraghar.modules.halls.enums.Status;
+import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
-import com.chalchitraghar.modules.halls.entity.Hall;
-
-/**
- * Repository interface for Hall entity persistence operations.
- */
+/** Repository interface for Hall entity persistence operations. */
 public interface HallRepository extends JpaRepository<Hall, Long>, JpaSpecificationExecutor<Hall> {
 
     boolean existsByNameIgnoreCase(String name);

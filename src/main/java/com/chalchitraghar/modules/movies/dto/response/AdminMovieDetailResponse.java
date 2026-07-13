@@ -1,17 +1,13 @@
 package com.chalchitraghar.modules.movies.dto.response;
 
+import com.chalchitraghar.modules.movies.enums.MovieStatus;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-
-import com.chalchitraghar.modules.movies.enums.MovieStatus;
-
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-/**
- * Admin movie detail response including audit metadata.
- */
+/** Admin movie detail response including audit metadata. */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

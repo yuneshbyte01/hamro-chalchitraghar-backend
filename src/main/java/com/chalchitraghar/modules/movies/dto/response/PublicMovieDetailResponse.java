@@ -1,16 +1,12 @@
 package com.chalchitraghar.modules.movies.dto.response;
 
-import java.time.LocalDate;
-
 import com.chalchitraghar.modules.movies.enums.MovieStatus;
-
+import java.time.LocalDate;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-/**
- * Public movie detail response without internal audit metadata.
- */
+/** Public movie detail response without internal audit metadata. */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

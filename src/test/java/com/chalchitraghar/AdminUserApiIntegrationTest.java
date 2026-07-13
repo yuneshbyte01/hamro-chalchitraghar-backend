@@ -9,15 +9,13 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import java.time.LocalDateTime;
-import java.util.Map;
-
-import org.junit.jupiter.api.Test;
-import org.springframework.test.web.servlet.MvcResult;
-
 import com.chalchitraghar.modules.users.entity.User;
 import com.chalchitraghar.modules.users.enums.AuthProvider;
 import com.chalchitraghar.modules.users.enums.Role;
+import java.time.LocalDateTime;
+import java.util.Map;
+import org.junit.jupiter.api.Test;
+import org.springframework.test.web.servlet.MvcResult;
 
 class AdminUserApiIntegrationTest extends AbstractIntegrationTest {
 
@@ -29,26 +27,29 @@ class AdminUserApiIntegrationTest extends AbstractIntegrationTest {
         customer.setLocked(true);
         userRepository.save(customer);
 
-        MvcResult result = mockMvc.perform(get("/api/admin/users")
-                        .header("Authorization", bearer(adminToken)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.message").value("Users fetched successfully"))
-                .andExpect(jsonPath("$.data.content").isArray())
-                .andExpect(jsonPath("$.data.page").value(0))
-                .andExpect(jsonPath("$.data.size").value(20))
-                .andExpect(jsonPath("$.data.totalElements").value(2))
-                .andExpect(jsonPath("$.data.totalPages").value(1))
-                .andExpect(jsonPath("$.data.last").value(true))
-                .andExpect(jsonPath("$.data.content[*].email", hasItems(
-                        "admin-list@example.com",
-                        "customer-list@example.com")))
-                .andExpect(jsonPath("$.data.content[*].enabled").isArray())
-                .andExpect(jsonPath("$.data.content[*].locked").isArray())
-                .andExpect(jsonPath("$.data.content[0].password").doesNotExist())
-                .andExpect(jsonPath("$.data.content[0].googleId").doesNotExist())
-                .andExpect(jsonPath("$.errors").isArray())
-                .andReturn();
+        MvcResult result =
+                mockMvc.perform(get("/api/admin/users").header("Authorization", bearer(adminToken)))
+                        .andExpect(status().isOk())
+                        .andExpect(jsonPath("$.success").value(true))
+                        .andExpect(jsonPath("$.message").value("Users fetched successfully"))
+                        .andExpect(jsonPath("$.data.content").isArray())
+                        .andExpect(jsonPath("$.data.page").value(0))
+                        .andExpect(jsonPath("$.data.size").value(20))
+                        .andExpect(jsonPath("$.data.totalElements").value(2))
+                        .andExpect(jsonPath("$.data.totalPages").value(1))
+                        .andExpect(jsonPath("$.data.last").value(true))
+                        .andExpect(
+                                jsonPath(
+                                        "$.data.content[*].email",
+                                        hasItems(
+                                                "admin-list@example.com",
+                                                "customer-list@example.com")))
+                        .andExpect(jsonPath("$.data.content[*].enabled").isArray())
+                        .andExpect(jsonPath("$.data.content[*].locked").isArray())
+                        .andExpect(jsonPath("$.data.content[0].password").doesNotExist())
+                        .andExpect(jsonPath("$.data.content[0].googleId").doesNotExist())
+                        .andExpect(jsonPath("$.errors").isArray())
+                        .andReturn();
 
         String body = result.getResponse().getContentAsString();
         assertThat(body).doesNotContain("\"password\":");
@@ -63,12 +64,13 @@ class AdminUserApiIntegrationTest extends AbstractIntegrationTest {
         saveUser("page-b@example.com", Role.CUSTOMER);
         saveUser("page-c@example.com", Role.CUSTOMER);
 
-        mockMvc.perform(get("/api/admin/users")
-                        .header("Authorization", bearer(adminToken))
-                        .param("page", "1")
-                        .param("size", "2")
-                        .param("sortBy", "email")
-                        .param("sortDir", "asc"))
+        mockMvc.perform(
+                        get("/api/admin/users")
+                                .header("Authorization", bearer(adminToken))
+                                .param("page", "1")
+                                .param("size", "2")
+                                .param("sortBy", "email")
+                                .param("sortDir", "asc"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.content").isArray())
                 .andExpect(jsonPath("$.data.content.length()").value(2))
@@ -85,17 +87,21 @@ class AdminUserApiIntegrationTest extends AbstractIntegrationTest {
         saveNamedUser("zeta@example.com", "Zeta User", Role.CUSTOMER);
         saveNamedUser("alpha@example.com", "Alpha User", Role.CUSTOMER);
 
-        MvcResult result = mockMvc.perform(get("/api/admin/users")
-                        .header("Authorization", bearer(adminToken))
-                        .param("role", "CUSTOMER")
-                        .param("sortBy", "name")
-                        .param("sortDir", "asc"))
-                .andExpect(status().isOk())
-                .andReturn();
+        MvcResult result =
+                mockMvc.perform(
+                                get("/api/admin/users")
+                                        .header("Authorization", bearer(adminToken))
+                                        .param("role", "CUSTOMER")
+                                        .param("sortBy", "name")
+                                        .param("sortDir", "asc"))
+                        .andExpect(status().isOk())
+                        .andReturn();
 
-        var content = objectMapper.readTree(result.getResponse().getContentAsString())
-                .path("data")
-                .path("content");
+        var content =
+                objectMapper
+                        .readTree(result.getResponse().getContentAsString())
+                        .path("data")
+                        .path("content");
         assertThat(content.get(0).path("name").asText()).isEqualTo("Alpha User");
         assertThat(content.get(1).path("name").asText()).isEqualTo("Zeta User");
     }
@@ -107,17 +113,21 @@ class AdminUserApiIntegrationTest extends AbstractIntegrationTest {
         Thread.sleep(20);
         saveNamedUser("newer@example.com", "Newer User", Role.CUSTOMER);
 
-        MvcResult result = mockMvc.perform(get("/api/admin/users")
-                        .header("Authorization", bearer(adminToken))
-                        .param("role", "CUSTOMER")
-                        .param("sortBy", "createdAt")
-                        .param("sortDir", "desc"))
-                .andExpect(status().isOk())
-                .andReturn();
+        MvcResult result =
+                mockMvc.perform(
+                                get("/api/admin/users")
+                                        .header("Authorization", bearer(adminToken))
+                                        .param("role", "CUSTOMER")
+                                        .param("sortBy", "createdAt")
+                                        .param("sortDir", "desc"))
+                        .andExpect(status().isOk())
+                        .andReturn();
 
-        var content = objectMapper.readTree(result.getResponse().getContentAsString())
-                .path("data")
-                .path("content");
+        var content =
+                objectMapper
+                        .readTree(result.getResponse().getContentAsString())
+                        .path("data")
+                        .path("content");
         assertThat(content.get(0).path("email").asText()).isEqualTo("newer@example.com");
         assertThat(content.get(1).path("email").asText()).isEqualTo("older@example.com");
     }
@@ -126,12 +136,15 @@ class AdminUserApiIntegrationTest extends AbstractIntegrationTest {
     void getAdminUsersRejectsInvalidSortBy() throws Exception {
         String adminToken = tokenFor("admin-invalid-sort-by@example.com", Role.ADMIN);
 
-        mockMvc.perform(get("/api/admin/users")
-                        .header("Authorization", bearer(adminToken))
-                        .param("sortBy", "password"))
+        mockMvc.perform(
+                        get("/api/admin/users")
+                                .header("Authorization", bearer(adminToken))
+                                .param("sortBy", "password"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.startsWith("Invalid sortBy")))
+                .andExpect(
+                        jsonPath("$.message")
+                                .value(org.hamcrest.Matchers.startsWith("Invalid sortBy")))
                 .andExpect(jsonPath("$.data").value(nullValue()))
                 .andExpect(jsonPath("$.errors").isArray());
     }
@@ -140,12 +153,14 @@ class AdminUserApiIntegrationTest extends AbstractIntegrationTest {
     void getAdminUsersRejectsInvalidSortDir() throws Exception {
         String adminToken = tokenFor("admin-invalid-sort-dir@example.com", Role.ADMIN);
 
-        mockMvc.perform(get("/api/admin/users")
-                        .header("Authorization", bearer(adminToken))
-                        .param("sortDir", "sideways"))
+        mockMvc.perform(
+                        get("/api/admin/users")
+                                .header("Authorization", bearer(adminToken))
+                                .param("sortDir", "sideways"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.message").value("Invalid sortDir. Allowed values: asc, desc"))
+                .andExpect(
+                        jsonPath("$.message").value("Invalid sortDir. Allowed values: asc, desc"))
                 .andExpect(jsonPath("$.data").value(nullValue()))
                 .andExpect(jsonPath("$.errors").isArray());
     }
@@ -156,10 +171,11 @@ class AdminUserApiIntegrationTest extends AbstractIntegrationTest {
         saveNamedUser("ram-name@example.com", "Ram Bahadur", Role.CUSTOMER);
         saveNamedUser("sita-name@example.com", "Sita Devi", Role.CUSTOMER);
 
-        mockMvc.perform(get("/api/admin/users")
-                        .header("Authorization", bearer(adminToken))
-                        .param("search", "ram")
-                        .param("role", "CUSTOMER"))
+        mockMvc.perform(
+                        get("/api/admin/users")
+                                .header("Authorization", bearer(adminToken))
+                                .param("search", "ram")
+                                .param("role", "CUSTOMER"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.totalElements").value(1))
                 .andExpect(jsonPath("$.data.content[0].email").value("ram-name@example.com"));
@@ -171,10 +187,11 @@ class AdminUserApiIntegrationTest extends AbstractIntegrationTest {
         saveNamedUser("ram.email@example.com", "Email Match", Role.CUSTOMER);
         saveNamedUser("sita.email@example.com", "Other Match", Role.CUSTOMER);
 
-        mockMvc.perform(get("/api/admin/users")
-                        .header("Authorization", bearer(adminToken))
-                        .param("search", "ram.email")
-                        .param("role", "CUSTOMER"))
+        mockMvc.perform(
+                        get("/api/admin/users")
+                                .header("Authorization", bearer(adminToken))
+                                .param("search", "ram.email")
+                                .param("role", "CUSTOMER"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.totalElements").value(1))
                 .andExpect(jsonPath("$.data.content[0].email").value("ram.email@example.com"));
@@ -186,9 +203,10 @@ class AdminUserApiIntegrationTest extends AbstractIntegrationTest {
         saveUser("role-customer@example.com", Role.CUSTOMER);
         saveUser("role-staff@example.com", Role.STAFF);
 
-        mockMvc.perform(get("/api/admin/users")
-                        .header("Authorization", bearer(adminToken))
-                        .param("role", "STAFF"))
+        mockMvc.perform(
+                        get("/api/admin/users")
+                                .header("Authorization", bearer(adminToken))
+                                .param("role", "STAFF"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.totalElements").value(1))
                 .andExpect(jsonPath("$.data.content[0].email").value("role-staff@example.com"))
@@ -203,10 +221,11 @@ class AdminUserApiIntegrationTest extends AbstractIntegrationTest {
         userRepository.save(disabled);
         saveUser("enabled-filter@example.com", Role.CUSTOMER);
 
-        mockMvc.perform(get("/api/admin/users")
-                        .header("Authorization", bearer(adminToken))
-                        .param("role", "CUSTOMER")
-                        .param("enabled", "false"))
+        mockMvc.perform(
+                        get("/api/admin/users")
+                                .header("Authorization", bearer(adminToken))
+                                .param("role", "CUSTOMER")
+                                .param("enabled", "false"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.totalElements").value(1))
                 .andExpect(jsonPath("$.data.content[0].email").value("disabled-filter@example.com"))
@@ -221,10 +240,11 @@ class AdminUserApiIntegrationTest extends AbstractIntegrationTest {
         userRepository.save(locked);
         saveUser("unlocked-filter@example.com", Role.CUSTOMER);
 
-        mockMvc.perform(get("/api/admin/users")
-                        .header("Authorization", bearer(adminToken))
-                        .param("role", "CUSTOMER")
-                        .param("locked", "true"))
+        mockMvc.perform(
+                        get("/api/admin/users")
+                                .header("Authorization", bearer(adminToken))
+                                .param("role", "CUSTOMER")
+                                .param("locked", "true"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.totalElements").value(1))
                 .andExpect(jsonPath("$.data.content[0].email").value("locked-filter@example.com"))
@@ -237,9 +257,10 @@ class AdminUserApiIntegrationTest extends AbstractIntegrationTest {
         saveGoogleUser("google-filter@example.com");
         saveUser("local-filter@example.com", Role.CUSTOMER);
 
-        mockMvc.perform(get("/api/admin/users")
-                        .header("Authorization", bearer(adminToken))
-                        .param("authProvider", "GOOGLE"))
+        mockMvc.perform(
+                        get("/api/admin/users")
+                                .header("Authorization", bearer(adminToken))
+                                .param("authProvider", "GOOGLE"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.totalElements").value(1))
                 .andExpect(jsonPath("$.data.content[0].email").value("google-filter@example.com"));
@@ -253,13 +274,15 @@ class AdminUserApiIntegrationTest extends AbstractIntegrationTest {
         userRepository.save(verified);
         saveUser("unverified-filter@example.com", Role.CUSTOMER);
 
-        mockMvc.perform(get("/api/admin/users")
-                        .header("Authorization", bearer(adminToken))
-                        .param("role", "CUSTOMER")
-                        .param("emailVerified", "true"))
+        mockMvc.perform(
+                        get("/api/admin/users")
+                                .header("Authorization", bearer(adminToken))
+                                .param("role", "CUSTOMER")
+                                .param("emailVerified", "true"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.totalElements").value(1))
-                .andExpect(jsonPath("$.data.content[0].email").value("verified-filter@example.com"));
+                .andExpect(
+                        jsonPath("$.data.content[0].email").value("verified-filter@example.com"));
     }
 
     @Test
@@ -273,11 +296,12 @@ class AdminUserApiIntegrationTest extends AbstractIntegrationTest {
         userRepository.save(disabled);
         saveNamedUser("sita-enabled@example.com", "Sita Enabled", Role.CUSTOMER);
 
-        mockMvc.perform(get("/api/admin/users")
-                        .header("Authorization", bearer(adminToken))
-                        .param("search", "ram")
-                        .param("role", "CUSTOMER")
-                        .param("enabled", "true"))
+        mockMvc.perform(
+                        get("/api/admin/users")
+                                .header("Authorization", bearer(adminToken))
+                                .param("search", "ram")
+                                .param("role", "CUSTOMER")
+                                .param("enabled", "true"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.totalElements").value(1))
                 .andExpect(jsonPath("$.data.content[0].email").value("ram-enabled@example.com"));
@@ -287,32 +311,37 @@ class AdminUserApiIntegrationTest extends AbstractIntegrationTest {
     void getAdminUsersRejectsInvalidRole() throws Exception {
         String adminToken = tokenFor("admin-invalid-role@example.com", Role.ADMIN);
 
-        mockMvc.perform(get("/api/admin/users")
-                        .header("Authorization", bearer(adminToken))
-                        .param("role", "OWNER"))
+        mockMvc.perform(
+                        get("/api/admin/users")
+                                .header("Authorization", bearer(adminToken))
+                                .param("role", "OWNER"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.startsWith("Invalid role")));
+                .andExpect(
+                        jsonPath("$.message")
+                                .value(org.hamcrest.Matchers.startsWith("Invalid role")));
     }
 
     @Test
     void getAdminUsersRejectsInvalidAuthProvider() throws Exception {
         String adminToken = tokenFor("admin-invalid-provider@example.com", Role.ADMIN);
 
-        mockMvc.perform(get("/api/admin/users")
-                        .header("Authorization", bearer(adminToken))
-                        .param("authProvider", "PASSWORD"))
+        mockMvc.perform(
+                        get("/api/admin/users")
+                                .header("Authorization", bearer(adminToken))
+                                .param("authProvider", "PASSWORD"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.startsWith("Invalid authProvider")));
+                .andExpect(
+                        jsonPath("$.message")
+                                .value(org.hamcrest.Matchers.startsWith("Invalid authProvider")));
     }
 
     @Test
     void getAdminUsersForbidsStaff() throws Exception {
         String staffToken = tokenFor("staff-list-denied@example.com", Role.STAFF);
 
-        mockMvc.perform(get("/api/admin/users")
-                        .header("Authorization", bearer(staffToken)))
+        mockMvc.perform(get("/api/admin/users").header("Authorization", bearer(staffToken)))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.message").value("Access denied"));
@@ -322,8 +351,7 @@ class AdminUserApiIntegrationTest extends AbstractIntegrationTest {
     void getAdminUsersForbidsCustomer() throws Exception {
         String customerToken = tokenFor("customer-list-denied@example.com", Role.CUSTOMER);
 
-        mockMvc.perform(get("/api/admin/users")
-                        .header("Authorization", bearer(customerToken)))
+        mockMvc.perform(get("/api/admin/users").header("Authorization", bearer(customerToken)))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.message").value("Access denied"));
@@ -352,25 +380,27 @@ class AdminUserApiIntegrationTest extends AbstractIntegrationTest {
         user.setPasswordChangedAt(LocalDateTime.now().minusDays(1));
         user = userRepository.save(user);
 
-        MvcResult result = mockMvc.perform(get("/api/admin/users/{id}", user.getId())
-                        .header("Authorization", bearer(adminToken)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.message").value("User fetched successfully"))
-                .andExpect(jsonPath("$.data.id").value(user.getId()))
-                .andExpect(jsonPath("$.data.email").value("detail-user@example.com"))
-                .andExpect(jsonPath("$.data.role").value("CUSTOMER"))
-                .andExpect(jsonPath("$.data.authProvider").value("LOCAL"))
-                .andExpect(jsonPath("$.data.emailVerified").value(true))
-                .andExpect(jsonPath("$.data.enabled").value(false))
-                .andExpect(jsonPath("$.data.locked").value(true))
-                .andExpect(jsonPath("$.data.failedLoginAttempts").value(3))
-                .andExpect(jsonPath("$.data.lastLoginAt").exists())
-                .andExpect(jsonPath("$.data.password").doesNotExist())
-                .andExpect(jsonPath("$.data.googleId").doesNotExist())
-                .andExpect(jsonPath("$.data.otpHash").doesNotExist())
-                .andExpect(jsonPath("$.errors").isArray())
-                .andReturn();
+        MvcResult result =
+                mockMvc.perform(
+                                get("/api/admin/users/{id}", user.getId())
+                                        .header("Authorization", bearer(adminToken)))
+                        .andExpect(status().isOk())
+                        .andExpect(jsonPath("$.success").value(true))
+                        .andExpect(jsonPath("$.message").value("User fetched successfully"))
+                        .andExpect(jsonPath("$.data.id").value(user.getId()))
+                        .andExpect(jsonPath("$.data.email").value("detail-user@example.com"))
+                        .andExpect(jsonPath("$.data.role").value("CUSTOMER"))
+                        .andExpect(jsonPath("$.data.authProvider").value("LOCAL"))
+                        .andExpect(jsonPath("$.data.emailVerified").value(true))
+                        .andExpect(jsonPath("$.data.enabled").value(false))
+                        .andExpect(jsonPath("$.data.locked").value(true))
+                        .andExpect(jsonPath("$.data.failedLoginAttempts").value(3))
+                        .andExpect(jsonPath("$.data.lastLoginAt").exists())
+                        .andExpect(jsonPath("$.data.password").doesNotExist())
+                        .andExpect(jsonPath("$.data.googleId").doesNotExist())
+                        .andExpect(jsonPath("$.data.otpHash").doesNotExist())
+                        .andExpect(jsonPath("$.errors").isArray())
+                        .andReturn();
 
         String body = result.getResponse().getContentAsString();
         assertThat(body).doesNotContain("\"password\":");
@@ -382,8 +412,7 @@ class AdminUserApiIntegrationTest extends AbstractIntegrationTest {
     void getAdminUserByIdReturnsNotFoundForUnknownUser() throws Exception {
         String adminToken = tokenFor("admin-missing@example.com", Role.ADMIN);
 
-        mockMvc.perform(get("/api/admin/users/99999")
-                        .header("Authorization", bearer(adminToken)))
+        mockMvc.perform(get("/api/admin/users/99999").header("Authorization", bearer(adminToken)))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.message").value("User not found with id: 99999"))
@@ -396,8 +425,9 @@ class AdminUserApiIntegrationTest extends AbstractIntegrationTest {
         String customerToken = tokenFor("customer-detail-denied@example.com", Role.CUSTOMER);
         User user = saveUser("detail-denied-customer-target@example.com", Role.CUSTOMER);
 
-        mockMvc.perform(get("/api/admin/users/{id}", user.getId())
-                        .header("Authorization", bearer(customerToken)))
+        mockMvc.perform(
+                        get("/api/admin/users/{id}", user.getId())
+                                .header("Authorization", bearer(customerToken)))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.message").value("Access denied"));
@@ -408,8 +438,9 @@ class AdminUserApiIntegrationTest extends AbstractIntegrationTest {
         String staffToken = tokenFor("staff-detail-denied@example.com", Role.STAFF);
         User user = saveUser("detail-denied-staff-target@example.com", Role.CUSTOMER);
 
-        mockMvc.perform(get("/api/admin/users/{id}", user.getId())
-                        .header("Authorization", bearer(staffToken)))
+        mockMvc.perform(
+                        get("/api/admin/users/{id}", user.getId())
+                                .header("Authorization", bearer(staffToken)))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.message").value("Access denied"));
@@ -419,10 +450,15 @@ class AdminUserApiIntegrationTest extends AbstractIntegrationTest {
     void adminCreatesCustomer() throws Exception {
         String adminToken = tokenFor("admin-create-customer@example.com", Role.ADMIN);
 
-        mockMvc.perform(post("/api/admin/users")
-                        .header("Authorization", bearer(adminToken))
-                        .contentType("application/json")
-                        .content(json(createUserRequest("created-customer@example.com", Role.CUSTOMER))))
+        mockMvc.perform(
+                        post("/api/admin/users")
+                                .header("Authorization", bearer(adminToken))
+                                .contentType("application/json")
+                                .content(
+                                        json(
+                                                createUserRequest(
+                                                        "created-customer@example.com",
+                                                        Role.CUSTOMER))))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.message").value("User created successfully"))
@@ -446,16 +482,21 @@ class AdminUserApiIntegrationTest extends AbstractIntegrationTest {
     void adminCreatesStaffAndUserAppearsInPaginatedResults() throws Exception {
         String adminToken = tokenFor("admin-create-staff@example.com", Role.ADMIN);
 
-        mockMvc.perform(post("/api/admin/users")
-                        .header("Authorization", bearer(adminToken))
-                        .contentType("application/json")
-                        .content(json(createUserRequest("created-staff@example.com", Role.STAFF))))
+        mockMvc.perform(
+                        post("/api/admin/users")
+                                .header("Authorization", bearer(adminToken))
+                                .contentType("application/json")
+                                .content(
+                                        json(
+                                                createUserRequest(
+                                                        "created-staff@example.com", Role.STAFF))))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.data.role").value("STAFF"));
 
-        mockMvc.perform(get("/api/admin/users")
-                        .header("Authorization", bearer(adminToken))
-                        .param("search", "created-staff@example.com"))
+        mockMvc.perform(
+                        get("/api/admin/users")
+                                .header("Authorization", bearer(adminToken))
+                                .param("search", "created-staff@example.com"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.totalElements").value(1))
                 .andExpect(jsonPath("$.data.content[0].email").value("created-staff@example.com"))
@@ -466,10 +507,14 @@ class AdminUserApiIntegrationTest extends AbstractIntegrationTest {
     void adminCreatesAdmin() throws Exception {
         String adminToken = tokenFor("admin-create-admin@example.com", Role.ADMIN);
 
-        mockMvc.perform(post("/api/admin/users")
-                        .header("Authorization", bearer(adminToken))
-                        .contentType("application/json")
-                        .content(json(createUserRequest("created-admin@example.com", Role.ADMIN))))
+        mockMvc.perform(
+                        post("/api/admin/users")
+                                .header("Authorization", bearer(adminToken))
+                                .contentType("application/json")
+                                .content(
+                                        json(
+                                                createUserRequest(
+                                                        "created-admin@example.com", Role.ADMIN))))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.data.email").value("created-admin@example.com"))
                 .andExpect(jsonPath("$.data.role").value("ADMIN"))
@@ -481,10 +526,15 @@ class AdminUserApiIntegrationTest extends AbstractIntegrationTest {
         String adminToken = tokenFor("admin-create-duplicate@example.com", Role.ADMIN);
         saveUser("duplicate-create@example.com", Role.CUSTOMER);
 
-        mockMvc.perform(post("/api/admin/users")
-                        .header("Authorization", bearer(adminToken))
-                        .contentType("application/json")
-                        .content(json(createUserRequest("duplicate-create@example.com", Role.STAFF))))
+        mockMvc.perform(
+                        post("/api/admin/users")
+                                .header("Authorization", bearer(adminToken))
+                                .contentType("application/json")
+                                .content(
+                                        json(
+                                                createUserRequest(
+                                                        "duplicate-create@example.com",
+                                                        Role.STAFF))))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.message").value("Email is already registered"));
@@ -493,13 +543,15 @@ class AdminUserApiIntegrationTest extends AbstractIntegrationTest {
     @Test
     void adminCreateRejectsWeakPassword() throws Exception {
         String adminToken = tokenFor("admin-create-weak-password@example.com", Role.ADMIN);
-        Map<String, Object> request = createUserRequest("weak-password-create@example.com", Role.STAFF);
+        Map<String, Object> request =
+                createUserRequest("weak-password-create@example.com", Role.STAFF);
         request.put("password", "password");
 
-        mockMvc.perform(post("/api/admin/users")
-                        .header("Authorization", bearer(adminToken))
-                        .contentType("application/json")
-                        .content(json(request)))
+        mockMvc.perform(
+                        post("/api/admin/users")
+                                .header("Authorization", bearer(adminToken))
+                                .contentType("application/json")
+                                .content(json(request)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.message").value("Validation failed"));
@@ -508,16 +560,20 @@ class AdminUserApiIntegrationTest extends AbstractIntegrationTest {
     @Test
     void adminCreateRejectsInvalidRole() throws Exception {
         String adminToken = tokenFor("admin-create-invalid-role@example.com", Role.ADMIN);
-        Map<String, Object> request = createUserRequest("invalid-role-create@example.com", Role.STAFF);
+        Map<String, Object> request =
+                createUserRequest("invalid-role-create@example.com", Role.STAFF);
         request.put("role", "OWNER");
 
-        mockMvc.perform(post("/api/admin/users")
-                        .header("Authorization", bearer(adminToken))
-                        .contentType("application/json")
-                        .content(json(request)))
+        mockMvc.perform(
+                        post("/api/admin/users")
+                                .header("Authorization", bearer(adminToken))
+                                .contentType("application/json")
+                                .content(json(request)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.startsWith("Invalid role")));
+                .andExpect(
+                        jsonPath("$.message")
+                                .value(org.hamcrest.Matchers.startsWith("Invalid role")));
     }
 
     @Test
@@ -525,16 +581,18 @@ class AdminUserApiIntegrationTest extends AbstractIntegrationTest {
         String adminToken = tokenFor("admin-update-name@example.com", Role.ADMIN);
         User user = saveUser("update-name-target@example.com", Role.CUSTOMER);
 
-        mockMvc.perform(put("/api/admin/users/{id}", user.getId())
-                        .header("Authorization", bearer(adminToken))
-                        .contentType("application/json")
-                        .content(json(Map.of("name", "Updated Name"))))
+        mockMvc.perform(
+                        put("/api/admin/users/{id}", user.getId())
+                                .header("Authorization", bearer(adminToken))
+                                .contentType("application/json")
+                                .content(json(Map.of("name", "Updated Name"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.message").value("User updated successfully"))
                 .andExpect(jsonPath("$.data.name").value("Updated Name"));
 
-        assertThat(userRepository.findById(user.getId()).orElseThrow().getName()).isEqualTo("Updated Name");
+        assertThat(userRepository.findById(user.getId()).orElseThrow().getName())
+                .isEqualTo("Updated Name");
     }
 
     @Test
@@ -542,14 +600,16 @@ class AdminUserApiIntegrationTest extends AbstractIntegrationTest {
         String adminToken = tokenFor("admin-update-role@example.com", Role.ADMIN);
         User user = saveUser("update-role-target@example.com", Role.CUSTOMER);
 
-        mockMvc.perform(put("/api/admin/users/{id}", user.getId())
-                        .header("Authorization", bearer(adminToken))
-                        .contentType("application/json")
-                        .content(json(Map.of("role", "STAFF"))))
+        mockMvc.perform(
+                        put("/api/admin/users/{id}", user.getId())
+                                .header("Authorization", bearer(adminToken))
+                                .contentType("application/json")
+                                .content(json(Map.of("role", "STAFF"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.role").value("STAFF"));
 
-        assertThat(userRepository.findById(user.getId()).orElseThrow().getRole()).isEqualTo(Role.STAFF);
+        assertThat(userRepository.findById(user.getId()).orElseThrow().getRole())
+                .isEqualTo(Role.STAFF);
     }
 
     @Test
@@ -557,15 +617,19 @@ class AdminUserApiIntegrationTest extends AbstractIntegrationTest {
         String adminToken = tokenFor("admin-update-invalid-role@example.com", Role.ADMIN);
         User user = saveUser("update-invalid-role-target@example.com", Role.CUSTOMER);
 
-        mockMvc.perform(put("/api/admin/users/{id}", user.getId())
-                        .header("Authorization", bearer(adminToken))
-                        .contentType("application/json")
-                        .content(json(Map.of("role", "OWNER"))))
+        mockMvc.perform(
+                        put("/api/admin/users/{id}", user.getId())
+                                .header("Authorization", bearer(adminToken))
+                                .contentType("application/json")
+                                .content(json(Map.of("role", "OWNER"))))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.startsWith("Invalid role")));
+                .andExpect(
+                        jsonPath("$.message")
+                                .value(org.hamcrest.Matchers.startsWith("Invalid role")));
 
-        assertThat(userRepository.findById(user.getId()).orElseThrow().getRole()).isEqualTo(Role.CUSTOMER);
+        assertThat(userRepository.findById(user.getId()).orElseThrow().getRole())
+                .isEqualTo(Role.CUSTOMER);
     }
 
     @Test
@@ -573,10 +637,11 @@ class AdminUserApiIntegrationTest extends AbstractIntegrationTest {
         String adminToken = tokenFor("admin-update-enabled@example.com", Role.ADMIN);
         User user = saveUser("update-enabled-target@example.com", Role.CUSTOMER);
 
-        mockMvc.perform(put("/api/admin/users/{id}", user.getId())
-                        .header("Authorization", bearer(adminToken))
-                        .contentType("application/json")
-                        .content(json(Map.of("enabled", false))))
+        mockMvc.perform(
+                        put("/api/admin/users/{id}", user.getId())
+                                .header("Authorization", bearer(adminToken))
+                                .contentType("application/json")
+                                .content(json(Map.of("enabled", false))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.enabled").value(false));
 
@@ -588,10 +653,11 @@ class AdminUserApiIntegrationTest extends AbstractIntegrationTest {
         String adminToken = tokenFor("admin-update-verified@example.com", Role.ADMIN);
         User user = saveUser("update-verified-target@example.com", Role.CUSTOMER);
 
-        mockMvc.perform(put("/api/admin/users/{id}", user.getId())
-                        .header("Authorization", bearer(adminToken))
-                        .contentType("application/json")
-                        .content(json(Map.of("emailVerified", true))))
+        mockMvc.perform(
+                        put("/api/admin/users/{id}", user.getId())
+                                .header("Authorization", bearer(adminToken))
+                                .contentType("application/json")
+                                .content(json(Map.of("emailVerified", true))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.emailVerified").value(true));
 
@@ -604,15 +670,17 @@ class AdminUserApiIntegrationTest extends AbstractIntegrationTest {
         saveUser("admin-demote-self-backup@example.com", Role.ADMIN);
         String adminToken = loginToken("admin-demote-self@example.com");
 
-        mockMvc.perform(put("/api/admin/users/{id}", admin.getId())
-                        .header("Authorization", bearer(adminToken))
-                        .contentType("application/json")
-                        .content(json(Map.of("role", "STAFF"))))
+        mockMvc.perform(
+                        put("/api/admin/users/{id}", admin.getId())
+                                .header("Authorization", bearer(adminToken))
+                                .contentType("application/json")
+                                .content(json(Map.of("role", "STAFF"))))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.message").value("You cannot remove your own ADMIN role"));
 
-        assertThat(userRepository.findById(admin.getId()).orElseThrow().getRole()).isEqualTo(Role.ADMIN);
+        assertThat(userRepository.findById(admin.getId()).orElseThrow().getRole())
+                .isEqualTo(Role.ADMIN);
     }
 
     @Test
@@ -620,15 +688,19 @@ class AdminUserApiIntegrationTest extends AbstractIntegrationTest {
         String adminToken = tokenFor("admin-demote-last@example.com", Role.ADMIN);
         User admin = userRepository.findByEmail("admin-demote-last@example.com").orElseThrow();
 
-        mockMvc.perform(put("/api/admin/users/{id}", admin.getId())
-                        .header("Authorization", bearer(adminToken))
-                        .contentType("application/json")
-                        .content(json(Map.of("role", "CUSTOMER"))))
+        mockMvc.perform(
+                        put("/api/admin/users/{id}", admin.getId())
+                                .header("Authorization", bearer(adminToken))
+                                .contentType("application/json")
+                                .content(json(Map.of("role", "CUSTOMER"))))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.message").value("Cannot change the last enabled admin to another role"));
+                .andExpect(
+                        jsonPath("$.message")
+                                .value("Cannot change the last enabled admin to another role"));
 
-        assertThat(userRepository.findById(admin.getId()).orElseThrow().getRole()).isEqualTo(Role.ADMIN);
+        assertThat(userRepository.findById(admin.getId()).orElseThrow().getRole())
+                .isEqualTo(Role.ADMIN);
     }
 
     @Test
@@ -636,10 +708,11 @@ class AdminUserApiIntegrationTest extends AbstractIntegrationTest {
         User admin = saveUser("admin-disable-last@example.com", Role.ADMIN);
         String adminToken = loginToken("admin-disable-last@example.com");
 
-        mockMvc.perform(put("/api/admin/users/{id}", admin.getId())
-                        .header("Authorization", bearer(adminToken))
-                        .contentType("application/json")
-                        .content(json(Map.of("enabled", false))))
+        mockMvc.perform(
+                        put("/api/admin/users/{id}", admin.getId())
+                                .header("Authorization", bearer(adminToken))
+                                .contentType("application/json")
+                                .content(json(Map.of("enabled", false))))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.message").value("Cannot disable the last enabled admin"));
@@ -652,8 +725,9 @@ class AdminUserApiIntegrationTest extends AbstractIntegrationTest {
         User admin = saveUser("admin-lock-last@example.com", Role.ADMIN);
         String adminToken = loginToken("admin-lock-last@example.com");
 
-        mockMvc.perform(put("/api/admin/users/{id}/lock", admin.getId())
-                        .header("Authorization", bearer(adminToken)))
+        mockMvc.perform(
+                        put("/api/admin/users/{id}/lock", admin.getId())
+                                .header("Authorization", bearer(adminToken)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.message").value("Cannot lock the last enabled admin"));
@@ -666,18 +740,24 @@ class AdminUserApiIntegrationTest extends AbstractIntegrationTest {
         String customerToken = tokenFor("customer-lifecycle-denied@example.com", Role.CUSTOMER);
         User user = saveUser("customer-lifecycle-target@example.com", Role.CUSTOMER);
 
-        mockMvc.perform(post("/api/admin/users")
-                        .header("Authorization", bearer(customerToken))
-                        .contentType("application/json")
-                        .content(json(createUserRequest("customer-forbidden-create@example.com", Role.STAFF))))
+        mockMvc.perform(
+                        post("/api/admin/users")
+                                .header("Authorization", bearer(customerToken))
+                                .contentType("application/json")
+                                .content(
+                                        json(
+                                                createUserRequest(
+                                                        "customer-forbidden-create@example.com",
+                                                        Role.STAFF))))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.message").value("Access denied"));
 
-        mockMvc.perform(put("/api/admin/users/{id}", user.getId())
-                        .header("Authorization", bearer(customerToken))
-                        .contentType("application/json")
-                        .content(json(Map.of("name", "Denied"))))
+        mockMvc.perform(
+                        put("/api/admin/users/{id}", user.getId())
+                                .header("Authorization", bearer(customerToken))
+                                .contentType("application/json")
+                                .content(json(Map.of("name", "Denied"))))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.message").value("Access denied"));
@@ -688,18 +768,24 @@ class AdminUserApiIntegrationTest extends AbstractIntegrationTest {
         String staffToken = tokenFor("staff-lifecycle-denied@example.com", Role.STAFF);
         User user = saveUser("staff-lifecycle-target@example.com", Role.CUSTOMER);
 
-        mockMvc.perform(post("/api/admin/users")
-                        .header("Authorization", bearer(staffToken))
-                        .contentType("application/json")
-                        .content(json(createUserRequest("staff-forbidden-create@example.com", Role.STAFF))))
+        mockMvc.perform(
+                        post("/api/admin/users")
+                                .header("Authorization", bearer(staffToken))
+                                .contentType("application/json")
+                                .content(
+                                        json(
+                                                createUserRequest(
+                                                        "staff-forbidden-create@example.com",
+                                                        Role.STAFF))))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.message").value("Access denied"));
 
-        mockMvc.perform(put("/api/admin/users/{id}", user.getId())
-                        .header("Authorization", bearer(staffToken))
-                        .contentType("application/json")
-                        .content(json(Map.of("name", "Denied"))))
+        mockMvc.perform(
+                        put("/api/admin/users/{id}", user.getId())
+                                .header("Authorization", bearer(staffToken))
+                                .contentType("application/json")
+                                .content(json(Map.of("name", "Denied"))))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.message").value("Access denied"));
@@ -709,16 +795,22 @@ class AdminUserApiIntegrationTest extends AbstractIntegrationTest {
     void unauthenticatedRejectedFromUserCreationAndUpdate() throws Exception {
         User user = saveUser("unauthenticated-lifecycle-target@example.com", Role.CUSTOMER);
 
-        mockMvc.perform(post("/api/admin/users")
-                        .contentType("application/json")
-                        .content(json(createUserRequest("unauthenticated-create@example.com", Role.STAFF))))
+        mockMvc.perform(
+                        post("/api/admin/users")
+                                .contentType("application/json")
+                                .content(
+                                        json(
+                                                createUserRequest(
+                                                        "unauthenticated-create@example.com",
+                                                        Role.STAFF))))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.message").value("Authentication required"));
 
-        mockMvc.perform(put("/api/admin/users/{id}", user.getId())
-                        .contentType("application/json")
-                        .content(json(Map.of("name", "Denied"))))
+        mockMvc.perform(
+                        put("/api/admin/users/{id}", user.getId())
+                                .contentType("application/json")
+                                .content(json(Map.of("name", "Denied"))))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.message").value("Authentication required"));
@@ -731,8 +823,9 @@ class AdminUserApiIntegrationTest extends AbstractIntegrationTest {
         user.setEnabled(false);
         user = userRepository.save(user);
 
-        mockMvc.perform(put("/api/admin/users/{id}/enable", user.getId())
-                        .header("Authorization", bearer(adminToken)))
+        mockMvc.perform(
+                        put("/api/admin/users/{id}/enable", user.getId())
+                                .header("Authorization", bearer(adminToken)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.message").value("User enabled successfully"))
@@ -749,8 +842,9 @@ class AdminUserApiIntegrationTest extends AbstractIntegrationTest {
         String adminToken = tokenFor("admin-disable@example.com", Role.ADMIN);
         User user = saveUser("disable-target@example.com", Role.CUSTOMER);
 
-        mockMvc.perform(put("/api/admin/users/{id}/disable", user.getId())
-                        .header("Authorization", bearer(adminToken)))
+        mockMvc.perform(
+                        put("/api/admin/users/{id}/disable", user.getId())
+                                .header("Authorization", bearer(adminToken)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.message").value("User disabled successfully"))
@@ -766,15 +860,20 @@ class AdminUserApiIntegrationTest extends AbstractIntegrationTest {
         String adminToken = tokenFor("admin-disable-login@example.com", Role.ADMIN);
         User user = saveUser("disabled-by-admin-login@example.com", Role.CUSTOMER);
 
-        mockMvc.perform(put("/api/admin/users/{id}/disable", user.getId())
-                        .header("Authorization", bearer(adminToken)))
+        mockMvc.perform(
+                        put("/api/admin/users/{id}/disable", user.getId())
+                                .header("Authorization", bearer(adminToken)))
                 .andExpect(status().isOk());
 
-        mockMvc.perform(post("/api/auth/login")
-                        .contentType("application/json")
-                        .content(json(Map.of(
-                                "email", "disabled-by-admin-login@example.com",
-                                "password", "password123"))))
+        mockMvc.perform(
+                        post("/api/auth/login")
+                                .contentType("application/json")
+                                .content(
+                                        json(
+                                                Map.of(
+                                                        "email",
+                                                                "disabled-by-admin-login@example.com",
+                                                        "password", "password123"))))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.message").value("Account is disabled"));
@@ -786,12 +885,12 @@ class AdminUserApiIntegrationTest extends AbstractIntegrationTest {
         User user = saveUser("disabled-by-admin-token@example.com", Role.CUSTOMER);
         String customerToken = loginToken("disabled-by-admin-token@example.com");
 
-        mockMvc.perform(put("/api/admin/users/{id}/disable", user.getId())
-                        .header("Authorization", bearer(adminToken)))
+        mockMvc.perform(
+                        put("/api/admin/users/{id}/disable", user.getId())
+                                .header("Authorization", bearer(adminToken)))
                 .andExpect(status().isOk());
 
-        mockMvc.perform(get("/api/customer/profile")
-                        .header("Authorization", bearer(customerToken)))
+        mockMvc.perform(get("/api/customer/profile").header("Authorization", bearer(customerToken)))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.message").value("Account is disabled"));
@@ -804,8 +903,9 @@ class AdminUserApiIntegrationTest extends AbstractIntegrationTest {
         user.setLockedUntil(LocalDateTime.now().plusMinutes(5));
         user = userRepository.save(user);
 
-        mockMvc.perform(put("/api/admin/users/{id}/lock", user.getId())
-                        .header("Authorization", bearer(adminToken)))
+        mockMvc.perform(
+                        put("/api/admin/users/{id}/lock", user.getId())
+                                .header("Authorization", bearer(adminToken)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.message").value("User locked successfully"))
@@ -823,18 +923,25 @@ class AdminUserApiIntegrationTest extends AbstractIntegrationTest {
         String adminToken = tokenFor("admin-lock-login@example.com", Role.ADMIN);
         User user = saveUser("locked-by-admin-login@example.com", Role.CUSTOMER);
 
-        mockMvc.perform(put("/api/admin/users/{id}/lock", user.getId())
-                        .header("Authorization", bearer(adminToken)))
+        mockMvc.perform(
+                        put("/api/admin/users/{id}/lock", user.getId())
+                                .header("Authorization", bearer(adminToken)))
                 .andExpect(status().isOk());
 
-        mockMvc.perform(post("/api/auth/login")
-                        .contentType("application/json")
-                        .content(json(Map.of(
-                                "email", "locked-by-admin-login@example.com",
-                                "password", "password123"))))
+        mockMvc.perform(
+                        post("/api/auth/login")
+                                .contentType("application/json")
+                                .content(
+                                        json(
+                                                Map.of(
+                                                        "email",
+                                                                "locked-by-admin-login@example.com",
+                                                        "password", "password123"))))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.message").value("Account is temporarily locked. Please try again later."));
+                .andExpect(
+                        jsonPath("$.message")
+                                .value("Account is temporarily locked. Please try again later."));
     }
 
     @Test
@@ -846,8 +953,9 @@ class AdminUserApiIntegrationTest extends AbstractIntegrationTest {
         user.setLockedUntil(LocalDateTime.now().plusMinutes(10));
         user = userRepository.save(user);
 
-        mockMvc.perform(put("/api/admin/users/{id}/unlock", user.getId())
-                        .header("Authorization", bearer(adminToken)))
+        mockMvc.perform(
+                        put("/api/admin/users/{id}/unlock", user.getId())
+                                .header("Authorization", bearer(adminToken)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.message").value("User unlocked successfully"))
@@ -867,8 +975,9 @@ class AdminUserApiIntegrationTest extends AbstractIntegrationTest {
         String customerToken = tokenFor("customer-state-denied@example.com", Role.CUSTOMER);
         User user = saveUser("customer-state-target@example.com", Role.CUSTOMER);
 
-        mockMvc.perform(put("/api/admin/users/{id}/disable", user.getId())
-                        .header("Authorization", bearer(customerToken)))
+        mockMvc.perform(
+                        put("/api/admin/users/{id}/disable", user.getId())
+                                .header("Authorization", bearer(customerToken)))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.message").value("Access denied"));
@@ -879,8 +988,9 @@ class AdminUserApiIntegrationTest extends AbstractIntegrationTest {
         String staffToken = tokenFor("staff-state-denied@example.com", Role.STAFF);
         User user = saveUser("staff-state-target@example.com", Role.CUSTOMER);
 
-        mockMvc.perform(put("/api/admin/users/{id}/lock", user.getId())
-                        .header("Authorization", bearer(staffToken)))
+        mockMvc.perform(
+                        put("/api/admin/users/{id}/lock", user.getId())
+                                .header("Authorization", bearer(staffToken)))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.message").value("Access denied"));
@@ -902,8 +1012,9 @@ class AdminUserApiIntegrationTest extends AbstractIntegrationTest {
         saveUser("admin-disable-self-backup@example.com", Role.ADMIN);
         String adminToken = loginToken("admin-disable-self@example.com");
 
-        mockMvc.perform(put("/api/admin/users/{id}/disable", admin.getId())
-                        .header("Authorization", bearer(adminToken)))
+        mockMvc.perform(
+                        put("/api/admin/users/{id}/disable", admin.getId())
+                                .header("Authorization", bearer(adminToken)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.message").value("You cannot disable your own account"))
@@ -918,8 +1029,9 @@ class AdminUserApiIntegrationTest extends AbstractIntegrationTest {
         saveUser("admin-lock-self-backup@example.com", Role.ADMIN);
         String adminToken = loginToken("admin-lock-self@example.com");
 
-        mockMvc.perform(put("/api/admin/users/{id}/lock", admin.getId())
-                        .header("Authorization", bearer(adminToken)))
+        mockMvc.perform(
+                        put("/api/admin/users/{id}/lock", admin.getId())
+                                .header("Authorization", bearer(adminToken)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.message").value("You cannot lock your own account"))
@@ -935,23 +1047,28 @@ class AdminUserApiIntegrationTest extends AbstractIntegrationTest {
     }
 
     private User saveGoogleUser(String email) {
-        User user = User.builder()
-                .name("Google User")
-                .email(email)
-                .password(null)
-                .role(Role.CUSTOMER)
-                .authProvider(AuthProvider.GOOGLE)
-                .emailVerified(true)
-                .build();
+        User user =
+                User.builder()
+                        .name("Google User")
+                        .email(email)
+                        .password(null)
+                        .role(Role.CUSTOMER)
+                        .authProvider(AuthProvider.GOOGLE)
+                        .emailVerified(true)
+                        .build();
         return userRepository.save(user);
     }
 
     private Map<String, Object> createUserRequest(String email, Role role) {
-        return new java.util.HashMap<>(Map.of(
-                "name", role.name() + " Created",
-                "email", email,
-                "password", "StrongPass@123",
-                "role", role.name()
-        ));
+        return new java.util.HashMap<>(
+                Map.of(
+                        "name",
+                        role.name() + " Created",
+                        "email",
+                        email,
+                        "password",
+                        "StrongPass@123",
+                        "role",
+                        role.name()));
     }
 }

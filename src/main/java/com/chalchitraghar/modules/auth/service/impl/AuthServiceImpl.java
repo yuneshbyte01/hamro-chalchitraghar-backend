@@ -1,12 +1,10 @@
 package com.chalchitraghar.modules.auth.service.impl;
 
-import java.time.LocalDateTime;
-
-import com.chalchitraghar.modules.auth.dto.request.LoginRequest;
+import com.chalchitraghar.modules.auth.dto.GoogleUserInfo;
 import com.chalchitraghar.modules.auth.dto.request.GoogleLoginRequest;
+import com.chalchitraghar.modules.auth.dto.request.LoginRequest;
 import com.chalchitraghar.modules.auth.dto.request.RefreshTokenRequest;
 import com.chalchitraghar.modules.auth.dto.request.RegistrationRequest;
-import com.chalchitraghar.modules.auth.dto.GoogleUserInfo;
 import com.chalchitraghar.modules.auth.dto.response.LoginResponse;
 import com.chalchitraghar.modules.auth.dto.response.RegistrationResponse;
 import com.chalchitraghar.modules.auth.service.AuthService;
@@ -18,6 +16,7 @@ import com.chalchitraghar.modules.users.repository.UserRepository;
 import com.chalchitraghar.modules.users.service.UserService;
 import com.chalchitraghar.shared.exception.AuthenticationException;
 import com.chalchitraghar.shared.security.JwtUtil;
+import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -38,15 +37,9 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public RegistrationResponse register(RegistrationRequest request) {
-        User user = userService.addUser(
-                request.getName(),
-                request.getEmail(),
-                request.getPassword()
-        );
-        return new RegistrationResponse(
-                "User registered successfully",
-                user.getEmail()
-        );
+        User user =
+                userService.addUser(request.getName(), request.getEmail(), request.getPassword());
+        return new RegistrationResponse("User registered successfully", user.getEmail());
     }
 
     @Override
@@ -73,12 +66,15 @@ public class AuthServiceImpl implements AuthService {
             throw new AuthenticationException("Google email is not verified");
         }
 
-        User user = userRepository.findByEmail(googleUser.email())
-                .map(existingUser -> {
-                    ensureAccountCanAuthenticate(existingUser);
-                    return linkOrUpdateGoogleAccount(existingUser, googleUser);
-                })
-                .orElseGet(() -> createGoogleUser(googleUser));
+        User user =
+                userRepository
+                        .findByEmail(googleUser.email())
+                        .map(
+                                existingUser -> {
+                                    ensureAccountCanAuthenticate(existingUser);
+                                    return linkOrUpdateGoogleAccount(existingUser, googleUser);
+                                })
+                        .orElseGet(() -> createGoogleUser(googleUser));
 
         ensureAccountCanAuthenticate(user);
         recordSuccessfulLogin(user);
@@ -108,16 +104,17 @@ public class AuthServiceImpl implements AuthService {
     }
 
     private User createGoogleUser(GoogleUserInfo googleUser) {
-        User user = User.builder()
-                .name(googleUser.name())
-                .email(googleUser.email())
-                .password(null)
-                .role(Role.CUSTOMER)
-                .authProvider(AuthProvider.GOOGLE)
-                .googleId(googleUser.googleId())
-                .avatarUrl(googleUser.avatarUrl())
-                .emailVerified(true)
-                .build();
+        User user =
+                User.builder()
+                        .name(googleUser.name())
+                        .email(googleUser.email())
+                        .password(null)
+                        .role(Role.CUSTOMER)
+                        .authProvider(AuthProvider.GOOGLE)
+                        .googleId(googleUser.googleId())
+                        .avatarUrl(googleUser.avatarUrl())
+                        .emailVerified(true)
+                        .build();
         return userRepository.save(user);
     }
 
@@ -126,7 +123,8 @@ public class AuthServiceImpl implements AuthService {
             throw new AuthenticationException("Account is disabled");
         }
         if (isLocked(user)) {
-            throw new AuthenticationException("Account is temporarily locked. Please try again later.");
+            throw new AuthenticationException(
+                    "Account is temporarily locked. Please try again later.");
         }
         if (isLockExpired(user)) {
             clearLock(user);
@@ -143,7 +141,8 @@ public class AuthServiceImpl implements AuthService {
 
     private boolean isLocked(User user) {
         return user.isLocked()
-                && (user.getLockedUntil() == null || user.getLockedUntil().isAfter(LocalDateTime.now()));
+                && (user.getLockedUntil() == null
+                        || user.getLockedUntil().isAfter(LocalDateTime.now()));
     }
 
     private boolean isLockExpired(User user) {
@@ -175,11 +174,6 @@ public class AuthServiceImpl implements AuthService {
 
     private LoginResponse toLoginResponse(User user) {
         String token = jwtUtil.generateToken(user);
-        return new LoginResponse(
-                token,
-                user.getEmail(),
-                user.getName(),
-                user.getRole().name()
-        );
+        return new LoginResponse(token, user.getEmail(), user.getName(), user.getRole().name());
     }
 }

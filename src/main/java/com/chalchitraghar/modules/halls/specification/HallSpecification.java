@@ -1,23 +1,17 @@
 package com.chalchitraghar.modules.halls.specification;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import org.springframework.data.jpa.domain.Specification;
-
 import com.chalchitraghar.modules.halls.dto.request.HallSearchCriteria;
 import com.chalchitraghar.modules.halls.entity.Hall;
 import com.chalchitraghar.modules.halls.enums.Status;
-
 import jakarta.persistence.criteria.Predicate;
+import java.util.ArrayList;
+import java.util.List;
+import org.springframework.data.jpa.domain.Specification;
 
-/**
- * Specifications for flexible Hall queries.
- */
+/** Specifications for flexible Hall queries. */
 public final class HallSpecification {
 
-    private HallSpecification() {
-    }
+    private HallSpecification() {}
 
     public static Specification<Hall> publicSearch(HallSearchCriteria criteria) {
         return (root, query, cb) -> {
@@ -39,10 +33,10 @@ public final class HallSpecification {
 
             if (criteria != null && criteria.search() != null && !criteria.search().isBlank()) {
                 String search = "%" + criteria.search().trim().toLowerCase() + "%";
-                predicates.add(cb.or(
-                        cb.like(cb.lower(root.get("name")), search),
-                        cb.like(cb.lower(root.get("layoutRef")), search)
-                ));
+                predicates.add(
+                        cb.or(
+                                cb.like(cb.lower(root.get("name")), search),
+                                cb.like(cb.lower(root.get("layoutRef")), search)));
             }
 
             if (status != null) {

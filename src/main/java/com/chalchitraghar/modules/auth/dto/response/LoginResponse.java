@@ -3,9 +3,7 @@ package com.chalchitraghar.modules.auth.dto.response;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 
-/**
- * Response DTO containing authentication token and user information.
- */
+/** Response DTO containing authentication token and user information. */
 @Data
 @AllArgsConstructor
 public class LoginResponse {

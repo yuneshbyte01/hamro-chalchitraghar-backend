@@ -1,16 +1,12 @@
 package com.chalchitraghar.modules.movies.dto.response;
 
-import java.time.LocalDate;
-
 import com.chalchitraghar.modules.movies.enums.MovieStatus;
-
+import java.time.LocalDate;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-/**
- * Admin movie list response with operational fields kept compact.
- */
+/** Admin movie list response with operational fields kept compact. */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

@@ -1,13 +1,10 @@
 package com.chalchitraghar.modules.tickets.entity;
 
-import java.time.LocalDateTime;
-
 import com.chalchitraghar.modules.bookings.entity.Booking;
 import com.chalchitraghar.modules.bookings.entity.BookingSeat;
 import com.chalchitraghar.modules.tickets.enums.TicketStatus;
 import com.chalchitraghar.modules.users.entity.User;
 import com.chalchitraghar.shared.GenericEntity;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -18,6 +15,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
+import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -42,7 +40,12 @@ public class Ticket extends GenericEntity {
     @NotNull
     private BookingSeat bookingSeat;
 
-    @Column(name = "ticket_reference", nullable = false, unique = true, updatable = false, length = 50)
+    @Column(
+            name = "ticket_reference",
+            nullable = false,
+            unique = true,
+            updatable = false,
+            length = 50)
     @NotNull
     private String ticketReference;
 
@@ -69,6 +72,7 @@ public class Ticket extends GenericEntity {
 
     @Column(length = 500)
     private String revocationReason;
+
     private Integer qrTokenVersion;
 
     @Column(nullable = false, length = 100)
@@ -82,7 +86,13 @@ public class Ticket extends GenericEntity {
 
     @Column(nullable = false)
     private LocalDateTime qrIssuedAt;
+
     private LocalDateTime reissuedAt;
-    @ManyToOne(fetch=FetchType.LAZY) @JoinColumn(name="reissued_by_user_id") private User reissuedBy;
-    @Column(length=500) private String reissueReason;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "reissued_by_user_id")
+    private User reissuedBy;
+
+    @Column(length = 500)
+    private String reissueReason;
 }

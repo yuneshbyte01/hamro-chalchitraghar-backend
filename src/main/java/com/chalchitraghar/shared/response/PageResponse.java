@@ -1,16 +1,12 @@
 package com.chalchitraghar.shared.response;
 
 import java.util.List;
-
-import org.springframework.data.domain.Page;
-
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.springframework.data.domain.Page;
 
-/**
- * Standard paginated response body for list endpoints.
- */
+/** Standard paginated response body for list endpoints. */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -30,7 +26,6 @@ public class PageResponse<T> {
                 page.getSize(),
                 page.getTotalElements(),
                 page.getTotalPages(),
-                page.isLast()
-        );
+                page.isLast());
     }
 }
