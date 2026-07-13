@@ -284,3 +284,8 @@ Set `NOTIFICATION_EMAIL_ENABLED=true` and provide `NOTIFICATION_EMAIL_FROM` plus
 name, and async settings are listed in `.env.example`. When disabled, startup needs no SMTP
 credentials and eligible deliveries are recorded as `SKIPPED`. Tests disable real SMTP and may set
 async off for deterministic dispatch.
+# Audit-1 setup
+
+Audit-1 requires no new environment variables, broker, executor, AOP, MDC, or tracing setup. It uses
+the existing Spring `Clock` and stores bounded validated JSON in PostgreSQL TEXT columns for stable
+H2 PostgreSQL-mode tests.

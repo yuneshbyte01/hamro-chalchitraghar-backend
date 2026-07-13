@@ -535,3 +535,11 @@ bounded attempts, retry timestamps, sanitized failure reason, worker claim, temp
 subject, and content version. `(notification_id, channel)` is unique. Retry, notification,
 recipient, and stale-claim indexes support bounded operational processing. Rows are retained for
 audit until a future retention policy is introduced; customer APIs do not expose them.
+# General audit store
+
+Flyway V30 creates `audit_logs`, an insert-only history table independent of ticket validations,
+notification deliveries, payments/refunds, bookings, tickets, and password-reset OTP state. Actor
+identity is a nullable snapshot without a user foreign key. Enums are strings. The three snapshot
+columns use TEXT containing validated JSON so PostgreSQL and H2 share one mapping. Indexes cover
+occurrence time, actor/time, action/time, category/time, resource, request/correlation IDs, and
+result/severity/time. Application code exposes no update or delete operation.

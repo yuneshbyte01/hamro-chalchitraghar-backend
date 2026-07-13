@@ -2,6 +2,7 @@ package com.chalchitraghar;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
+import com.chalchitraghar.modules.audit.repository.AuditLogRepository;
 import com.chalchitraghar.modules.auth.repository.PasswordResetOtpRepository;
 import com.chalchitraghar.modules.bookings.repository.BookingRepository;
 import com.chalchitraghar.modules.bookings.repository.BookingSeatRepository;
@@ -63,6 +64,7 @@ abstract class AbstractIntegrationTest {
     @Autowired protected UserRepository userRepository;
 
     @Autowired protected PasswordResetOtpRepository passwordResetOtpRepository;
+    @Autowired protected AuditLogRepository auditLogRepository;
 
     @Autowired protected MovieRepository movieRepository;
 
@@ -90,6 +92,7 @@ abstract class AbstractIntegrationTest {
 
     @BeforeEach
     void cleanDatabase() {
+        auditLogRepository.deleteAll();
         notificationDeliveryRepository.deleteAll();
         notificationRepository.deleteAll();
         notificationPreferenceRepository.deleteAll();

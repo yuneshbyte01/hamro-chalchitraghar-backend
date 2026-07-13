@@ -505,3 +505,10 @@ sending the same row concurrently. Backoff is bounded and computed from the inje
 Executor rejection leaves the persisted row recoverable. Ticket PDF delivery remains separate to
 preserve attachments; password-reset OTP delivery remains separate to avoid delayed security-token
 delivery. No broker or distributed lease is introduced.
+# Audit module
+
+`modules/audit` owns the immutable entity, trusted append command/service, allowlist validator,
+repository/specification, mapper, and admin DTOs. The admin controller delegates reads through the
+service and never exposes entities. Automatic application-event integration is deferred to Audit-2,
+request/correlation context to Audit-3, and export, retention, anonymization, and integrity controls
+to Audit-4.

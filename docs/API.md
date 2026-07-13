@@ -1746,3 +1746,12 @@ retryable; business endpoint success and in-app read state are independent of ma
 Customer notification APIs expose no recipient, delivery status, attempt count, claim, or failure
 diagnostics. `TICKET_ISSUED` remains on the existing PDF attachment workflow, and password-reset OTP
 email remains security-specific and is never stored in notification persistence.
+# Admin audit logs
+
+`GET /api/admin/audit-logs` returns sanitized summaries in pages of 20 by default (maximum 100),
+ordered by `occurredAt DESC, id DESC`. ADMIN may filter by actor ID/email/role/type, action,
+category, severity, result, resource type/ID/reference, request ID, correlation ID, and inclusive
+occurrence range. `GET /api/admin/audit-logs/{auditLogId}` returns sanitized detail including the
+allowlisted JSON snapshots. Both require ADMIN; invalid filters are 400 and missing records are 404.
+There are no creation, mutation, export, customer, or staff endpoints, and Audit-1 does not
+automatically populate the table.

@@ -321,3 +321,8 @@ sanitized failures, and disabled-environment audit rows. External mail failure i
 business and in-app notification commits. Existing ticket PDF delivery and password-reset OTP email
 remain separate; admin delivery operations, preferences, analytics, retention, and reminders remain
 deferred.
+# Audit-1
+
+Audit-1 establishes append-only persistence, safe allowlisted snapshots, bounded filtering and
+pagination, ADMIN-only summary/detail visibility, Swagger descriptions, and authorization and
+integration coverage. Automatic auditing of authentication and business modules remains deferred.

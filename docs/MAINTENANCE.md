@@ -560,3 +560,13 @@ rows. SMTP work must remain outside business and claim transactions. Treat mail/
 exceptions as transient; invalid recipients, missing templates, and construction errors are
 permanent. Inspect `EXHAUSTED` rows operationally, and recover stale `PROCESSING` rows through the
 retry processor. All timestamps and fixtures must use the injected `Clock`.
+# Maintaining audit logs
+
+Audit records are append-only: never add update/delete service or controller operations. Add future
+`AuditAction` constants only with a stable, migration-compatible name. Snapshots must be constructed
+explicitly as maps, use keys in `AuditSnapshotValidator`'s allowlist, contain no entity/request-body
+serialization, and remain under 16 KB per field. Secret, credential, password, OTP, token, payment
+signature/payload, email-body, binary, stack-trace, and SQL keys are rejected recursively and without
+case sensitivity. All timestamps use the injected `Clock`. Add filters in the filter record and
+specification together, preserve the stable two-column sort, and verify each next-numbered migration
+against both the entity mapping and PostgreSQL syntax.
