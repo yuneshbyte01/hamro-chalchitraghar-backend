@@ -100,6 +100,34 @@ public class Refund extends GenericEntity {
     @Column(name = "rejection_note", length = 500)
     private String rejectionNote;
 
+    @Column(name = "attempt_count", nullable = false)
+    @Builder.Default
+    private int attemptCount = 0;
+
+    @Column(name = "max_attempts", nullable = false)
+    @Builder.Default
+    private int maxAttempts = 3;
+
+    private LocalDateTime nextAttemptAt;
+    private LocalDateTime lastAttemptAt;
+    private LocalDateTime processingStartedAt;
+    private LocalDateTime processedAt;
+    private LocalDateTime failedAt;
+    private LocalDateTime claimedAt;
+
+    @Column(length = 100)
+    private String claimedBy;
+
+    @Column(length = 100)
+    private String lastFailureCode;
+
+    @Column(length = 100)
+    private String providerStatus;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean manualReviewRequired = false;
+
     /** Legacy V21 column retained for forward migration compatibility. */
     @Column(name = "completed_at")
     private LocalDateTime completedAt;

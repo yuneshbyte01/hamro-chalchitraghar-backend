@@ -367,3 +367,4 @@ cancellation cancels confirmed paid bookings and creates deterministic `APPROVED
 create, approve, and reject with locked decisions. Checked-in tickets and ambiguous payments roll back
 automatic flows. Typed after-commit events create idempotent notification/email delivery and append-only
 safe audits. Payment remains successful; processing and financial completion remain Refund-3.
+Refund-3 adds database-backed processing claims, append-only attempts, bounded retry, stale recovery, manual completion, provider-neutral execution, safe reconciliation refusal, and atomic Payment REFUNDED finalization. eSewa refund execution remains deferred because no verified merchant refund endpoint and idempotency/status contract is present.

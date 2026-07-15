@@ -265,3 +265,4 @@ full-refund intent. Show cancellation cancels confirmed paid bookings and create
 admins can create, approve, or reject intents. Checked-in tickets block automatic flows, and safe
 notifications/audits run after commit. Payment remains `SUCCESS`; provider execution and financial
 completion remain Refund-3 work.
+Refund processing is manual-first and database-backed: approved refunds are claimed into `PROCESSING`, recorded as append-only attempts, and finalized only after confirmed success. Manual/provider-unsupported execution enters `MANUAL_REVIEW`; an ADMIN may record verified manual completion, which atomically moves the refund to `SUCCEEDED` and its full payment from `SUCCESS` to `REFUNDED`. No speculative eSewa refund endpoint is used.

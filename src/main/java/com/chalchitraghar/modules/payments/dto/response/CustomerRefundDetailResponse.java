@@ -20,4 +20,5 @@ public record CustomerRefundDetailResponse(
         LocalDateTime requestedAt,
         LocalDateTime approvedAt,
         LocalDateTime rejectedAt,
+        LocalDateTime processedAt,
         String safeStatusMessage) {}

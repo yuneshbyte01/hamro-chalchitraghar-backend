@@ -3,6 +3,7 @@ package com.chalchitraghar.modules.payments.repository;
 import com.chalchitraghar.modules.payments.entity.Refund;
 import com.chalchitraghar.modules.payments.enums.RefundStatus;
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -94,4 +95,10 @@ public interface RefundRepository
     BigDecimal sumAmountByPaymentIdAndStatusIn(
             @Param("paymentId") Long paymentId,
             @Param("statuses") Collection<RefundStatus> statuses);
+
+    List<Refund> findTop50ByStatusAndNextAttemptAtLessThanEqualOrderByNextAttemptAtAsc(
+            RefundStatus status, LocalDateTime now);
+
+    List<Refund> findTop50ByStatusAndClaimedAtBeforeOrderByClaimedAtAsc(
+            RefundStatus status, LocalDateTime cutoff);
 }

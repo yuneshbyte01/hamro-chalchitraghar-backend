@@ -21,6 +21,20 @@ spring:
 
 app:
   time-zone: ${APP_TIME_ZONE:Asia/Kathmandu}
+  refunds:
+    processing:
+      enabled: ${REFUND_PROCESSING_ENABLED:true}
+      auto-process-enabled: ${REFUND_AUTO_PROCESS_ENABLED:false}
+      default-method: ${REFUND_DEFAULT_METHOD:MANUAL}
+      max-attempts: ${REFUND_MAX_ATTEMPTS:3}
+      initial-retry-delay: ${REFUND_INITIAL_RETRY_DELAY:PT1M}
+      retry-multiplier: ${REFUND_RETRY_MULTIPLIER:2.0}
+      max-retry-delay: ${REFUND_MAX_RETRY_DELAY:PT1H}
+      retry-batch-size: ${REFUND_RETRY_BATCH_SIZE:50}
+      retry-interval: ${REFUND_RETRY_INTERVAL:PT1M}
+      processing-timeout: ${REFUND_PROCESSING_TIMEOUT:PT5M}
+      claim-batch-size: ${REFUND_CLAIM_BATCH_SIZE:50}
+      worker-id: ${REFUND_WORKER_ID:refund-worker}
   audit:
     export:
       enabled: ${AUDIT_EXPORT_ENABLED:true}

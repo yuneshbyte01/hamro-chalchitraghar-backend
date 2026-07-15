@@ -1822,3 +1822,6 @@ cancels initiated bookings without refund, and cancels confirmed paid bookings w
 `SHOW_CANCELLATION:{bookingId}:{showId}` `APPROVED` intents. The whole operation rolls back on an
 unsafe booking. `REQUESTED` means awaiting review, `APPROVED` awaiting future processing, and
 `REJECTED` releases balance; none means money was returned.
+## Refund processing (Refund-3)
+
+ADMIN endpoints: `POST /api/admin/refunds/{reference}/process` (202), `/retry` (202), `/mark-manual-success`, `/reconcile`, and `GET /attempts`. Processing is idempotently claimed; only APPROVED or due retryable FAILED refunds can process. Manual execution enters MANUAL_REVIEW until an administrator confirms the real-world refund with an external reference. Reconciliation returns 409 because no verified provider refund enquiry contract exists. Payment becomes REFUNDED only after Refund becomes SUCCEEDED.

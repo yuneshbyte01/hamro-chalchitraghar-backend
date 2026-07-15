@@ -3,6 +3,7 @@ package com.chalchitraghar.modules.payments.service.impl;
 import com.chalchitraghar.modules.bookings.entity.Booking;
 import com.chalchitraghar.modules.bookings.repository.BookingRepository;
 import com.chalchitraghar.modules.notifications.event.*;
+import com.chalchitraghar.modules.payments.config.RefundProcessingProperties;
 import com.chalchitraghar.modules.payments.dto.request.*;
 import com.chalchitraghar.modules.payments.dto.response.*;
 import com.chalchitraghar.modules.payments.entity.*;
@@ -40,6 +41,7 @@ public class RefundServiceImpl implements RefundService {
     private final RefundMapper mapper;
     private final Clock clock;
     private final ApplicationEventPublisher events;
+    private final RefundProcessingProperties processingProperties;
 
     /**
      * Lock order is Payment then Booking. No external operation is performed in this transaction.
@@ -100,6 +102,7 @@ public class RefundServiceImpl implements RefundService {
                         .requestedBy(requestedBy)
                         .requestedAt(now)
                         .provider(payment.getProvider())
+                        .maxAttempts(processingProperties.getMaxAttempts())
                         .build();
         refund.setCreatedAt(now);
         refund.setUpdatedAt(now);

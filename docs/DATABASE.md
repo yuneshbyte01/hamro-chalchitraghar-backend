@@ -587,3 +587,4 @@ V35 adds nullable `rejection_reason_code` and sanitized `rejection_note`. Existi
 timestamp fields record approval/rejection. `REQUESTED` and `APPROVED` reserve the full payment amount;
 `REJECTED` does not. Booking, ticket, and seat changes share the workflow transaction. No refunded
 total, provider execution, attempt, retry, or completion field is added.
+Refund-3 migration V36 adds claim, attempt, retry, failure, provider-status, and completion fields to `refunds`, plus append-only `refund_attempts` with unique `(refund_id, attempt_number)`. Indexed status/due-time and status/claim-time scans support bounded retry and stale recovery. A confirmed full success is the only transition that changes Payment `SUCCESS -> REFUNDED`.

@@ -30,6 +30,72 @@ import org.junit.jupiter.api.Test;
 class RefundWorkflowIntegrationTest extends AbstractIntegrationTest {
 
     @Test
+    void manualProcessingRequiresConfirmationThenFinalizesPaymentIdempotently() throws Exception {
+        Fixture f = confirmedFixture("workflow-processing@example.com", TicketStatus.ISSUED);
+        String admin = tokenFor("workflow-processing-admin@example.com", Role.ADMIN);
+        String reference = createAdminRefund(admin, f.payment(), "PROCESS-MANUAL-1");
+        mockMvc.perform(
+                        post("/api/admin/refunds/{reference}/approve", reference)
+                                .header("Authorization", bearer(admin)))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(
+                        post("/api/admin/refunds/{reference}/process", reference)
+                                .header("Authorization", bearer(admin)))
+                .andExpect(status().isAccepted())
+                .andExpect(jsonPath("$.data.status").value("MANUAL_REVIEW"));
+        assertThat(paymentRepository.findById(f.payment().getId()).orElseThrow().getStatus())
+                .isEqualTo(PaymentStatus.SUCCESS);
+        assertThat(refundAttemptRepository.findAll())
+                .singleElement()
+                .satisfies(
+                        a ->
+                                assertThat(a.getStatus())
+                                        .isEqualTo(
+                                                com.chalchitraghar.modules.payments.enums
+                                                        .RefundAttemptStatus.UNKNOWN));
+
+        String body =
+                json(
+                        Map.of(
+                                "externalReference",
+                                "MANUAL-RECEIPT-1",
+                                "note",
+                                "Verified outside the system"));
+        mockMvc.perform(
+                        post("/api/admin/refunds/{reference}/mark-manual-success", reference)
+                                .header("Authorization", bearer(admin))
+                                .contentType("application/json")
+                                .content(body))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.status").value("SUCCEEDED"))
+                .andExpect(jsonPath("$.data.paymentStatus").value("REFUNDED"));
+        mockMvc.perform(
+                        post("/api/admin/refunds/{reference}/mark-manual-success", reference)
+                                .header("Authorization", bearer(admin))
+                                .contentType("application/json")
+                                .content(body))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.status").value("SUCCEEDED"));
+        assertThat(paymentRepository.findById(f.payment().getId()).orElseThrow().getStatus())
+                .isEqualTo(PaymentStatus.REFUNDED);
+        assertThat(refundAttemptRepository.findAll())
+                .singleElement()
+                .satisfies(
+                        a ->
+                                assertThat(a.getStatus())
+                                        .isEqualTo(
+                                                com.chalchitraghar.modules.payments.enums
+                                                        .RefundAttemptStatus.SUCCEEDED));
+
+        mockMvc.perform(
+                        get("/api/admin/refunds/{reference}/attempts", reference)
+                                .header("Authorization", bearer(admin)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.length()").value(1));
+    }
+
+    @Test
     void customerRequestAtomicallyCancelsBookingRevokesTicketAndCreatesPendingIntent()
             throws Exception {
         Fixture f = confirmedFixture("workflow-customer@example.com", TicketStatus.ISSUED);

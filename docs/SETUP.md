@@ -325,3 +325,4 @@ Refund-2 requires V35 and no provider credential or new feature flag. Customer r
 `BOOKING_CANCELLATION_CUTOFF_MINUTES`. Refund email uses the existing after-commit notification queue;
 in-app/audit behavior remains when email is disabled. There is no refund worker, callback, scheduler,
 eSewa refund credential, or asynchronous financial processing.
+Refund processing uses `REFUND_PROCESSING_ENABLED`, `REFUND_AUTO_PROCESS_ENABLED` (default false), `REFUND_DEFAULT_METHOD` (MANUAL), bounded attempt/retry delay properties, processing timeout, batch sizes, and worker ID shown in `.env.example`. Startup requires no provider refund credentials. Enabling eSewa payments does not enable eSewa refunds.

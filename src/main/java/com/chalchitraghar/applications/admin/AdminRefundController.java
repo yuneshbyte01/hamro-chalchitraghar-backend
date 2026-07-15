@@ -3,6 +3,7 @@ package com.chalchitraghar.applications.admin;
 import com.chalchitraghar.modules.payments.dto.request.*;
 import com.chalchitraghar.modules.payments.dto.response.*;
 import com.chalchitraghar.modules.payments.enums.*;
+import com.chalchitraghar.modules.payments.service.*;
 import com.chalchitraghar.modules.payments.service.RefundService;
 import com.chalchitraghar.modules.users.entity.User;
 import com.chalchitraghar.shared.response.*;
@@ -29,6 +30,9 @@ import org.springframework.web.bind.annotation.*;
 @SecurityRequirement(name = "bearerAuth")
 public class AdminRefundController {
     private final RefundService service;
+    private final RefundProcessor processor;
+    private final RefundOperationsService operations;
+    private final RefundReconciliationService reconciliation;
 
     @PostMapping
     @Operation(
@@ -63,6 +67,71 @@ public class AdminRefundController {
         return ResponseEntity.ok(
                 ApiResponse.success(
                         "Refund rejected", service.rejectRefund(reference, request, user())));
+    }
+
+    @PostMapping("/{reference}/process")
+    @Operation(
+            summary = "Process an approved refund",
+            description =
+                    "Claims the refund in a short transaction. Manual processing enters manual review; no speculative provider API is called.")
+    public ResponseEntity<ApiResponse<AdminRefundDetailResponse>> process(
+            @PathVariable String reference) {
+        processor.process(reference);
+        return ResponseEntity.accepted()
+                .body(
+                        ApiResponse.success(
+                                "Refund processing completed", service.getAdminRefund(reference)));
+    }
+
+    @PostMapping("/{reference}/retry")
+    @Operation(
+            summary = "Retry a failed refund",
+            description =
+                    "Explicitly retries an eligible bounded failure. The processing claim prevents duplicate execution.")
+    public ResponseEntity<ApiResponse<AdminRefundDetailResponse>> retry(
+            @PathVariable String reference) {
+        processor.retry(reference);
+        return ResponseEntity.accepted()
+                .body(
+                        ApiResponse.success(
+                                "Refund retry completed", service.getAdminRefund(reference)));
+    }
+
+    @PostMapping("/{reference}/mark-manual-success")
+    @Operation(
+            summary = "Confirm manual refund completion",
+            description =
+                    "Marks a verified full manual refund succeeded and moves Payment from SUCCESS to REFUNDED. Idempotent for the same external reference.")
+    public ResponseEntity<ApiResponse<AdminRefundDetailResponse>> manualSuccess(
+            @PathVariable String reference,
+            @Valid @RequestBody AdminManualRefundSuccessRequest request) {
+        operations.markManualSuccess(reference, request, user());
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        "Manual refund completion recorded", service.getAdminRefund(reference)));
+    }
+
+    @PostMapping("/{reference}/reconcile")
+    @Operation(
+            summary = "Reconcile an uncertain provider refund",
+            description =
+                    "Returns conflict while provider refund status enquiry is unsupported; never fabricates a provider outcome.")
+    public ResponseEntity<ApiResponse<AdminRefundDetailResponse>> reconcile(
+            @PathVariable String reference) {
+        reconciliation.reconcile(reference);
+        return ResponseEntity.ok(
+                ApiResponse.success("Refund reconciled", service.getAdminRefund(reference)));
+    }
+
+    @GetMapping("/{reference}/attempts")
+    @Operation(
+            summary = "List sanitized refund processing attempts",
+            description =
+                    "ADMIN-only append-only attempt history; raw provider payloads and secrets are never stored.")
+    public ResponseEntity<ApiResponse<java.util.List<AdminRefundAttemptResponse>>> attempts(
+            @PathVariable String reference) {
+        return ResponseEntity.ok(
+                ApiResponse.success("Refund attempts fetched", operations.attempts(reference)));
     }
 
     @GetMapping

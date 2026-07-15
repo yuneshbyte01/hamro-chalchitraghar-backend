@@ -131,6 +131,36 @@ public class NotificationContentFactory {
                             e.refundReference(),
                             "bookingReference",
                             e.bookingReference()));
+        if (event instanceof RefundSucceededEvent e)
+            return content(
+                    NotificationType.REFUND_SUCCEEDED,
+                    "REFUND_SUCCEEDED:" + e.refundId(),
+                    "Refund completed",
+                    "Your refund of "
+                            + e.currency()
+                            + " "
+                            + e.amount().toPlainString()
+                            + " for booking "
+                            + e.bookingReference()
+                            + " has been completed.",
+                    payload(
+                            "refundReference",
+                            e.refundReference(),
+                            "bookingReference",
+                            e.bookingReference()));
+        if (event instanceof RefundManualReviewEvent e)
+            return content(
+                    NotificationType.REFUND_MANUAL_REVIEW,
+                    "REFUND_MANUAL_REVIEW:" + e.refundId() + ":" + e.attemptNumber(),
+                    "Refund requires review",
+                    "Your refund for booking "
+                            + e.bookingReference()
+                            + " requires additional review.",
+                    payload(
+                            "refundReference",
+                            e.refundReference(),
+                            "bookingReference",
+                            e.bookingReference()));
         if (event instanceof ShowUpdatedEvent e)
             return content(
                     NotificationType.SHOW_UPDATED,

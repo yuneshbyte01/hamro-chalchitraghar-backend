@@ -41,6 +41,7 @@ public class RefundMapper {
                 r.getRequestedAt(),
                 r.getApprovedAt(),
                 r.getRejectedAt(),
+                r.getProcessedAt(),
                 statusMessage(r));
     }
 
@@ -93,6 +94,16 @@ public class RefundMapper {
                 r.getFailureReason(),
                 r.getRejectionReasonCode(),
                 r.getRejectionNote(),
+                r.getAttemptCount(),
+                r.getMaxAttempts(),
+                r.getNextAttemptAt(),
+                r.getLastAttemptAt(),
+                r.getProcessingStartedAt(),
+                r.getProcessedAt(),
+                r.getFailedAt(),
+                r.getLastFailureCode(),
+                r.getProviderStatus(),
+                r.isManualReviewRequired(),
                 r.getCreatedAt(),
                 r.getUpdatedAt());
     }

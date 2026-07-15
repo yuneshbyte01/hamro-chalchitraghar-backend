@@ -160,6 +160,57 @@ public class BusinessAuditEventBridge {
     }
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void on(RefundSucceededEvent e) {
+        refund(
+                e.refundId(),
+                e.refundReference(),
+                e.actorUserId(),
+                e.bookingReference(),
+                e.paymentReference(),
+                e.amount(),
+                e.currency(),
+                "PROCESSING",
+                "PROCESSING",
+                "SUCCEEDED",
+                e.occurredAt(),
+                AuditAction.REFUND_SUCCEEDED);
+    }
+
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void on(RefundManualReviewEvent e) {
+        refund(
+                e.refundId(),
+                e.refundReference(),
+                e.actorUserId(),
+                e.bookingReference(),
+                e.paymentReference(),
+                e.amount(),
+                e.currency(),
+                e.failureCode(),
+                "PROCESSING",
+                "MANUAL_REVIEW",
+                e.occurredAt(),
+                AuditAction.REFUND_MANUAL_REVIEW);
+    }
+
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void on(RefundProcessingStartedEvent e) {
+        refund(
+                e.refundId(),
+                e.refundReference(),
+                e.actorUserId(),
+                e.bookingReference(),
+                e.paymentReference(),
+                e.amount(),
+                e.currency(),
+                "PROCESSING",
+                "APPROVED",
+                "PROCESSING",
+                e.occurredAt(),
+                AuditAction.REFUND_PROCESSING_STARTED);
+    }
+
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void on(ShowUpdatedEvent e) {
         success(
                 "SHOW_UPDATED:" + e.showId() + ":" + e.changeVersion(),

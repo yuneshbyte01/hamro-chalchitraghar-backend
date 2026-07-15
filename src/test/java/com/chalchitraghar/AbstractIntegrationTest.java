@@ -21,6 +21,7 @@ import com.chalchitraghar.modules.payments.enums.PaymentMethod;
 import com.chalchitraghar.modules.payments.enums.PaymentProvider;
 import com.chalchitraghar.modules.payments.enums.PaymentStatus;
 import com.chalchitraghar.modules.payments.repository.PaymentRepository;
+import com.chalchitraghar.modules.payments.repository.RefundAttemptRepository;
 import com.chalchitraghar.modules.payments.repository.RefundRepository;
 import com.chalchitraghar.modules.seats.entity.Seat;
 import com.chalchitraghar.modules.seats.enums.SeatStatus;
@@ -87,6 +88,7 @@ abstract class AbstractIntegrationTest {
 
     @Autowired protected PaymentRepository paymentRepository;
     @Autowired protected RefundRepository refundRepository;
+    @Autowired protected RefundAttemptRepository refundAttemptRepository;
 
     @Autowired protected TicketRepository ticketRepository;
     @Autowired protected TicketValidationRepository ticketValidationRepository;
@@ -101,6 +103,7 @@ abstract class AbstractIntegrationTest {
         ticketDeliveryRepository.deleteAll();
         ticketValidationRepository.deleteAll();
         ticketRepository.deleteAll();
+        refundAttemptRepository.deleteAll();
         refundRepository.deleteAll();
         paymentRepository.deleteAll();
         bookingSeatRepository.deleteAll();

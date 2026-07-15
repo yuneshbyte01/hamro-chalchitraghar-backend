@@ -617,3 +617,4 @@ untrusted unless deployment topology guarantees a trusted proxy boundary.
 - All decision/workflow/event times use injected `Clock`.
 - Events/audits omit idempotency keys, notes, QR data, and provider payloads.
 - Never describe REQUESTED/APPROVED as completed or change Payment before Refund-3.
+Refund claims are persisted before execution and attempts are append-only. Retry only stable transient classifications, never unknown outcomes; stale PROCESSING claims move to MANUAL_REVIEW because dispatch cannot be proven absent. Operators must reconcile externally and use manual success only with a verified reference. Never store/log provider payloads, signatures, QR data, credentials, or raw exceptions. All refund timestamps and delays use the injected Spring Clock. Payment REFUNDED requires a full amount/currency match and confirmed Refund SUCCEEDED.

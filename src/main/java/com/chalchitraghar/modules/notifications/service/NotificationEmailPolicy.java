@@ -18,6 +18,7 @@ public class NotificationEmailPolicy {
                     Map.entry(NotificationType.REFUND_APPROVED, "refund-status"),
                     Map.entry(NotificationType.REFUND_REJECTED, "refund-status"),
                     Map.entry(NotificationType.REFUND_MANUAL_REVIEW, "refund-status"),
+                    Map.entry(NotificationType.REFUND_SUCCEEDED, "refund-status"),
                     Map.entry(NotificationType.SHOW_UPDATED, "show-updated"),
                     Map.entry(NotificationType.SHOW_CANCELLED, "show-cancelled"),
                     Map.entry(NotificationType.SHOW_REMINDER, "show-reminder"));

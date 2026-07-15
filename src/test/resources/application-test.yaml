@@ -25,6 +25,18 @@ cors:
 
 app:
   time-zone: Asia/Kathmandu
+  refunds:
+    processing:
+      enabled: true
+      auto-process-enabled: false
+      default-method: MANUAL
+      max-attempts: 3
+      initial-retry-delay: PT1M
+      retry-multiplier: 2.0
+      max-retry-delay: PT1H
+      retry-interval: PT1M
+      processing-timeout: PT5M
+      worker-id: test-worker
   audit:
     export:
       enabled: true

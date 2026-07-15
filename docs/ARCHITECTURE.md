@@ -563,3 +563,4 @@ hall capacity bounds the transactional batch.
 Exactly one successful payment is required. Ticket locks close the check-in race. Admin decisions lock
 Refund and revalidate Payment, Booking, tickets, exact amount/currency, and balance. Scalar events use
 stable `REFUND_*:{refundId}` identities. No SMTP or provider call occurs inside the transaction.
+Refund-3 uses `APPROVED -> claim transaction -> gateway/manual execution -> finalization transaction -> notifications/audit after commit`. The claim commits before execution, so no database lock is held across provider work. The provider-neutral gateway carries immutable scalar commands, never JPA entities or raw payloads. Because this repository has no verified eSewa merchant refund API, manual review is authoritative.

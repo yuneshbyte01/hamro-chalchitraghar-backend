@@ -25,7 +25,8 @@ public class PaymentLifecycleService {
                                     PaymentStatus.SUCCESS,
                                     PaymentStatus.FAILED,
                                     PaymentStatus.EXPIRED,
-                                    PaymentStatus.CANCELLED));
+                                    PaymentStatus.CANCELLED),
+                    PaymentStatus.SUCCESS, Set.of(PaymentStatus.REFUNDED));
     private final Clock clock;
 
     public boolean reconcileExpiry(Payment p) {
