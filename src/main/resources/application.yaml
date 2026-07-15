@@ -22,6 +22,19 @@ spring:
 app:
   time-zone: ${APP_TIME_ZONE:Asia/Kathmandu}
   refunds:
+    reports:
+      max-range-days: ${REFUND_REPORTS_MAX_RANGE_DAYS:366}
+      default-bucket: ${REFUND_REPORTS_DEFAULT_BUCKET:DAY}
+    consistency:
+      enabled: ${REFUND_CONSISTENCY_ENABLED:true}
+      batch-size: ${REFUND_CONSISTENCY_BATCH_SIZE:100}
+    retention:
+      enabled: ${REFUND_RETENTION_ENABLED:false}
+      mode: ${REFUND_RETENTION_MODE:ANONYMIZE}
+      refund-days: ${REFUND_RETENTION_REFUND_DAYS:2555}
+      attempt-days: ${REFUND_RETENTION_ATTEMPT_DAYS:2555}
+      batch-size: ${REFUND_RETENTION_BATCH_SIZE:100}
+      interval: ${REFUND_RETENTION_INTERVAL:PT24H}
     processing:
       enabled: ${REFUND_PROCESSING_ENABLED:true}
       auto-process-enabled: ${REFUND_AUTO_PROCESS_ENABLED:false}

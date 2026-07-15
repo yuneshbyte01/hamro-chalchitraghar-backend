@@ -1,0 +1,23 @@
+package com.chalchitraghar.modules.payments.service;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Component;
+
+@Slf4j
+@Component
+@RequiredArgsConstructor
+public class RefundRetentionJob {
+    private final RefundRetentionProcessor processor;
+
+    @Scheduled(fixedDelayString = "${app.refunds.retention.interval:PT24H}")
+    public void run() {
+        try {
+            int count = processor.processBatch();
+            if (count > 0) log.info("Refund retention processed={}", count);
+        } catch (RuntimeException e) {
+            log.error("Refund retention failed reason={}", e.getClass().getSimpleName());
+        }
+    }
+}

@@ -56,6 +56,46 @@ public final class RefundSpecification {
                 predicates.add(cb.greaterThanOrEqualTo(root.get("amount"), f.amountFrom()));
             if (f.amountTo() != null)
                 predicates.add(cb.lessThanOrEqualTo(root.get("amount"), f.amountTo()));
+            if (text(f.currency()))
+                predicates.add(cb.equal(root.get("currency"), upper(f.currency())));
+            range(predicates, cb, root.get("approvedAt"), f.approvedFrom(), f.approvedTo());
+            range(predicates, cb, root.get("processedAt"), f.processedFrom(), f.processedTo());
+            range(predicates, cb, root.get("failedAt"), f.failedFrom(), f.failedTo());
+            range(predicates, cb, root.get("createdAt"), f.createdFrom(), f.createdTo());
+            if (f.attemptCountFrom() != null)
+                predicates.add(
+                        cb.greaterThanOrEqualTo(root.get("attemptCount"), f.attemptCountFrom()));
+            if (f.attemptCountTo() != null)
+                predicates.add(cb.lessThanOrEqualTo(root.get("attemptCount"), f.attemptCountTo()));
+            if (Boolean.TRUE.equals(f.manualReviewOnly()))
+                predicates.add(
+                        cb.equal(
+                                root.get("status"),
+                                com.chalchitraghar.modules.payments.enums.RefundStatus
+                                        .MANUAL_REVIEW));
+            if (Boolean.TRUE.equals(f.failedOnly()))
+                predicates.add(
+                        cb.equal(
+                                root.get("status"),
+                                com.chalchitraghar.modules.payments.enums.RefundStatus.FAILED));
+            if (Boolean.TRUE.equals(f.retryEligibleOnly()))
+                predicates.add(
+                        cb.and(
+                                cb.equal(
+                                        root.get("status"),
+                                        com.chalchitraghar.modules.payments.enums.RefundStatus
+                                                .FAILED),
+                                cb.isNotNull(root.get("nextAttemptAt")),
+                                cb.lessThanOrEqualTo(
+                                        root.get("nextAttemptAt"), f.evaluationTime())));
+            if (Boolean.TRUE.equals(f.exhaustedOnly()))
+                predicates.add(
+                        cb.greaterThanOrEqualTo(root.get("attemptCount"), root.get("maxAttempts")));
+            if (text(f.providerRefundReference()))
+                predicates.add(
+                        cb.equal(
+                                root.get("providerRefundReference"),
+                                f.providerRefundReference().trim()));
             return cb.and(predicates.toArray(jakarta.persistence.criteria.Predicate[]::new));
         };
     }
@@ -66,5 +106,15 @@ public final class RefundSpecification {
 
     private static String upper(String value) {
         return value.trim().toUpperCase();
+    }
+
+    private static void range(
+            java.util.List<jakarta.persistence.criteria.Predicate> p,
+            jakarta.persistence.criteria.CriteriaBuilder cb,
+            jakarta.persistence.criteria.Path<java.time.LocalDateTime> path,
+            java.time.LocalDateTime from,
+            java.time.LocalDateTime to) {
+        if (from != null) p.add(cb.greaterThanOrEqualTo(path, from));
+        if (to != null) p.add(cb.lessThanOrEqualTo(path, to));
     }
 }

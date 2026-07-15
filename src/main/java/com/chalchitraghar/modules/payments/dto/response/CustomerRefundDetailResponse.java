@@ -3,6 +3,7 @@ package com.chalchitraghar.modules.payments.dto.response;
 import com.chalchitraghar.modules.payments.enums.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 public record CustomerRefundDetailResponse(
         String refundReference,
@@ -21,4 +22,5 @@ public record CustomerRefundDetailResponse(
         LocalDateTime approvedAt,
         LocalDateTime rejectedAt,
         LocalDateTime processedAt,
-        String safeStatusMessage) {}
+        String safeStatusMessage,
+        List<CustomerRefundTimelineEvent> timeline) {}

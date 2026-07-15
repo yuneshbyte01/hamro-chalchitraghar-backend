@@ -42,7 +42,8 @@ public class RefundMapper {
                 r.getApprovedAt(),
                 r.getRejectedAt(),
                 r.getProcessedAt(),
-                statusMessage(r));
+                statusMessage(r),
+                timeline(r));
     }
 
     public AdminRefundSummaryResponse toAdminSummary(Refund r) {
@@ -63,7 +64,10 @@ public class RefundMapper {
                 r.getRequestedAt());
     }
 
-    public AdminRefundDetailResponse toAdminDetail(Refund r, List<Ticket> tickets) {
+    public AdminRefundDetailResponse toAdminDetail(
+            Refund r,
+            List<Ticket> tickets,
+            List<com.chalchitraghar.modules.payments.entity.RefundAttempt> attempts) {
         var booking = r.getBooking();
         var user = booking.getUser();
         return new AdminRefundDetailResponse(
@@ -101,9 +105,12 @@ public class RefundMapper {
                 r.getProcessingStartedAt(),
                 r.getProcessedAt(),
                 r.getFailedAt(),
+                r.getClaimedAt(),
+                r.getClaimedBy(),
                 r.getLastFailureCode(),
                 r.getProviderStatus(),
                 r.isManualReviewRequired(),
+                attempts.stream().map(this::attempt).toList(),
                 r.getCreatedAt(),
                 r.getUpdatedAt());
     }
@@ -134,5 +141,55 @@ public class RefundMapper {
             case FAILED -> "Refund processing failed; contact support if assistance is needed.";
             case MANUAL_REVIEW -> "Refund requires manual review.";
         };
+    }
+
+    private AdminRefundAttemptResponse attempt(
+            com.chalchitraghar.modules.payments.entity.RefundAttempt a) {
+        return new AdminRefundAttemptResponse(
+                a.getAttemptNumber(),
+                a.getMethod(),
+                a.getProvider(),
+                a.getStatus(),
+                a.getStartedAt(),
+                a.getCompletedAt(),
+                a.getProviderRefundReference(),
+                a.getProviderStatus(),
+                a.getFailureCode(),
+                a.getFailureReason(),
+                a.getCorrelationId());
+    }
+
+    private List<CustomerRefundTimelineEvent> timeline(Refund r) {
+        var events = new java.util.ArrayList<CustomerRefundTimelineEvent>();
+        events.add(
+                new CustomerRefundTimelineEvent(
+                        "REQUESTED", r.getRequestedAt(), "Refund request recorded."));
+        if (r.getApprovedAt() != null)
+            events.add(
+                    new CustomerRefundTimelineEvent(
+                            "APPROVED", r.getApprovedAt(), "Refund approved."));
+        if (r.getProcessingStartedAt() != null)
+            events.add(
+                    new CustomerRefundTimelineEvent(
+                            "PROCESSING",
+                            r.getProcessingStartedAt(),
+                            "Refund processing started."));
+        if (r.getRejectedAt() != null)
+            events.add(
+                    new CustomerRefundTimelineEvent(
+                            "REJECTED", r.getRejectedAt(), "Refund request rejected."));
+        if (r.getStatus() == com.chalchitraghar.modules.payments.enums.RefundStatus.MANUAL_REVIEW
+                && r.getLastAttemptAt() != null)
+            events.add(
+                    new CustomerRefundTimelineEvent(
+                            "MANUAL_REVIEW",
+                            r.getLastAttemptAt(),
+                            "Refund requires additional review."));
+        if (r.getProcessedAt() != null)
+            events.add(
+                    new CustomerRefundTimelineEvent(
+                            "COMPLETED", r.getProcessedAt(), "Refund completed."));
+        events.sort(java.util.Comparator.comparing(CustomerRefundTimelineEvent::occurredAt));
+        return List.copyOf(events);
     }
 }

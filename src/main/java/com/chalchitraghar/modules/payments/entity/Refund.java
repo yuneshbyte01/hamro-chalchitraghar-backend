@@ -128,6 +128,14 @@ public class Refund extends GenericEntity {
     @Builder.Default
     private boolean manualReviewRequired = false;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "retention_status", nullable = false, length = 30)
+    @Builder.Default
+    private RefundRetentionStatus retentionStatus = RefundRetentionStatus.ACTIVE;
+
+    @Column(name = "anonymized_at")
+    private LocalDateTime anonymizedAt;
+
     /** Legacy V21 column retained for forward migration compatibility. */
     @Column(name = "completed_at")
     private LocalDateTime completedAt;

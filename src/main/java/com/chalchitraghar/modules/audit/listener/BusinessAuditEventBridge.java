@@ -211,6 +211,23 @@ public class BusinessAuditEventBridge {
     }
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void on(RefundOperationalAuditEvent e) {
+        success(
+                e.action() + ":" + e.refundId() + ":" + e.occurredAt(),
+                e.occurredAt(),
+                e.actorUserId() == null ? actors.system() : actors.userId(e.actorUserId()),
+                e.action(),
+                AuditCategory.REFUND,
+                AuditSeverity.WARNING,
+                "REFUND",
+                e.refundId(),
+                e.refundReference(),
+                e.beforeStatus() == null ? null : Map.of("status", e.beforeStatus()),
+                e.afterStatus() == null ? null : Map.of("status", e.afterStatus()),
+                null);
+    }
+
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void on(ShowUpdatedEvent e) {
         success(
                 "SHOW_UPDATED:" + e.showId() + ":" + e.changeVersion(),

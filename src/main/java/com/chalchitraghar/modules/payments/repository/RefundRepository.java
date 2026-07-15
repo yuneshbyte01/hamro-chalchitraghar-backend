@@ -101,4 +101,42 @@ public interface RefundRepository
 
     List<Refund> findTop50ByStatusAndClaimedAtBeforeOrderByClaimedAtAsc(
             RefundStatus status, LocalDateTime cutoff);
+
+    @Query(
+            "select r.status as status,r.currency as currency,count(r) as count,coalesce(sum(r.amount),0) as amount from Refund r where r.requestedAt between :from and :to group by r.status,r.currency order by r.currency,r.status")
+    List<RefundAggregateProjection> aggregateStatus(
+            @Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
+
+    @Query(
+            "select r.reason as key,r.currency as currency,count(r) as count,coalesce(sum(r.amount),0) as amount from Refund r where r.requestedAt between :from and :to group by r.reason,r.currency order by r.currency,r.reason")
+    List<RefundNamedAggregateProjection> aggregateReason(
+            @Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
+
+    @Query(
+            "select r.method as key,r.currency as currency,count(r) as count,coalesce(sum(r.amount),0) as amount from Refund r where r.requestedAt between :from and :to group by r.method,r.currency order by r.currency,r.method")
+    List<RefundNamedAggregateProjection> aggregateMethod(
+            @Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
+
+    @Query(
+            "select r.provider as key,r.currency as currency,count(r) as count,coalesce(sum(r.amount),0) as amount from Refund r where r.requestedAt between :from and :to group by r.provider,r.currency order by r.currency,r.provider")
+    List<RefundNamedAggregateProjection> aggregateProvider(
+            @Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
+
+    @Query(
+            "select coalesce(sum(case when r.attemptCount>1 then r.attemptCount-1 else 0 end),0) from Refund r where r.requestedAt between :from and :to")
+    long countRetries(@Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
+
+    @Query(
+            "select count(r) from Refund r where r.attemptCount>=r.maxAttempts and r.requestedAt between :from and :to")
+    long countExhausted(@Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
+
+    @Query(
+            "select count(distinct r.booking.id) from Refund r where r.status='SUCCEEDED' and r.requestedAt between :from and :to")
+    long countDistinctSucceededBookings(
+            @Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
+
+    @Query(
+            "select count(distinct r.payment.id) from Refund r where r.status='SUCCEEDED' and r.requestedAt between :from and :to")
+    long countDistinctSucceededPayments(
+            @Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
 }

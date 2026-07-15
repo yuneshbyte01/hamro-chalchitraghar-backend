@@ -12,6 +12,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.math.BigDecimal;
+import java.time.Clock;
 import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -33,6 +34,10 @@ public class AdminRefundController {
     private final RefundProcessor processor;
     private final RefundOperationsService operations;
     private final RefundReconciliationService reconciliation;
+    private final Clock clock;
+    private final RefundAdminOperationsService adminOperations;
+    private final StaleRefundRecoveryService staleRecovery;
+    private final RefundConsistencyService consistency;
 
     @PostMapping
     @Operation(
@@ -134,6 +139,43 @@ public class AdminRefundController {
                 ApiResponse.success("Refund attempts fetched", operations.attempts(reference)));
     }
 
+    @PostMapping("/{reference}/resolve-manual-review")
+    @Operation(
+            summary = "Resolve manual review",
+            description =
+                    "Explicitly marks verified success, terminal failure, retry eligibility, or rejection. No arbitrary status mutation.")
+    public ResponseEntity<ApiResponse<AdminRefundDetailResponse>> resolve(
+            @PathVariable String reference,
+            @Valid @RequestBody AdminResolveRefundManualReviewRequest request) {
+        adminOperations.resolve(reference, request, user());
+        return ResponseEntity.ok(
+                ApiResponse.success("Manual review resolved", service.getAdminRefund(reference)));
+    }
+
+    @PostMapping("/{reference}/recover-stale-processing")
+    @Operation(
+            summary = "Recover one stale processing claim",
+            description =
+                    "Only configured-timeout stale work is moved to manual review; success is never assumed.")
+    public ResponseEntity<ApiResponse<AdminRefundDetailResponse>> recover(
+            @PathVariable String reference) {
+        staleRecovery.recover(reference);
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        "Stale processing recovered", service.getAdminRefund(reference)));
+    }
+
+    @GetMapping("/{reference}/consistency")
+    @Operation(
+            summary = "Inspect refund consistency",
+            description =
+                    "Read-only diagnostics across Refund, Payment, Booking, Ticket, and attempt history. No automatic repair.")
+    public ResponseEntity<ApiResponse<AdminRefundConsistencyResponse>> consistency(
+            @PathVariable String reference) {
+        return ResponseEntity.ok(
+                ApiResponse.success("Refund consistency checked", consistency.check(reference)));
+    }
+
     @GetMapping
     @Operation(
             summary = "Search refund intents",
@@ -155,6 +197,30 @@ public class AdminRefundController {
                     LocalDateTime requestedTo,
             @RequestParam(required = false) BigDecimal amountFrom,
             @RequestParam(required = false) BigDecimal amountTo,
+            @RequestParam(required = false) String currency,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+                    LocalDateTime approvedFrom,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+                    LocalDateTime approvedTo,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+                    LocalDateTime processedFrom,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+                    LocalDateTime processedTo,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+                    LocalDateTime failedFrom,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+                    LocalDateTime failedTo,
+            @RequestParam(required = false) Integer attemptCountFrom,
+            @RequestParam(required = false) Integer attemptCountTo,
+            @RequestParam(required = false) Boolean manualReviewOnly,
+            @RequestParam(required = false) Boolean failedOnly,
+            @RequestParam(required = false) Boolean retryEligibleOnly,
+            @RequestParam(required = false) Boolean exhaustedOnly,
+            @RequestParam(required = false) String providerRefundReference,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+                    LocalDateTime createdFrom,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+                    LocalDateTime createdTo,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
         var filter =
@@ -172,7 +238,24 @@ public class AdminRefundController {
                         requestedFrom,
                         requestedTo,
                         amountFrom,
-                        amountTo);
+                        amountTo,
+                        currency,
+                        approvedFrom,
+                        approvedTo,
+                        processedFrom,
+                        processedTo,
+                        failedFrom,
+                        failedTo,
+                        attemptCountFrom,
+                        attemptCountTo,
+                        manualReviewOnly,
+                        failedOnly,
+                        retryEligibleOnly,
+                        exhaustedOnly,
+                        providerRefundReference,
+                        createdFrom,
+                        createdTo,
+                        LocalDateTime.now(clock));
         return ResponseEntity.ok(
                 ApiResponse.success(
                         "Refunds fetched successfully",

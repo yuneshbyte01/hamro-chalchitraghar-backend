@@ -12,8 +12,10 @@ import com.chalchitraghar.modules.halls.enums.Status;
 import com.chalchitraghar.modules.movies.entity.Movie;
 import com.chalchitraghar.modules.movies.enums.MovieStatus;
 import com.chalchitraghar.modules.notifications.enums.NotificationType;
+import com.chalchitraghar.modules.payments.config.RefundRetentionProperties;
 import com.chalchitraghar.modules.payments.entity.Payment;
 import com.chalchitraghar.modules.payments.enums.*;
+import com.chalchitraghar.modules.payments.service.RefundRetentionProcessor;
 import com.chalchitraghar.modules.seats.entity.Seat;
 import com.chalchitraghar.modules.seats.enums.*;
 import com.chalchitraghar.modules.shows.entity.Show;
@@ -26,8 +28,119 @@ import java.math.BigDecimal;
 import java.time.*;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 class RefundWorkflowIntegrationTest extends AbstractIntegrationTest {
+    @Autowired RefundRetentionProcessor retentionProcessor;
+    @Autowired RefundRetentionProperties refundRetentionProperties;
+    @Autowired JdbcTemplate jdbcTemplate;
+
+    @Test
+    void refundFourOperationsConsistencyReportsAndRetentionAreBounded() throws Exception {
+        Fixture f = confirmedFixture("workflow-refund4@example.com", TicketStatus.ISSUED);
+        String admin = tokenFor("workflow-refund4-admin@example.com", Role.ADMIN);
+        String reference = createAdminRefund(admin, f.payment(), "REFUND4-1");
+        mockMvc.perform(
+                        post("/api/admin/refunds/{reference}/approve", reference)
+                                .header("Authorization", bearer(admin)))
+                .andExpect(status().isOk());
+        mockMvc.perform(
+                        post("/api/admin/refunds/{reference}/process", reference)
+                                .header("Authorization", bearer(admin)))
+                .andExpect(status().isAccepted())
+                .andExpect(jsonPath("$.data.status").value("MANUAL_REVIEW"));
+
+        mockMvc.perform(
+                        get("/api/admin/refunds")
+                                .header("Authorization", bearer(admin))
+                                .param("manualReviewOnly", "true")
+                                .param("attemptCountFrom", "1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.content[0].refundReference").value(reference));
+        mockMvc.perform(
+                        get("/api/admin/refunds/{reference}/consistency", reference)
+                                .header("Authorization", bearer(admin)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.checkedAt").isNotEmpty());
+
+        mockMvc.perform(
+                        post("/api/admin/refunds/{reference}/resolve-manual-review", reference)
+                                .header("Authorization", bearer(admin))
+                                .contentType("application/json")
+                                .content(
+                                        json(
+                                                Map.of(
+                                                        "resolution",
+                                                        "MARK_SUCCEEDED",
+                                                        "externalReference",
+                                                        "REFUND4-RECEIPT"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.status").value("SUCCEEDED"))
+                .andExpect(jsonPath("$.data.paymentStatus").value("REFUNDED"))
+                .andExpect(jsonPath("$.data.attempts.length()").value(1));
+        mockMvc.perform(
+                        post("/api/admin/refunds/{reference}/resolve-manual-review", reference)
+                                .header("Authorization", bearer(admin))
+                                .contentType("application/json")
+                                .content(
+                                        json(
+                                                Map.of(
+                                                        "resolution",
+                                                        "MARK_SUCCEEDED",
+                                                        "externalReference",
+                                                        "REFUND4-RECEIPT"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.status").value("SUCCEEDED"));
+        LocalDateTime from = LocalDateTime.now(clock).minusDays(1),
+                to = LocalDateTime.now(clock).plusDays(1);
+        mockMvc.perform(
+                        get("/api/admin/refund-reports/summary")
+                                .header("Authorization", bearer(admin))
+                                .param("from", from.toString())
+                                .param("to", to.toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.statusBreakdown[0].currency").value("NPR"))
+                .andExpect(jsonPath("$.data.reasonBreakdown[0].currency").value("NPR"))
+                .andExpect(jsonPath("$.data.totalRefundIntents").value(1));
+        String customer = loginToken(f.user().getEmail());
+        mockMvc.perform(
+                        get("/api/customer/refunds/{reference}", reference)
+                                .header("Authorization", bearer(customer)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.timeline[0].event").value("REQUESTED"))
+                .andExpect(jsonPath("$.data.timeline[?(@.event == 'COMPLETED')]").isNotEmpty());
+        mockMvc.perform(
+                        get("/api/admin/refund-reports/summary")
+                                .header("Authorization", bearer(admin))
+                                .param("from", from.minusYears(2).toString())
+                                .param("to", to.toString()))
+                .andExpect(status().isBadRequest());
+
+        var refund = refundRepository.findByRefundReference(reference).orElseThrow();
+        refund.setRejectionNote("remove me");
+        refundRepository.save(refund);
+        jdbcTemplate.update(
+                "update refunds set requested_at=? where id=?",
+                LocalDateTime.now(clock).minusDays(10),
+                refund.getId());
+        refundRetentionProperties.setEnabled(true);
+        refundRetentionProperties.setRefundDays(1);
+        refundRetentionProperties.setAttemptDays(1);
+        try {
+            assertThat(retentionProcessor.processBatch()).isPositive();
+        } finally {
+            refundRetentionProperties.setEnabled(false);
+            refundRetentionProperties.setRefundDays(2555);
+            refundRetentionProperties.setAttemptDays(2555);
+        }
+        var retained = refundRepository.findByRefundReference(reference).orElseThrow();
+        assertThat(retained.getRetentionStatus())
+                .isEqualTo(
+                        com.chalchitraghar.modules.payments.enums.RefundRetentionStatus.ANONYMIZED);
+        assertThat(retained.getAmount()).isEqualByComparingTo("1200.00");
+        assertThat(retained.getRejectionNote()).isNull();
+    }
 
     @Test
     void manualProcessingRequiresConfirmationThenFinalizesPaymentIdempotently() throws Exception {

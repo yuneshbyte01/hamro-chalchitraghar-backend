@@ -5,6 +5,7 @@ import com.chalchitraghar.modules.payments.enums.*;
 import com.chalchitraghar.modules.shows.enums.ShowStatus;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 public record AdminRefundDetailResponse(
         String refundReference,
@@ -41,8 +42,11 @@ public record AdminRefundDetailResponse(
         LocalDateTime processingStartedAt,
         LocalDateTime processedAt,
         LocalDateTime failedAt,
+        LocalDateTime claimedAt,
+        String claimedBy,
         String lastFailureCode,
         String providerStatus,
         boolean manualReviewRequired,
+        List<AdminRefundAttemptResponse> attempts,
         LocalDateTime createdAt,
         LocalDateTime updatedAt) {}

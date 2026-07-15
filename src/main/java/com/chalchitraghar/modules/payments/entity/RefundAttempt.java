@@ -55,6 +55,9 @@ public class RefundAttempt extends GenericEntity {
     @Column(length = 500)
     private String failureReason;
 
-    @Column(length = 100, updatable = false)
+    @Column(length = 100)
     private String correlationId;
+
+    @Column(name = "anonymized_at")
+    private LocalDateTime anonymizedAt;
 }

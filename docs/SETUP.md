@@ -326,3 +326,6 @@ Refund-2 requires V35 and no provider credential or new feature flag. Customer r
 in-app/audit behavior remains when email is disabled. There is no refund worker, callback, scheduler,
 eSewa refund credential, or asynchronous financial processing.
 Refund processing uses `REFUND_PROCESSING_ENABLED`, `REFUND_AUTO_PROCESS_ENABLED` (default false), `REFUND_DEFAULT_METHOD` (MANUAL), bounded attempt/retry delay properties, processing timeout, batch sizes, and worker ID shown in `.env.example`. Startup requires no provider refund credentials. Enabling eSewa payments does not enable eSewa refunds.
+Refund-4 settings include `REFUND_REPORTS_MAX_RANGE_DAYS`, `REFUND_CONSISTENCY_BATCH_SIZE`, and disabled-by-default retention settings in `.env.example`. Retention periods are operational defaults, not claims about legal requirements. Micrometer/Actuator is not currently a project dependency, so refund metrics are deferred to application-wide observability work.
+
+The corresponding validated prefixes are `app.refunds.reports`, `app.refunds.consistency`, and `app.refunds.retention`. Retention supports only `ANONYMIZE`; it performs no hard deletion.

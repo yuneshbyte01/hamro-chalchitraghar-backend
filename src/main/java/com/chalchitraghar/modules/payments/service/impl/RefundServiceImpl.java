@@ -31,6 +31,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(readOnly = true)
 public class RefundServiceImpl implements RefundService {
     private final RefundRepository refunds;
+    private final RefundAttemptRepository refundAttempts;
     private final PaymentRepository payments;
     private final BookingRepository bookings;
     private final UserRepository users;
@@ -131,7 +132,9 @@ public class RefundServiceImpl implements RefundService {
                                 idempotencyKey,
                                 admin.getId()));
         return mapper.toAdminDetail(
-                refund, tickets.findByBookingIdOrderByIssuedAtAsc(refund.getBooking().getId()));
+                refund,
+                tickets.findByBookingIdOrderByIssuedAtAsc(refund.getBooking().getId()),
+                refundAttempts.findByRefundIdOrderByAttemptNumberAsc(refund.getId()));
     }
 
     @Override
@@ -242,7 +245,9 @@ public class RefundServiceImpl implements RefundService {
                                         new ResourceNotFoundException(
                                                 "Refund not found with reference: " + reference));
         return mapper.toAdminDetail(
-                refund, tickets.findByBookingIdOrderByIssuedAtAsc(refund.getBooking().getId()));
+                refund,
+                tickets.findByBookingIdOrderByIssuedAtAsc(refund.getBooking().getId()),
+                refundAttempts.findByRefundIdOrderByAttemptNumberAsc(refund.getId()));
     }
 
     private void validateCommand(CreateRefundIntentCommand command) {
@@ -278,7 +283,9 @@ public class RefundServiceImpl implements RefundService {
 
     private AdminRefundDetailResponse detail(Refund refund) {
         return mapper.toAdminDetail(
-                refund, tickets.findByBookingIdOrderByIssuedAtAsc(refund.getBooking().getId()));
+                refund,
+                tickets.findByBookingIdOrderByIssuedAtAsc(refund.getBooking().getId()),
+                refundAttempts.findByRefundIdOrderByAttemptNumberAsc(refund.getId()));
     }
 
     private String normalizeCode(String value) {
@@ -353,6 +360,26 @@ public class RefundServiceImpl implements RefundService {
                 && f.amountTo() != null
                 && f.amountFrom().compareTo(f.amountTo()) > 0)
             throw new IllegalArgumentException("amountFrom must not be after amountTo");
+        validateRange("approved", f.approvedFrom(), f.approvedTo());
+        validateRange("processed", f.processedFrom(), f.processedTo());
+        validateRange("failed", f.failedFrom(), f.failedTo());
+        validateRange("created", f.createdFrom(), f.createdTo());
+        if (f.attemptCountFrom() != null && f.attemptCountFrom() < 0
+                || f.attemptCountTo() != null && f.attemptCountTo() < 0)
+            throw new IllegalArgumentException("Attempt count filters must not be negative");
+        if (f.attemptCountFrom() != null
+                && f.attemptCountTo() != null
+                && f.attemptCountFrom() > f.attemptCountTo())
+            throw new IllegalArgumentException("attemptCountFrom must not exceed attemptCountTo");
+        if (f.currency() != null
+                && !f.currency().isBlank()
+                && !f.currency().trim().matches("[A-Za-z]{3,10}"))
+            throw new IllegalArgumentException("Invalid currency filter");
+    }
+
+    private void validateRange(String name, LocalDateTime from, LocalDateTime to) {
+        if (from != null && to != null && from.isAfter(to))
+            throw new IllegalArgumentException(name + "From must not be after " + name + "To");
     }
 
     private void validatePageAndDates(int page, int size, LocalDateTime from, LocalDateTime to) {

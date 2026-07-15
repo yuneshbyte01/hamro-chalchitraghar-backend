@@ -26,6 +26,19 @@ cors:
 app:
   time-zone: Asia/Kathmandu
   refunds:
+    reports:
+      max-range-days: 366
+      default-bucket: DAY
+    consistency:
+      enabled: true
+      batch-size: 100
+    retention:
+      enabled: false
+      mode: ANONYMIZE
+      refund-days: 2555
+      attempt-days: 2555
+      batch-size: 100
+      interval: PT24H
     processing:
       enabled: true
       auto-process-enabled: false
