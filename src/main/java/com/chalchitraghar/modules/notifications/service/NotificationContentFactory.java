@@ -92,6 +92,45 @@ public class NotificationContentFactory {
                             e.bookingReference(),
                             "paymentReference",
                             e.paymentReference()));
+        if (event instanceof RefundRequestedEvent e)
+            return content(
+                    NotificationType.REFUND_REQUESTED,
+                    "REFUND_REQUESTED:" + e.refundId(),
+                    "Refund request recorded",
+                    "Your full refund request for booking "
+                            + e.bookingReference()
+                            + " has been recorded and is awaiting review. No money has been returned yet.",
+                    payload(
+                            "refundReference",
+                            e.refundReference(),
+                            "bookingReference",
+                            e.bookingReference()));
+        if (event instanceof RefundApprovedEvent e)
+            return content(
+                    NotificationType.REFUND_APPROVED,
+                    "REFUND_APPROVED:" + e.refundId(),
+                    "Refund approved",
+                    "Your refund for booking "
+                            + e.bookingReference()
+                            + " has been approved and is waiting to be processed.",
+                    payload(
+                            "refundReference",
+                            e.refundReference(),
+                            "bookingReference",
+                            e.bookingReference()));
+        if (event instanceof RefundRejectedEvent e)
+            return content(
+                    NotificationType.REFUND_REJECTED,
+                    "REFUND_REJECTED:" + e.refundId(),
+                    "Refund request not approved",
+                    "Your refund request for booking "
+                            + e.bookingReference()
+                            + " was not approved. Contact support if you need assistance.",
+                    payload(
+                            "refundReference",
+                            e.refundReference(),
+                            "bookingReference",
+                            e.bookingReference()));
         if (event instanceof ShowUpdatedEvent e)
             return content(
                     NotificationType.SHOW_UPDATED,

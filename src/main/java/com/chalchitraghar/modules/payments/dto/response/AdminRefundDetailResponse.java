@@ -32,5 +32,7 @@ public record AdminRefundDetailResponse(
         LocalDateTime rejectedAt,
         String providerRefundReference,
         String sanitizedFailureReason,
+        String rejectionReasonCode,
+        String rejectionNote,
         LocalDateTime createdAt,
         LocalDateTime updatedAt) {}

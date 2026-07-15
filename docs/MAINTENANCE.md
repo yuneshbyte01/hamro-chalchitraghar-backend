@@ -110,7 +110,7 @@ Booking history is paginated with the shared `PageResponse<T>`. Keep filters in 
 
 Booking prices are currency-safe snapshots: copy `Seat.price` into `BookingSeat.unitPrice`, sum with `BigDecimal` into `Booking.totalAmount`, and never map historical prices from the mutable seat. Generate references only through `BookingReferenceGenerator`. Route all initiated expiry checks through `BookingLifecycleService` using the application `Clock`; confirmation, cancellation, and expiry timestamps must not use an independent system clock.
 
-Keep scheduled expiry bounded by `BOOKING_EXPIRY_BATCH_SIZE` and scheduled by `BOOKING_EXPIRY_CLEANUP_INTERVAL_MS`. Never duplicate expiry seat-release logic in a job or controller. State transitions must lock the booking row before status/expiry checks and sort seat IDs before pessimistic locking. Confirmation must pass through `PaymentAuthorizationService`. Repeated confirmed confirmation and cancelled cancellation are idempotent; confirmed cancellation remains unavailable until a refund policy exists.
+Keep scheduled expiry bounded by `BOOKING_EXPIRY_BATCH_SIZE` and scheduled by `BOOKING_EXPIRY_CLEANUP_INTERVAL_MS`. Never duplicate expiry seat-release logic in a job or controller. State transitions must lock the booking row before status/expiry checks and sort seat IDs before pessimistic locking. Confirmation must pass through `PaymentAuthorizationService`. Repeated confirmed confirmation and cancelled cancellation are idempotent; confirmed paid cancellation must use the Refund-2 orchestration.
 
 Paginated show lists use `ShowSearchCriteria`, `ShowSpecification`, and the shared `PageResponse<T>`. Add new show filters in the criteria/specification rather than controllers, keep the sort-field allowlist in `ShowServiceImpl`, and apply public visibility predicates in the database query before pagination.
 
@@ -605,3 +605,15 @@ untrusted unless deployment topology guarantees a trusted proxy boundary.
 - Do not mutate refund entities directly outside authoritative services or mark `PaymentStatus.REFUNDED` in Refund-1.
 - Never call a provider while holding database locks or persist/log raw provider payloads, signatures, tokens, or credentials.
 - Customer lookups must remain owner-scoped because STAFF and ADMIN may also enter `/api/customer/**`.
+
+### Refund-2 workflow invariants
+
+- Confirmed paid cancellation uses the refund-request orchestration; initiated cancel remains unpaid-only.
+- Require exactly one locked successful Payment, then lock Booking/tickets; checked-in tickets abort.
+- Preserve `CUSTOMER_CANCELLATION:{bookingId}` and `SHOW_CANCELLATION:{bookingId}:{showId}`.
+- Intent, ticket revocation, seat release, cancellation, and events share one transaction.
+- Show cancellation is all-or-nothing for the hall-sized affected set; ambiguity aborts.
+- Only `REQUESTED -> APPROVED|REJECTED` is active; repeated same decisions are idempotent.
+- All decision/workflow/event times use injected `Clock`.
+- Events/audits omit idempotency keys, notes, QR data, and provider payloads.
+- Never describe REQUESTED/APPROVED as completed or change Payment before Refund-3.

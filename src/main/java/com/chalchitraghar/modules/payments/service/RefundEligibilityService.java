@@ -43,8 +43,10 @@ public class RefundEligibilityService {
                     conflict("Show cancellation refunds require a cancelled show");
             }
             case CUSTOMER_CANCELLATION -> {
-                if (booking.getStatus() != BookingStatus.CANCELLED)
-                    conflict("Customer cancellation refunds require a cancelled booking");
+                if (booking.getStatus() != BookingStatus.CONFIRMED
+                        && booking.getStatus() != BookingStatus.CANCELLED)
+                    conflict(
+                            "Customer cancellation refunds require a confirmed or cancelled booking");
             }
             case LATE_PAYMENT_SUCCESS -> {
                 boolean unconfirmable =

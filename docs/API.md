@@ -1802,3 +1802,23 @@ Ranges are inclusive; reversed ranges, invalid enums, negative amounts, and inva
 `400`. Customer responses never expose database/user IDs, idempotency keys, actors, provider refund
 internals, retry metadata, or raw failures. Admin detail includes safe actor labels and ticket-status
 counts but no credentials, signatures, QR material, tokens, or provider payloads.
+
+## Refund-2 workflow APIs
+
+`POST /api/customer/bookings/{bookingReference}/refund-request` is owner-only and body-free. It
+requires a confirmed booking, exactly one successful payment, a future show inside the configured
+cutoff, no checked-in ticket, and available balance. It atomically creates/reuses
+`CUSTOMER_CANCELLATION:{bookingId}`, cancels the booking, revokes tickets, releases booked seats,
+and returns `CANCELLED` booking plus `REQUESTED` refund state. The numeric cancel endpoint remains
+for unpaid `INITIATED` bookings.
+
+ADMIN commands are `POST /api/admin/refunds` with `Idempotency-Key`, payment reference, and trusted
+reason; `POST /api/admin/refunds/{reference}/approve`; and
+`POST /api/admin/refunds/{reference}/reject` with bounded reason code and sanitized note. Decisions
+are idempotent from the same final state and conflict with incompatible states.
+
+Show DELETE/status cancellation now rejects checked-in tickets and ambiguous active/payment cases,
+cancels initiated bookings without refund, and cancels confirmed paid bookings with deterministic
+`SHOW_CANCELLATION:{bookingId}:{showId}` `APPROVED` intents. The whole operation rolls back on an
+unsafe booking. `REQUESTED` means awaiting review, `APPROVED` awaiting future processing, and
+`REJECTED` releases balance; none means money was returned.

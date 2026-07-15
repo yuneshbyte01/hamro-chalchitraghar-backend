@@ -109,6 +109,57 @@ public class BusinessAuditEventBridge {
     }
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void on(RefundRequestedEvent e) {
+        refund(
+                e.refundId(),
+                e.refundReference(),
+                e.actorUserId(),
+                e.bookingReference(),
+                e.paymentReference(),
+                e.amount(),
+                e.currency(),
+                e.reason().name(),
+                null,
+                e.status().name(),
+                e.occurredAt(),
+                AuditAction.REFUND_CREATED);
+    }
+
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void on(RefundApprovedEvent e) {
+        refund(
+                e.refundId(),
+                e.refundReference(),
+                e.actorUserId(),
+                e.bookingReference(),
+                e.paymentReference(),
+                e.amount(),
+                e.currency(),
+                e.reason().name(),
+                "REQUESTED",
+                e.status().name(),
+                e.occurredAt(),
+                AuditAction.REFUND_APPROVED);
+    }
+
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void on(RefundRejectedEvent e) {
+        refund(
+                e.refundId(),
+                e.refundReference(),
+                e.actorUserId(),
+                e.bookingReference(),
+                e.paymentReference(),
+                e.amount(),
+                e.currency(),
+                e.reason().name(),
+                "REQUESTED",
+                e.status().name(),
+                e.occurredAt(),
+                AuditAction.REFUND_REJECTED);
+    }
+
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void on(ShowUpdatedEvent e) {
         success(
                 "SHOW_UPDATED:" + e.showId() + ":" + e.changeVersion(),
@@ -197,6 +248,41 @@ public class BusinessAuditEventBridge {
                         null,
                         Map.of("status", "SUCCESS"),
                         Map.of("provider", "ESEWA", "bookingReference", e.bookingReference())));
+    }
+
+    private void refund(
+            Long id,
+            String reference,
+            Long actorId,
+            String bookingReference,
+            String paymentReference,
+            java.math.BigDecimal amount,
+            String currency,
+            String reason,
+            String beforeStatus,
+            String afterStatus,
+            java.time.LocalDateTime at,
+            AuditAction action) {
+        success(
+                action + ":" + id,
+                at,
+                actors.userId(actorId),
+                action,
+                AuditCategory.REFUND,
+                AuditSeverity.INFO,
+                "REFUND",
+                id,
+                reference,
+                beforeStatus == null ? null : Map.of("status", beforeStatus),
+                Map.of("status", afterStatus),
+                Map.of(
+                        "bookingReference", bookingReference,
+                        "paymentReference", paymentReference,
+                        "amount", amount.toPlainString(),
+                        "currency", currency,
+                        "reason", reason,
+                        "type", "FULL",
+                        "method", "MANUAL"));
     }
 
     private void success(

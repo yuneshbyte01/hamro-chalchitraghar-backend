@@ -257,3 +257,11 @@ See [docs/MAINTENANCE.md](docs/MAINTENANCE.md) for developer workflow details.
 ## License
 
 No license file is currently present in the repository.
+
+## Refund-2 workflow
+
+Customers can atomically cancel an eligible confirmed paid booking and create a `REQUESTED`
+full-refund intent. Show cancellation cancels confirmed paid bookings and creates `APPROVED` intents;
+admins can create, approve, or reject intents. Checked-in tickets block automatic flows, and safe
+notifications/audits run after commit. Payment remains `SUCCESS`; provider execution and financial
+completion remain Refund-3 work.

@@ -46,6 +46,19 @@ public interface RefundRepository
             })
     Optional<Refund> findByIdempotencyKey(String idempotencyKey);
 
+    @Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @EntityGraph(
+            attributePaths = {
+                "payment",
+                "booking",
+                "booking.user",
+                "booking.show",
+                "booking.show.movie",
+                "booking.show.hall"
+            })
+    @Query("select r from Refund r where r.refundReference=:reference")
+    Optional<Refund> findByRefundReferenceForUpdate(@Param("reference") String reference);
+
     boolean existsByRefundReference(String refundReference);
 
     boolean existsByIdempotencyKey(String idempotencyKey);

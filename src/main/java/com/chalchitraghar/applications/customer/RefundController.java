@@ -1,7 +1,9 @@
 package com.chalchitraghar.applications.customer;
 
+import com.chalchitraghar.modules.bookings.service.BookingRefundCancellationService;
 import com.chalchitraghar.modules.payments.dto.request.CustomerRefundFilter;
 import com.chalchitraghar.modules.payments.dto.response.*;
+import com.chalchitraghar.modules.payments.dto.response.CustomerBookingCancellationRefundResponse;
 import com.chalchitraghar.modules.payments.enums.*;
 import com.chalchitraghar.modules.payments.service.RefundService;
 import com.chalchitraghar.modules.users.entity.User;
@@ -27,6 +29,20 @@ import org.springframework.web.bind.annotation.*;
 @SecurityRequirement(name = "bearerAuth")
 public class RefundController {
     private final RefundService service;
+    private final BookingRefundCancellationService cancellationService;
+
+    @PostMapping("/bookings/{reference}/refund-request")
+    @Operation(
+            summary = "Cancel a confirmed paid booking and request a full refund",
+            description =
+                    "Owner-only and idempotent. Revokes issued tickets and cancels the booking atomically. No money moves; checked-in tickets and cutoff violations return 409.")
+    public ResponseEntity<ApiResponse<CustomerBookingCancellationRefundResponse>> request(
+            @PathVariable String reference) {
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        "Booking cancelled and refund requested",
+                        cancellationService.requestCustomerCancellation(reference, user())));
+    }
 
     @GetMapping("/refunds")
     @Operation(

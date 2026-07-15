@@ -111,7 +111,7 @@ Booking lists use `BookingSearchCriteria`, `BookingSpecification`, and the share
 
 `BookingReferenceGenerator` creates non-ID-derived customer references. `BookingLifecycleService` centralizes initiated-booking expiry and reserved-seat release. Booking creation snapshots each seat's `BigDecimal` price into `BookingSeat.unitPrice`, stores `Booking.totalAmount` and configured currency, and all booking mappers read those immutable values.
 
-`ExpiredBookingCleanupJob` queries one configured page of due initiated bookings and delegates every transition to `BookingLifecycleService`, the same path used by lazy reconciliation. Booking mutations pessimistically lock the booking first and acquire seat locks in deterministic ID order. `PaymentAuthorizationService` is the single future gateway seam; `LocalPaymentAuthorizationService` is intentionally permissive. Show cancellation first rejects confirmed/payment-pending bookings, then cancels initiated bookings and retains their history.
+`ExpiredBookingCleanupJob` queries one configured page of due initiated bookings and delegates every transition to `BookingLifecycleService`, the same path used by lazy reconciliation. Booking mutations pessimistically lock the booking first and acquire seat locks in deterministic ID order. `PaymentAuthorizationService` is the single future gateway seam; `LocalPaymentAuthorizationService` is intentionally permissive. Refund-2 show cancellation rejects ambiguous pending/booked cases, cancels initiated bookings, and atomically cancels/refunds confirmed paid bookings.
 | `UserResponse` | Authenticated customer profile response |
 | `AdminUserSummaryResponse`, `AdminUserDetailResponse` | Admin user lookup responses |
 | `PageResponse<T>` | Shared paginated list wrapper returned inside `ApiResponse<T>` |
@@ -550,3 +550,16 @@ Refund-1 does not publish a partially supported lifecycle event.
 Current show cancellation may revoke confirmed tickets while leaving the confirmed booking and
 successful payment unchanged. It is therefore not accurate to assume confirmed bookings always
 block show cancellation; Refund-1 records no automatic intent for that existing inconsistency.
+
+## Refund-2 business integration
+
+Customer cancellation follows `owner lookup -> successful Payment lock -> Booking lock -> cutoff and
+ticket validation -> REQUESTED intent -> ticket revocation -> seat release -> Booking CANCELLED ->
+commit -> notification/audit`. Show cancellation locks Show/tickets, validates every active booking,
+creates and approves one deterministic intent per confirmed booking, cancels bookings/show, releases
+seats/locks, and commits before listeners run. Any unsafe booking rolls back the whole operation;
+hall capacity bounds the transactional batch.
+
+Exactly one successful payment is required. Ticket locks close the check-in race. Admin decisions lock
+Refund and revalidate Payment, Booking, tickets, exact amount/currency, and balance. Scalar events use
+stable `REFUND_*:{refundId}` identities. No SMTP or provider call occurs inside the transaction.

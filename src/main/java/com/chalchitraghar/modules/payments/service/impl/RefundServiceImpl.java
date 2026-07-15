@@ -2,6 +2,7 @@ package com.chalchitraghar.modules.payments.service.impl;
 
 import com.chalchitraghar.modules.bookings.entity.Booking;
 import com.chalchitraghar.modules.bookings.repository.BookingRepository;
+import com.chalchitraghar.modules.notifications.event.*;
 import com.chalchitraghar.modules.payments.dto.request.*;
 import com.chalchitraghar.modules.payments.dto.response.*;
 import com.chalchitraghar.modules.payments.entity.*;
@@ -19,6 +20,7 @@ import java.math.BigDecimal;
 import java.time.*;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -37,6 +39,7 @@ public class RefundServiceImpl implements RefundService {
     private final RefundEligibilityService eligibility;
     private final RefundMapper mapper;
     private final Clock clock;
+    private final ApplicationEventPublisher events;
 
     /**
      * Lock order is Payment then Booking. No external operation is performed in this transaction.
@@ -100,7 +103,87 @@ public class RefundServiceImpl implements RefundService {
                         .build();
         refund.setCreatedAt(now);
         refund.setUpdatedAt(now);
-        return refunds.saveAndFlush(refund);
+        Refund saved = refunds.saveAndFlush(refund);
+        publishRequested(saved, command.requestedByUserId(), now);
+        return saved;
+    }
+
+    @Override
+    @Transactional
+    public AdminRefundDetailResponse createAdminRefund(
+            AdminCreateRefundRequest request, String idempotencyKey, User admin) {
+        if (!java.util.EnumSet.of(
+                        RefundReason.ADMIN_ADJUSTMENT,
+                        RefundReason.LATE_PAYMENT_SUCCESS,
+                        RefundReason.DUPLICATE_PAYMENT,
+                        RefundReason.SHOW_CANCELLATION)
+                .contains(request.reason())) {
+            throw new IllegalArgumentException("Refund reason is not available for admin creation");
+        }
+        Refund refund =
+                createRefundIntent(
+                        new CreateRefundIntentCommand(
+                                request.paymentReference(),
+                                request.reason(),
+                                idempotencyKey,
+                                admin.getId()));
+        return mapper.toAdminDetail(
+                refund, tickets.findByBookingIdOrderByIssuedAtAsc(refund.getBooking().getId()));
+    }
+
+    @Override
+    @Transactional
+    public AdminRefundDetailResponse approveRefund(String reference, User admin) {
+        Refund refund = lockRefund(reference);
+        if (refund.getStatus() == RefundStatus.APPROVED) return detail(refund);
+        if (refund.getStatus() != RefundStatus.REQUESTED)
+            throw new PaymentConflictException("Only requested refunds can be approved");
+        Payment payment =
+                payments.findByPaymentReferenceForUpdate(refund.getPayment().getPaymentReference())
+                        .orElseThrow(() -> new ResourceNotFoundException("Payment not found"));
+        Booking booking =
+                bookings.findByIdForUpdate(refund.getBooking().getId())
+                        .orElseThrow(
+                                () ->
+                                        new ResourceNotFoundException(
+                                                "Booking", refund.getBooking().getId()));
+        eligibility.validate(
+                payment, booking, refund.getReason(), refund.getType(), refund.getMethod());
+        if (refund.getAmount().compareTo(payment.getAmount()) != 0
+                || !refund.getCurrency().equals(payment.getCurrency())
+                || RefundBalanceService.RESERVING_STATUSES.contains(refund.getStatus())
+                        && balances.refundableBalance(payment).signum() != 0) {
+            throw new PaymentConflictException(
+                    "Refund no longer matches the reserved payment balance");
+        }
+        LocalDateTime now = LocalDateTime.now(clock);
+        refund.setStatus(RefundStatus.APPROVED);
+        refund.setApprovedBy(admin);
+        refund.setApprovedAt(now);
+        refund.setUpdatedAt(now);
+        Refund saved = refunds.saveAndFlush(refund);
+        publishApproved(saved, admin == null ? null : admin.getId(), now);
+        return detail(saved);
+    }
+
+    @Override
+    @Transactional
+    public AdminRefundDetailResponse rejectRefund(
+            String reference, AdminRejectRefundRequest request, User admin) {
+        Refund refund = lockRefund(reference);
+        if (refund.getStatus() == RefundStatus.REJECTED) return detail(refund);
+        if (refund.getStatus() != RefundStatus.REQUESTED)
+            throw new PaymentConflictException("Only requested refunds can be rejected");
+        LocalDateTime now = LocalDateTime.now(clock);
+        refund.setStatus(RefundStatus.REJECTED);
+        refund.setRejectedBy(admin);
+        refund.setRejectedAt(now);
+        refund.setRejectionReasonCode(normalizeCode(request.reasonCode()));
+        refund.setRejectionNote(sanitizeNote(request.note()));
+        refund.setUpdatedAt(now);
+        Refund saved = refunds.saveAndFlush(refund);
+        publishRejected(saved, admin.getId(), now);
+        return detail(saved);
     }
 
     @Override
@@ -180,6 +263,82 @@ public class RefundServiceImpl implements RefundService {
                     "Refund idempotency key was already used with different intent parameters");
         }
         return existing;
+    }
+
+    private Refund lockRefund(String reference) {
+        return refunds.findByRefundReferenceForUpdate(normalize(reference))
+                .orElseThrow(
+                        () ->
+                                new ResourceNotFoundException(
+                                        "Refund not found with reference: " + reference));
+    }
+
+    private AdminRefundDetailResponse detail(Refund refund) {
+        return mapper.toAdminDetail(
+                refund, tickets.findByBookingIdOrderByIssuedAtAsc(refund.getBooking().getId()));
+    }
+
+    private String normalizeCode(String value) {
+        String code = value == null ? "" : value.trim().toUpperCase();
+        if (!code.matches("[A-Z0-9_]{1,50}"))
+            throw new IllegalArgumentException("Invalid rejection reason code");
+        return code;
+    }
+
+    private String sanitizeNote(String value) {
+        if (value == null || value.isBlank()) return null;
+        String safe = value.replaceAll("[\\p{Cntrl}&&[^\\r\\n\\t]]", "").trim();
+        if (safe.length() > 500)
+            throw new IllegalArgumentException("Rejection note must not exceed 500 characters");
+        return safe;
+    }
+
+    private void publishRequested(Refund r, Long actorId, LocalDateTime at) {
+        events.publishEvent(
+                new RefundRequestedEvent(
+                        r.getId(),
+                        r.getRefundReference(),
+                        r.getBooking().getUser().getId(),
+                        actorId,
+                        r.getBooking().getBookingReference(),
+                        r.getPayment().getPaymentReference(),
+                        r.getAmount(),
+                        r.getCurrency(),
+                        r.getReason(),
+                        r.getStatus(),
+                        at));
+    }
+
+    private void publishApproved(Refund r, Long actorId, LocalDateTime at) {
+        events.publishEvent(
+                new RefundApprovedEvent(
+                        r.getId(),
+                        r.getRefundReference(),
+                        r.getBooking().getUser().getId(),
+                        actorId,
+                        r.getBooking().getBookingReference(),
+                        r.getPayment().getPaymentReference(),
+                        r.getAmount(),
+                        r.getCurrency(),
+                        r.getReason(),
+                        r.getStatus(),
+                        at));
+    }
+
+    private void publishRejected(Refund r, Long actorId, LocalDateTime at) {
+        events.publishEvent(
+                new RefundRejectedEvent(
+                        r.getId(),
+                        r.getRefundReference(),
+                        r.getBooking().getUser().getId(),
+                        actorId,
+                        r.getBooking().getBookingReference(),
+                        r.getPayment().getPaymentReference(),
+                        r.getAmount(),
+                        r.getCurrency(),
+                        r.getReason(),
+                        r.getStatus(),
+                        at));
     }
 
     private void validateAdmin(AdminRefundFilter f, int page, int size) {

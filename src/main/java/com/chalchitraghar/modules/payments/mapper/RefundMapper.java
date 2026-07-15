@@ -91,6 +91,8 @@ public class RefundMapper {
                 r.getRejectedAt(),
                 r.getProviderRefundReference(),
                 r.getFailureReason(),
+                r.getRejectionReasonCode(),
+                r.getRejectionNote(),
                 r.getCreatedAt(),
                 r.getUpdatedAt());
     }

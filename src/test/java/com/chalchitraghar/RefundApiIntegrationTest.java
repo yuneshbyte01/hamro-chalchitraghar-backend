@@ -69,7 +69,7 @@ class RefundApiIntegrationTest extends AbstractIntegrationTest {
         assertThat(showRepository.findById(f.show().getId()).orElseThrow().getStatus())
                 .isEqualTo(ShowStatus.CANCELLED);
         assertThat(refundRepository.count()).isOne();
-        assertThat(notificationRepository.count()).isZero();
+        assertThat(notificationRepository.count()).isOne();
     }
 
     @Test

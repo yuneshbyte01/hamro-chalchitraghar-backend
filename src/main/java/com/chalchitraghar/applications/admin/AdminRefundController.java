@@ -1,18 +1,22 @@
 package com.chalchitraghar.applications.admin;
 
-import com.chalchitraghar.modules.payments.dto.request.AdminRefundFilter;
+import com.chalchitraghar.modules.payments.dto.request.*;
 import com.chalchitraghar.modules.payments.dto.response.*;
 import com.chalchitraghar.modules.payments.enums.*;
 import com.chalchitraghar.modules.payments.service.RefundService;
+import com.chalchitraghar.modules.users.entity.User;
 import com.chalchitraghar.shared.response.*;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -21,10 +25,45 @@ import org.springframework.web.bind.annotation.*;
 @Tag(
         name = "Admin Refunds",
         description =
-                "ADMIN-only Refund-1 intent visibility; no approval, processing, retry, or provider integration")
+                "ADMIN-only full-refund creation, decisions, and sanitized visibility; no financial processing")
 @SecurityRequirement(name = "bearerAuth")
 public class AdminRefundController {
     private final RefundService service;
+
+    @PostMapping
+    @Operation(
+            summary = "Create a full refund intent",
+            description = "Amount and currency come from the successful payment. No money moves.")
+    public ResponseEntity<ApiResponse<AdminRefundDetailResponse>> create(
+            @RequestHeader("Idempotency-Key") String idempotencyKey,
+            @Valid @RequestBody AdminCreateRefundRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(
+                        ApiResponse.success(
+                                "Refund intent created",
+                                service.createAdminRefund(request, idempotencyKey, user())));
+    }
+
+    @PostMapping("/{reference}/approve")
+    @Operation(
+            summary = "Approve a requested refund",
+            description = "Idempotent decision only; processing remains deferred.")
+    public ResponseEntity<ApiResponse<AdminRefundDetailResponse>> approve(
+            @PathVariable String reference) {
+        return ResponseEntity.ok(
+                ApiResponse.success("Refund approved", service.approveRefund(reference, user())));
+    }
+
+    @PostMapping("/{reference}/reject")
+    @Operation(
+            summary = "Reject a requested refund",
+            description = "Idempotent decision that releases the reserved refundable balance.")
+    public ResponseEntity<ApiResponse<AdminRefundDetailResponse>> reject(
+            @PathVariable String reference, @Valid @RequestBody AdminRejectRefundRequest request) {
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        "Refund rejected", service.rejectRefund(reference, request, user())));
+    }
 
     @GetMapping
     @Operation(
@@ -80,5 +119,9 @@ public class AdminRefundController {
         return ResponseEntity.ok(
                 ApiResponse.success(
                         "Refund fetched successfully", service.getAdminRefund(reference)));
+    }
+
+    private User user() {
+        return (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
     }
 }

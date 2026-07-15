@@ -94,6 +94,12 @@ public class Refund extends GenericEntity {
     @Column(name = "failure_reason", length = 500)
     private String failureReason;
 
+    @Column(name = "rejection_reason_code", length = 50)
+    private String rejectionReasonCode;
+
+    @Column(name = "rejection_note", length = 500)
+    private String rejectionNote;
+
     /** Legacy V21 column retained for forward migration compatibility. */
     @Column(name = "completed_at")
     private LocalDateTime completedAt;

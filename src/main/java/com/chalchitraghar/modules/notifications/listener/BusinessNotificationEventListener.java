@@ -55,6 +55,21 @@ public class BusinessNotificationEventListener {
     }
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void on(RefundRequestedEvent event) {
+        handle(event, event.userId(), event.occurredAt());
+    }
+
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void on(RefundApprovedEvent event) {
+        handle(event, event.userId(), event.occurredAt());
+    }
+
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void on(RefundRejectedEvent event) {
+        handle(event, event.userId(), event.occurredAt());
+    }
+
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void on(ShowUpdatedEvent event) {
         handle(event, event.userId(), event.occurredAt());
     }

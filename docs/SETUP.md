@@ -318,3 +318,10 @@ executor, message broker, callback, or provider credential. eSewa payment creden
 refund execution. HTTP access is read-only; intent creation is an internal service boundary for
 future reviewed workflows. Keep `APP_TIME_ZONE` explicit because requested timestamps and reference
 dates use the injected application `Clock`.
+
+## Refund-2 setup
+
+Refund-2 requires V35 and no provider credential or new feature flag. Customer requests use existing
+`BOOKING_CANCELLATION_CUTOFF_MINUTES`. Refund email uses the existing after-commit notification queue;
+in-app/audit behavior remains when email is disabled. There is no refund worker, callback, scheduler,
+eSewa refund credential, or asynchronous financial processing.

@@ -5,6 +5,7 @@ import com.chalchitraghar.modules.audit.service.AuditBusinessPublisher;
 import com.chalchitraghar.modules.bookings.enums.BookingStatus;
 import com.chalchitraghar.modules.bookings.repository.BookingRepository;
 import com.chalchitraghar.modules.bookings.service.BookingLifecycleService;
+import com.chalchitraghar.modules.bookings.service.BookingRefundCancellationService;
 import com.chalchitraghar.modules.halls.entity.Hall;
 import com.chalchitraghar.modules.halls.enums.Status;
 import com.chalchitraghar.modules.halls.repository.HallRepository;
@@ -27,6 +28,7 @@ import com.chalchitraghar.modules.shows.service.SeatGenerationService;
 import com.chalchitraghar.modules.shows.service.ShowLifecycleService;
 import com.chalchitraghar.modules.shows.service.ShowService;
 import com.chalchitraghar.modules.shows.specification.ShowSpecification;
+import com.chalchitraghar.modules.users.entity.User;
 import com.chalchitraghar.shared.exception.HallConflictException;
 import com.chalchitraghar.shared.exception.ResourceNotFoundException;
 import com.chalchitraghar.shared.exception.ShowConflictException;
@@ -46,6 +48,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -67,6 +70,7 @@ public class ShowServiceImpl implements ShowService {
     private final ShowLifecycleService lifecycleService;
     private final Clock clock;
     private final BookingLifecycleService bookingLifecycleService;
+    private final BookingRefundCancellationService bookingRefundCancellationService;
     private final com.chalchitraghar.modules.tickets.service.TicketOperationsService
             ticketOperationsService;
     private final ApplicationEventPublisher events;
@@ -78,8 +82,6 @@ public class ShowServiceImpl implements ShowService {
                     BookingStatus.PENDING,
                     BookingStatus.CONFIRMED,
                     BookingStatus.BOOKED);
-    private static final List<BookingStatus> SHOW_CANCELLATION_BLOCKING_STATUSES =
-            List.of(BookingStatus.PENDING, BookingStatus.CONFIRMED, BookingStatus.BOOKED);
 
     private Map<String, ?> showSnapshot(Show show) {
         return Map.of(
@@ -210,17 +212,7 @@ public class ShowServiceImpl implements ShowService {
         if (show.getStatus() == ShowStatus.RUNNING || show.getStatus() == ShowStatus.COMPLETED) {
             throw new ShowConflictException("Running or completed shows cannot be cancelled");
         }
-        var affectedUserIds = affectedUserIds(id);
-        ticketOperationsService.revokeForShow(id, "SHOW_CANCELLED", null);
-        bookingLifecycleService.cancelInitiatedBookingsForShow(id);
-        transitionStatus(show, ShowStatus.CANCELLED);
-        List<com.chalchitraghar.modules.seats.entity.Seat> locks =
-                seatRepository.findActiveLockedSeatsByShowId(
-                        id, java.time.LocalDateTime.now(clock));
-        locks.forEach(this::clearSeatLock);
-        seatRepository.saveAll(locks);
-        showRepository.save(show);
-        publishShowCancelled(show, affectedUserIds);
+        cancelShow(show);
     }
 
     @Override
@@ -230,15 +222,12 @@ public class ShowServiceImpl implements ShowService {
                         .findByIdForUpdate(id)
                         .orElseThrow(() -> new ResourceNotFoundException("Show", id));
         lifecycleService.reconcile(show);
-        var affectedUserIds =
-                status == ShowStatus.CANCELLED ? affectedUserIds(id) : List.<Long>of();
         if (status == ShowStatus.CANCELLED) {
-            ticketOperationsService.revokeForShow(id, "SHOW_CANCELLED", null);
-            bookingLifecycleService.cancelInitiatedBookingsForShow(id);
+            cancelShow(show);
+            return showMapper.toAdminDetail(show);
         }
         transitionStatus(show, status);
         Show saved = showRepository.save(show);
-        if (status == ShowStatus.CANCELLED) publishShowCancelled(saved, affectedUserIds);
         return showMapper.toAdminDetail(saved);
     }
 
@@ -436,6 +425,45 @@ public class ShowServiceImpl implements ShowService {
         seat.setLockedAt(null);
         seat.setLockExpiresAt(null);
         seat.setLockedByUserId(null);
+    }
+
+    private void cancelShow(Show show) {
+        Long showId = show.getId();
+        var unsupported =
+                bookingRepository.findByShowIdAndStatusInOrderById(
+                        showId, List.of(BookingStatus.PENDING, BookingStatus.BOOKED));
+        if (!unsupported.isEmpty())
+            throw new ShowConflictException(
+                    "Show has ambiguous active bookings that require manual review");
+        var confirmed =
+                bookingRepository.findByShowIdAndStatusInOrderById(
+                        showId, List.of(BookingStatus.CONFIRMED));
+        var affectedUserIds = affectedUserIds(showId);
+
+        // Lock and validate every ticket before any durable cancellation state is accepted.
+        ticketOperationsService.revokeForShow(showId, "SHOW_CANCELLED_REFUND", currentActor());
+        transitionStatus(show, ShowStatus.CANCELLED);
+        showRepository.save(show);
+        User actor = currentActor();
+        confirmed.forEach(
+                booking ->
+                        bookingRefundCancellationService.cancelConfirmedForShow(
+                                booking, show, actor));
+        bookingLifecycleService.cancelInitiatedBookingsForShow(showId);
+
+        List<com.chalchitraghar.modules.seats.entity.Seat> locks =
+                seatRepository.findActiveLockedSeatsByShowId(
+                        showId, java.time.LocalDateTime.now(clock));
+        locks.forEach(this::clearSeatLock);
+        seatRepository.saveAll(locks);
+        publishShowCancelled(show, affectedUserIds);
+    }
+
+    private User currentActor() {
+        var authentication = SecurityContextHolder.getContext().getAuthentication();
+        return authentication != null && authentication.getPrincipal() instanceof User user
+                ? user
+                : null;
     }
 
     private List<Long> affectedUserIds(Long showId) {

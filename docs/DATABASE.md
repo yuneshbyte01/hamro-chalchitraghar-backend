@@ -580,3 +580,10 @@ status/time, reason/time, and requester/time access.
 Refundable balance is calculated from the payment amount minus refund rows in `REQUESTED`,
 `APPROVED`, `PROCESSING`, `SUCCEEDED`, or `MANUAL_REVIEW`. `REJECTED` and `FAILED` do not reserve
 balance. Payment cancellation and refund intent are separate concepts.
+
+## Refund-2 decisions
+
+V35 adds nullable `rejection_reason_code` and sanitized `rejection_note`. Existing decision actor and
+timestamp fields record approval/rejection. `REQUESTED` and `APPROVED` reserve the full payment amount;
+`REJECTED` does not. Booking, ticket, and seat changes share the workflow transaction. No refunded
+total, provider execution, attempt, retry, or completion field is added.

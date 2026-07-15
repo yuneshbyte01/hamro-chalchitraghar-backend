@@ -14,7 +14,7 @@ deletion remain deferred.
 
 Shows use an effective time-based lifecycle in the configured `Asia/Kathmandu` application timezone. A scheduled reconciliation job advances stale shows to `RUNNING` at start and `COMPLETED` at end, while read-time and booking-time checks cover delayed jobs. Public catalogs retain currently running shows but hide ended/cancelled shows; all new holds and booking actions close at show start.
 
-Show schedules become immutable while active seat holds or active (`INITIATED`, `PENDING`, `CONFIRMED`, `BOOKED`) bookings exist. Cancellation blocks active bookings, rejects running/completed shows, and is idempotent once cancelled. Allowed cancellation releases active locks and retains all concrete seats as historical snapshots. Payments, refunds, notifications, and customer rescheduling remain outside this phase.
+Show schedules become immutable while active seat holds or active (`INITIATED`, `PENDING`, `CONFIRMED`, `BOOKED`) bookings exist. Refund-2 cancellation rejects ambiguous active states, cancels initiated bookings, and atomically cancels/refunds confirmed paid bookings; running/completed shows remain ineligible and repeated cancellation is idempotent.
 
 ## Project Introduction
 
@@ -358,3 +358,12 @@ provider call, notification, payment/booking/show/seat/ticket mutation, historic
 refund, cancellation integration, approval, processing, retry, reconciliation, reporting, or
 retention is included. Refund audit/notification events are deferred to Refund-2 rather than
 introducing a partial event catalogue.
+
+## Refund-2 business integration
+
+Refund-2 connects full-refund intents to customer and cinema cancellation. Eligible customer requests
+atomically create `REQUESTED` intents, cancel bookings, revoke tickets, and release seats. Show
+cancellation cancels confirmed paid bookings and creates deterministic `APPROVED` intents. Admins can
+create, approve, and reject with locked decisions. Checked-in tickets and ambiguous payments roll back
+automatic flows. Typed after-commit events create idempotent notification/email delivery and append-only
+safe audits. Payment remains successful; processing and financial completion remain Refund-3.

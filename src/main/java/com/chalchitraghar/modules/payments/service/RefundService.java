@@ -10,6 +10,14 @@ import java.util.List;
 public interface RefundService {
     Refund createRefundIntent(CreateRefundIntentCommand command);
 
+    AdminRefundDetailResponse createAdminRefund(
+            AdminCreateRefundRequest request, String idempotencyKey, User admin);
+
+    AdminRefundDetailResponse approveRefund(String reference, User admin);
+
+    AdminRefundDetailResponse rejectRefund(
+            String reference, AdminRejectRefundRequest request, User admin);
+
     PageResponse<CustomerRefundSummaryResponse> getCustomerRefunds(
             CustomerRefundFilter filter, int page, int size, User user);
 

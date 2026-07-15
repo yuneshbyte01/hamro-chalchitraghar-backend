@@ -44,6 +44,12 @@ public interface PaymentRepository
 
     long countByBookingIdAndStatus(Long bookingId, PaymentStatus status);
 
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query(
+            "SELECT p FROM Payment p WHERE p.booking.id=:bookingId AND p.status=:status ORDER BY p.id")
+    List<Payment> findByBookingIdAndStatusForUpdate(
+            @Param("bookingId") Long bookingId, @Param("status") PaymentStatus status);
+
     java.util.Optional<Payment> findFirstByBookingIdAndStatusOrderByCompletedAtDesc(
             Long bookingId, PaymentStatus status);
 

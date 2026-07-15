@@ -7,6 +7,7 @@ public enum AuditCategory {
     SHOW_MANAGEMENT,
     BOOKING,
     PAYMENT,
+    REFUND,
     TICKET,
     NOTIFICATION,
     SECURITY,

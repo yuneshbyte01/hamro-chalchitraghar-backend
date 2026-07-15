@@ -35,6 +35,11 @@ public interface BookingRepository
     List<Booking> findByShowIdAndStatus(Long showId, BookingStatus status);
 
     @Query(
+            "SELECT b FROM Booking b WHERE b.show.id=:showId AND b.status IN :statuses ORDER BY b.id")
+    List<Booking> findByShowIdAndStatusInOrderById(
+            @Param("showId") Long showId, @Param("statuses") List<BookingStatus> statuses);
+
+    @Query(
             """
             select b from Booking b join fetch b.user u join fetch b.show s
             join fetch s.movie join fetch s.hall
