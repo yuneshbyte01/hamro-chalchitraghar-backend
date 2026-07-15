@@ -1,0 +1,84 @@
+package com.chalchitraghar.modules.payments.repository;
+
+import com.chalchitraghar.modules.payments.entity.Refund;
+import com.chalchitraghar.modules.payments.enums.RefundStatus;
+import java.math.BigDecimal;
+import java.util.Collection;
+import java.util.List;
+import java.util.Optional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.*;
+import org.springframework.data.repository.query.Param;
+
+public interface RefundRepository
+        extends JpaRepository<Refund, Long>, JpaSpecificationExecutor<Refund> {
+    @EntityGraph(
+            attributePaths = {
+                "payment",
+                "booking",
+                "booking.user",
+                "booking.show",
+                "booking.show.movie",
+                "booking.show.hall"
+            })
+    Optional<Refund> findByRefundReference(String refundReference);
+
+    @EntityGraph(
+            attributePaths = {
+                "payment",
+                "booking",
+                "booking.user",
+                "booking.show",
+                "booking.show.movie",
+                "booking.show.hall"
+            })
+    Optional<Refund> findByRefundReferenceAndBookingUserId(String refundReference, Long userId);
+
+    @EntityGraph(
+            attributePaths = {
+                "payment",
+                "booking",
+                "booking.user",
+                "booking.show",
+                "booking.show.movie",
+                "booking.show.hall"
+            })
+    Optional<Refund> findByIdempotencyKey(String idempotencyKey);
+
+    boolean existsByRefundReference(String refundReference);
+
+    boolean existsByIdempotencyKey(String idempotencyKey);
+
+    @EntityGraph(
+            attributePaths = {
+                "payment",
+                "booking",
+                "booking.user",
+                "booking.show",
+                "booking.show.movie",
+                "booking.show.hall"
+            })
+    List<Refund> findByBookingIdOrderByRequestedAtDescIdDesc(Long bookingId);
+
+    List<Refund> findByPaymentIdOrderByRequestedAtDescIdDesc(Long paymentId);
+
+    @Override
+    @EntityGraph(
+            attributePaths = {
+                "payment",
+                "booking",
+                "booking.user",
+                "booking.show",
+                "booking.show.movie",
+                "booking.show.hall"
+            })
+    Page<Refund> findAll(
+            org.springframework.data.jpa.domain.Specification<Refund> spec, Pageable pageable);
+
+    @Query(
+            "select coalesce(sum(r.amount), 0) from Refund r where r.payment.id=:paymentId and r.status in :statuses")
+    BigDecimal sumAmountByPaymentIdAndStatusIn(
+            @Param("paymentId") Long paymentId,
+            @Param("statuses") Collection<RefundStatus> statuses);
+}

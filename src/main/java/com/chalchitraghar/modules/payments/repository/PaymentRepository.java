@@ -42,6 +42,8 @@ public interface PaymentRepository
 
     boolean existsByBookingIdAndStatus(Long bookingId, PaymentStatus status);
 
+    long countByBookingIdAndStatus(Long bookingId, PaymentStatus status);
+
     java.util.Optional<Payment> findFirstByBookingIdAndStatusOrderByCompletedAtDesc(
             Long bookingId, PaymentStatus status);
 

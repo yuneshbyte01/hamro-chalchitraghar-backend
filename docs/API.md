@@ -1781,3 +1781,24 @@ Advanced list filters additionally include created ranges, snapshot/metadata pre
 external-only, denied-only, and high-risk-only switches. All ranges are inclusive and invalid ranges return
 `400`. Export success is itself audited after the CSV bytes have been written.
 automatically populate the table.
+
+## Refund-1 intent read APIs
+
+Refund-1 stores full-refund intents; `REQUESTED` means balance is reserved for a possible refund,
+not that money has moved. There is no customer request, approval, processing, retry, callback,
+provider, partial-refund, or automatic cancellation endpoint.
+
+| Audience | Endpoint | Result |
+| --- | --- | --- |
+| Customer | `GET /api/customer/refunds` | Owner-scoped `PageResponse<CustomerRefundSummaryResponse>` |
+| Customer | `GET /api/customer/refunds/{refundReference}` | Owner-scoped safe detail; non-owner is `404` |
+| Customer | `GET /api/customer/bookings/{bookingReference}/refunds` | Newest-first owned booking intents |
+| Admin | `GET /api/admin/refunds` | System-wide filtered `PageResponse<AdminRefundSummaryResponse>` |
+| Admin | `GET /api/admin/refunds/{refundReference}` | Sanitized operational detail |
+
+Customer filters are status, reason, requested range, page, and size. Admin filters additionally
+support public references, customer identity, type, method, payment provider, and amount range.
+Ranges are inclusive; reversed ranges, invalid enums, negative amounts, and invalid pagination are
+`400`. Customer responses never expose database/user IDs, idempotency keys, actors, provider refund
+internals, retry metadata, or raw failures. Admin detail includes safe actor labels and ticket-status
+counts but no credentials, signatures, QR material, tokens, or provider payloads.

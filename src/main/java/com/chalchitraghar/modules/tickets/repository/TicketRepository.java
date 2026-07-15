@@ -1,6 +1,7 @@
 package com.chalchitraghar.modules.tickets.repository;
 
 import com.chalchitraghar.modules.tickets.entity.Ticket;
+import com.chalchitraghar.modules.tickets.enums.TicketStatus;
 import jakarta.persistence.LockModeType;
 import java.util.List;
 import java.util.Optional;
@@ -77,6 +78,8 @@ public interface TicketRepository
     boolean existsByTicketReference(String ticketReference);
 
     boolean existsByBookingSeatId(Long bookingSeatId);
+
+    boolean existsByBookingIdAndStatus(Long bookingId, TicketStatus status);
 
     Optional<Ticket> findByBookingSeatId(Long bookingSeatId);
 

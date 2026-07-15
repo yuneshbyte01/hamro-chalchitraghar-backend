@@ -1,9 +1,11 @@
 package com.chalchitraghar.modules.payments.enums;
 
 public enum RefundStatus {
-    CREATED,
-    PENDING,
-    SUCCESS,
+    REQUESTED,
+    APPROVED,
+    REJECTED,
+    PROCESSING,
+    SUCCEEDED,
     FAILED,
-    CANCELLED
+    MANUAL_REVIEW
 }

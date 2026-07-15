@@ -593,3 +593,15 @@ fields, never servlet objects or bodies. Keep security reason codes stable and u
 deduplication marker. Async executors must decorate tasks and restore worker state; scheduled jobs use
 fresh SYSTEM contexts. All context timestamps use the injected `Clock`. Forwarded headers remain
 untrusted unless deployment topology guarantees a trusted proxy boundary.
+
+## Refund-1 maintenance rules
+
+- Treat `REQUESTED` as an intent that reserves balance, never as proof of returned money.
+- Support only full refunds and derive amount/currency from the locked successful payment.
+- Lock Payment before Booking, recheck idempotency after locking, and aggregate all balance-reserving statuses.
+- Use stable, secret-free idempotency keys such as `SHOW_CANCELLATION:{bookingId}:{showId}`.
+- Reject checked-in tickets and reason/state mismatches; never repair inconsistent aggregates implicitly.
+- Generate references only through `RefundReferenceGenerator` and use the injected `Clock` for every refund timestamp.
+- Do not mutate refund entities directly outside authoritative services or mark `PaymentStatus.REFUNDED` in Refund-1.
+- Never call a provider while holding database locks or persist/log raw provider payloads, signatures, tokens, or credentials.
+- Customer lookups must remain owner-scoped because STAFF and ADMIN may also enter `/api/customer/**`.

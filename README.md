@@ -1,5 +1,12 @@
 # Hamro Chalchitraghar Backend
 
+Refund-1 provides a database-backed full-refund intent foundation. Trusted internal callers can
+create idempotent `REQUESTED` intents for eligible successful payments; customer APIs expose only
+refunds owned through the authenticated user's bookings, while ADMIN APIs provide sanitized
+system-wide reads. A refund intent reserves refundable balance but does not return money, change a
+payment or booking, revoke a ticket, contact eSewa, or run asynchronously. Partial refunds,
+customer request mutations, cancellation integration, approval, and processing remain deferred.
+
 ![Java](https://img.shields.io/badge/Java-21-blue)
 ![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.5.9-brightgreen)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-blue)

@@ -310,3 +310,11 @@ Configure `AUDIT_REQUEST_CONTEXT_ENABLED`, header names, `AUDIT_CAPTURE_IP`, `AU
 disable IP, mask enabled IPs, and distrust forwarding headers. Never enable forwarded-header trust
 unless the application is reachable only through a configured trusted proxy. Console logs include
 request and correlation MDC values; production SQL display is disabled.
+
+## Refund-1 setup
+
+Refund-1 requires only the V34 database migration. It adds no environment variables, scheduler,
+executor, message broker, callback, or provider credential. eSewa payment credentials do not enable
+refund execution. HTTP access is read-only; intent creation is an internal service boundary for
+future reviewed workflows. Keep `APP_TIME_ZONE` explicit because requested timestamps and reference
+dates use the injected application `Clock`.

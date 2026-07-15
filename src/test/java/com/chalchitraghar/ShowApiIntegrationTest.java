@@ -338,7 +338,7 @@ class ShowApiIntegrationTest extends AbstractIntegrationTest {
                                                 scheduleRequest(
                                                         movie,
                                                         durationHall,
-                                                        LocalDate.now().plusDays(21),
+                                                        LocalDate.now(clock).plusDays(21),
                                                         LocalTime.of(10, 0),
                                                         LocalTime.of(12, 5)))))
                 .andExpect(status().isCreated());
@@ -351,7 +351,7 @@ class ShowApiIntegrationTest extends AbstractIntegrationTest {
                                                 scheduleRequest(
                                                         movie,
                                                         durationHall,
-                                                        LocalDate.now().plusDays(22),
+                                                        LocalDate.now(clock).plusDays(22),
                                                         LocalTime.of(10, 0),
                                                         LocalTime.of(12, 6)))))
                 .andExpect(status().isConflict());
@@ -378,7 +378,7 @@ class ShowApiIntegrationTest extends AbstractIntegrationTest {
                                                 scheduleRequest(
                                                         movie,
                                                         bufferHall,
-                                                        LocalDate.now().plusDays(31),
+                                                        LocalDate.now(clock).plusDays(31),
                                                         LocalTime.of(12, 15),
                                                         LocalTime.of(14, 15)))))
                 .andExpect(status().isCreated());
@@ -398,7 +398,7 @@ class ShowApiIntegrationTest extends AbstractIntegrationTest {
                                                 scheduleRequest(
                                                         movie,
                                                         cancelledHall,
-                                                        LocalDate.now().plusDays(32),
+                                                        LocalDate.now(clock).plusDays(32),
                                                         LocalTime.of(10, 0),
                                                         LocalTime.of(12, 0)))))
                 .andExpect(status().isCreated());

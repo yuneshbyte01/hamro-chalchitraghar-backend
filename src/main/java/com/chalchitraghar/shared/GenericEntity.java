@@ -45,8 +45,8 @@ public abstract class GenericEntity {
     @PrePersist
     protected void onCreate() {
         LocalDateTime now = LocalDateTime.now();
-        this.createdAt = now;
-        this.updatedAt = now;
+        if (this.createdAt == null) this.createdAt = now;
+        if (this.updatedAt == null) this.updatedAt = now;
     }
 
     /** Lifecycle callback invoked before entity update. Refreshes the updatedAt timestamp. */

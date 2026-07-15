@@ -346,3 +346,15 @@ verification. Privacy controls omit raw context and JSON from export, preserve d
 keep retention disabled until policy owners select periods. The integrity hash is practical corruption
 detection rather than cryptographic tamper-proof storage. Audit tests cover all four phases and use the
 application `Clock` so Kathmandu and UTC executions have identical instant/cutoff semantics.
+
+## Refund-1 foundation
+
+Refund-1 evolves the inert payment refund skeleton into an idempotent full-refund intent domain.
+It adds forward-only persistence, exact amount/currency snapshots, reason/type/method enums, stable
+references, Payment-then-Booking locking, authoritative eligibility, checked-in ticket protection,
+and aggregate over-refund prevention. Customer list/detail/booking APIs are owner-safe; ADMIN APIs
+provide filtered sanitized visibility. All HTTP endpoints remain read-only. No money movement,
+provider call, notification, payment/booking/show/seat/ticket mutation, historical backfill, partial
+refund, cancellation integration, approval, processing, retry, reconciliation, reporting, or
+retention is included. Refund audit/notification events are deferred to Refund-2 rather than
+introducing a partial event catalogue.

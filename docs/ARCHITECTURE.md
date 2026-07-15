@@ -530,3 +530,23 @@ AFTER_COMMIT append`. The filter runs before JWT and clears all thread-local/MDC
 Invalid JWT and access denial use sanitized, deduplicated, `REQUIRES_NEW` failure audits. The email
 executor explicitly copies low-risk context and restores/clears worker state; scheduled work may create
 fresh SYSTEM contexts rather than inherit request state.
+
+## Refund-1 foundation
+
+`modules/payments` remains the single owner of the existing refund skeleton and its Refund-1
+expansion. The trusted internal flow is:
+
+`command validation -> idempotency lookup -> Payment write lock -> idempotency recheck -> Booking
+write lock -> eligibility/ticket check -> reserved-balance aggregation -> REQUESTED intent -> commit`.
+
+The lock order is always Payment then Booking. Creation derives booking, full payment amount,
+currency, `FULL`, and `MANUAL`; callers cannot supply financial values. A checked-in ticket blocks
+automatic intent creation, and reason-specific state is validated. No external call, payment/booking/
+show/seat/ticket mutation, notification, or historical backfill occurs. Cancellation integration is
+Refund-2 work; manual/provider execution, claims, attempts, retry, and reconciliation are Refund-3.
+Refund creation audit and customer notification events are intentionally deferred to Refund-2 so
+Refund-1 does not publish a partially supported lifecycle event.
+
+Current show cancellation may revoke confirmed tickets while leaving the confirmed booking and
+successful payment unchanged. It is therefore not accurate to assume confirmed bookings always
+block show cancellation; Refund-1 records no automatic intent for that existing inconsistency.

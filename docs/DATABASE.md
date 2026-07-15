@@ -562,3 +562,21 @@ immutable. The only controlled row mutation is `AuditRetentionService`, which cl
 fields in bounded oldest-first batches. Hard deletion is deliberately unsupported so event-ID deduplication
 history survives. New rows receive a canonical SHA-256 hash over immutable non-anonymizable fields; legacy
 rows may have a null hash and are reported as unverifiable.
+
+## Refund-1 persistence
+
+Flyway V34 expands the V21 `refunds` skeleton. Each row has immutable payment and booking FKs,
+`RFD-YYYYMMDD-XXXXXXXX` reference, exact `NUMERIC(12,2)` amount, currency snapshot, reason, type,
+method, globally unique trusted idempotency key, optional request/decision actors, requested/decision
+timestamps, payment-provider snapshot, and nullable sanitized provider/failure fields. The legacy
+`completed_at` column remains nullable for migration compatibility; Refund-1 never assigns it.
+
+Statuses are `REQUESTED`, `APPROVED`, `REJECTED`, `PROCESSING`, `SUCCEEDED`, `FAILED`, and
+`MANUAL_REVIEW`; only `REQUESTED` is created in Refund-1. Types are `FULL`/reserved `PARTIAL`, and
+methods are `MANUAL`/reserved `PROVIDER`. Database checks constrain enum strings, positive amount,
+and nonblank currency. Reference and idempotency key are unique. Indexes support payment, booking,
+status/time, reason/time, and requester/time access.
+
+Refundable balance is calculated from the payment amount minus refund rows in `REQUESTED`,
+`APPROVED`, `PROCESSING`, `SUCCEEDED`, or `MANUAL_REVIEW`. `REJECTED` and `FAILED` do not reserve
+balance. Payment cancellation and refund intent are separate concepts.
