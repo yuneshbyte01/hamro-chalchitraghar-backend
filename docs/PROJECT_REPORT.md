@@ -374,6 +374,14 @@ introducing a partial event catalogue.
 
 ## Refund-2 business integration
 
+## Observability-2
+
+Low-cardinality counters and timers cover authoritative booking, payment, ticket, notification, email, audit,
+and refund operations. Major schedulers expose execution, duration, processed, failure, and injected-Clock
+last-success telemetry. The bounded notification executor exports pool/queue/completion gauges and a stable
+rejection counter. Existing admin reports remain unchanged; no metrics database, tracing, dashboards, or alerts
+were introduced.
+
 Refund-2 connects full-refund intents to customer and cinema cancellation. Eligible customer requests
 atomically create `REQUESTED` intents, cancel bookings, revoke tickets, and release seats. Show
 cancellation cancels confirmed paid bookings and creates deterministic `APPROVED` intents. Admins can
@@ -381,6 +389,6 @@ create, approve, and reject with locked decisions. Checked-in tickets and ambigu
 automatic flows. Typed after-commit events create idempotent notification/email delivery and append-only
 safe audits. Payment remains successful; processing and financial completion remain Refund-3.
 Refund-3 adds database-backed processing claims, append-only attempts, bounded retry, stale recovery, manual completion, provider-neutral execution, safe reconciliation refusal, and atomic Payment REFUNDED finalization. eSewa refund execution remains deferred because no verified merchant refund endpoint and idempotency/status contract is present.
-Refund-4 completes advanced filtering, explicit operational resolution, stale recovery, consistency diagnostics, database-aggregated reporting, and privacy retention. Across Refund-1 through Refund-4 the system supports full refunds only, cancellation coordination, manual-first processing, bounded retry, Payment REFUNDED finalization, notifications, and append-only audit foundations. Partial/seat refunds, chargebacks, speculative provider execution, global consistency scans, CSV export, and metrics await dedicated infrastructure.
+Refund-4 completes advanced filtering, explicit operational resolution, stale recovery, consistency diagnostics, database-aggregated reporting, and privacy retention. Across Refund-1 through Refund-4 the system supports full refunds only, cancellation coordination, manual-first processing, bounded retry, Payment REFUNDED finalization, notifications, and append-only audit foundations. Partial/seat refunds, chargebacks, speculative provider execution, global consistency scans, and CSV export remain deferred.
 
 Final customer visibility includes an ownership-scoped lifecycle timeline, while admin detail includes sanitized attempt history and processing claim context. Reports remain bounded, database-first, and currency-separated.

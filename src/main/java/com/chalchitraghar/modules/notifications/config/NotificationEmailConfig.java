@@ -1,6 +1,8 @@
 package com.chalchitraghar.modules.notifications.config;
 
 import com.chalchitraghar.shared.audit.AuditContextTaskDecorator;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.binder.jvm.ExecutorServiceMetrics;
 import java.util.concurrent.ThreadPoolExecutor;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.*;
@@ -16,7 +18,8 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 })
 public class NotificationEmailConfig {
     @Bean(name = "notificationEmailExecutor")
-    ThreadPoolTaskExecutor notificationEmailExecutor(NotificationEmailProperties properties) {
+    ThreadPoolTaskExecutor notificationEmailExecutor(
+            NotificationEmailProperties properties, MeterRegistry registry) {
         var executor = new ThreadPoolTaskExecutor();
         executor.setCorePoolSize(properties.getExecutor().getCorePoolSize());
         executor.setMaxPoolSize(properties.getExecutor().getMaxPoolSize());
@@ -28,6 +31,8 @@ public class NotificationEmailConfig {
         executor.setWaitForTasksToCompleteOnShutdown(true);
         executor.setAwaitTerminationSeconds(20);
         executor.initialize();
+        ExecutorServiceMetrics.monitor(
+                registry, executor.getThreadPoolExecutor(), "notification_email");
         return executor;
     }
 }

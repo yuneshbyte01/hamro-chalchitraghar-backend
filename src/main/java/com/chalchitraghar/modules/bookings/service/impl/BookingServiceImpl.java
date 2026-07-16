@@ -33,6 +33,9 @@ import com.chalchitraghar.shared.exception.InvalidSeatSelectionException;
 import com.chalchitraghar.shared.exception.ResourceNotFoundException;
 import com.chalchitraghar.shared.exception.SeatAlreadyBookedException;
 import com.chalchitraghar.shared.exception.SeatLockedException;
+import com.chalchitraghar.shared.observability.BusinessMetric;
+import com.chalchitraghar.shared.observability.BusinessMetrics;
+import com.chalchitraghar.shared.observability.BusinessOperation;
 import com.chalchitraghar.shared.response.PageResponse;
 import java.math.BigDecimal;
 import java.time.Clock;
@@ -75,6 +78,7 @@ public class BookingServiceImpl implements BookingService {
     private final com.chalchitraghar.modules.tickets.service.TicketOperationsService
             ticketOperationsService;
     private final ApplicationEventPublisher events;
+    private final BusinessMetrics metrics;
 
     @Value("${app.bookings.initiated-expiration-minutes:15}")
     private long initiatedExpirationMinutes;
@@ -88,6 +92,13 @@ public class BookingServiceImpl implements BookingService {
     @Override
     @Transactional
     public CustomerBookingDetailResponse createBooking(BookingRequest request, User user) {
+        return metrics.observe(
+                BusinessMetric.BOOKING,
+                BusinessOperation.CREATE,
+                () -> createBookingObserved(request, user));
+    }
+
+    private CustomerBookingDetailResponse createBookingObserved(BookingRequest request, User user) {
         if (!request.hasNoDuplicateSeats()) {
             throw new InvalidSeatSelectionException("Seat IDs contain duplicates");
         }
@@ -166,6 +177,13 @@ public class BookingServiceImpl implements BookingService {
     @Override
     @Transactional
     public CustomerBookingDetailResponse confirmBooking(Long bookingId, User user) {
+        return metrics.observe(
+                BusinessMetric.BOOKING,
+                BusinessOperation.CONFIRM,
+                () -> confirmBookingObserved(bookingId, user));
+    }
+
+    private CustomerBookingDetailResponse confirmBookingObserved(Long bookingId, User user) {
         Booking booking =
                 bookingRepository
                         .findByIdForUpdate(bookingId)
@@ -279,6 +297,13 @@ public class BookingServiceImpl implements BookingService {
     @Override
     @Transactional
     public CustomerBookingDetailResponse cancelBooking(Long bookingId, User user) {
+        return metrics.observe(
+                BusinessMetric.BOOKING,
+                BusinessOperation.CANCEL,
+                () -> cancelBookingObserved(bookingId, user));
+    }
+
+    private CustomerBookingDetailResponse cancelBookingObserved(Long bookingId, User user) {
         Booking booking =
                 bookingRepository
                         .findById(bookingId)

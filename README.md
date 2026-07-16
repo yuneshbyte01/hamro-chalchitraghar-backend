@@ -279,3 +279,10 @@ notifications/audits run after commit. Payment remains `SUCCESS`; provider execu
 completion remain Refund-3 work.
 Refund processing is manual-first and database-backed: approved refunds are claimed into `PROCESSING`, recorded as append-only attempts, and finalized only after confirmed success. Manual/provider-unsupported execution enters `MANUAL_REVIEW`; an ADMIN may record verified manual completion, which atomically moves the refund to `SUCCEEDED` and its full payment from `SUCCESS` to `REFUNDED`. No speculative eSewa refund endpoint is used.
 Refund administration now includes combined operational filtering, explicit manual-review resolution, targeted stale-claim recovery, per-refund financial consistency diagnostics, currency-separated summary reporting, and opt-in bounded anonymization. The final module remains full-refund-only and ADMIN financial controls remain centralized under `/api/admin/**`.
+
+## Observability-2 metrics
+
+Custom `chalchitraghar.*` metrics cover booking, seat-lock, payment, ticket, notification, email,
+audit, refund, scheduled-job, and notification-executor activity through the protected Prometheus scrape.
+Tags use only fixed operations, outcomes, jobs, and executor names; customer and business identifiers are
+prohibited. Scheduled-job last-success timestamps are in-memory and reset when the process restarts.

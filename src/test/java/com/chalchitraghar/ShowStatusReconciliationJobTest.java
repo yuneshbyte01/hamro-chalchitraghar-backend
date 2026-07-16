@@ -10,6 +10,8 @@ import com.chalchitraghar.modules.shows.enums.ShowStatus;
 import com.chalchitraghar.modules.shows.repository.ShowRepository;
 import com.chalchitraghar.modules.shows.service.ShowLifecycleService;
 import com.chalchitraghar.modules.shows.service.ShowStatusReconciliationJob;
+import com.chalchitraghar.shared.observability.ScheduledJobObserver;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -38,7 +40,8 @@ class ShowStatusReconciliationJobTest {
         new ShowStatusReconciliationJob(
                         repository,
                         new ShowLifecycleService(
-                                clock, repository, mock(AuditBusinessPublisher.class)))
+                                clock, repository, mock(AuditBusinessPublisher.class)),
+                        new ScheduledJobObserver(new SimpleMeterRegistry(), clock))
                 .reconcileStatuses();
 
         verify(repository).saveAll(List.of(stale));

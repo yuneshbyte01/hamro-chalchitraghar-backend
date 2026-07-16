@@ -343,11 +343,18 @@ dates use the injected application `Clock`.
 
 ## Refund-2 setup
 
+## Observability-2 setup
+
+Set `APP_ENVIRONMENT=local` (or the bounded deployment environment name). All meters include common
+`application=hamro-chalchitraghar` and `environment` tags. No Prometheus server is required locally; an ADMIN
+can inspect `/actuator/prometheus` for `chalchitraghar_booking_operations_total`,
+`chalchitraghar_job_executions_total`, and executor metrics. Keep real ADMIN tokens out of shell history.
+
 Refund-2 requires V35 and no provider credential or new feature flag. Customer requests use existing
 `BOOKING_CANCELLATION_CUTOFF_MINUTES`. Refund email uses the existing after-commit notification queue;
 in-app/audit behavior remains when email is disabled. There is no refund worker, callback, scheduler,
 eSewa refund credential, or asynchronous financial processing.
 Refund processing uses `REFUND_PROCESSING_ENABLED`, `REFUND_AUTO_PROCESS_ENABLED` (default false), `REFUND_DEFAULT_METHOD` (MANUAL), bounded attempt/retry delay properties, processing timeout, batch sizes, and worker ID shown in `.env.example`. Startup requires no provider refund credentials. Enabling eSewa payments does not enable eSewa refunds.
-Refund-4 settings include `REFUND_REPORTS_MAX_RANGE_DAYS`, `REFUND_CONSISTENCY_BATCH_SIZE`, and disabled-by-default retention settings in `.env.example`. Retention periods are operational defaults, not claims about legal requirements. Micrometer/Actuator is not currently a project dependency, so refund metrics are deferred to application-wide observability work.
+Refund-4 settings include `REFUND_REPORTS_MAX_RANGE_DAYS`, `REFUND_CONSISTENCY_BATCH_SIZE`, and disabled-by-default retention settings in `.env.example`. Retention periods are operational defaults, not claims about legal requirements. Refund operational metrics are exported through the protected Prometheus endpoint.
 
 The corresponding validated prefixes are `app.refunds.reports`, `app.refunds.consistency`, and `app.refunds.retention`. Retention supports only `ANONYMIZE`; it performs no hard deletion.

@@ -1847,6 +1847,13 @@ unsafe booking. `REQUESTED` means awaiting review, `APPROVED` awaiting future pr
 ADMIN endpoints: `POST /api/admin/refunds/{reference}/process` (202), `/retry` (202), `/mark-manual-success`, `/reconcile`, and `GET /attempts`. Processing is idempotently claimed; only APPROVED or due retryable FAILED refunds can process. Manual execution enters MANUAL_REVIEW until an administrator confirms the real-world refund with an external reference. Reconciliation returns 409 because no verified provider refund enquiry contract exists. Payment becomes REFUNDED only after Refund becomes SUCCEEDED.
 ## Final refund administration (Refund-4)
 
+## Observability-2 telemetry
+
+The ADMIN-protected `/actuator/prometheus` scrape contains low-cardinality `chalchitraghar_*` business,
+job, email, and executor meters. Existing admin payment statistics, ticket metrics, audit reports, and refund
+reports remain database-backed business reports rather than Prometheus telemetry. Metric tags never include
+customer identifiers, references, request/correlation IDs, QR data, recipients, or raw paths.
+
 `GET /api/admin/refunds` supports combined lifecycle, amount, currency, attempt, manual-review, retry, provider-reference, and requested/approved/processed/failed/created time filters with bounded stable pagination. `POST /{reference}/resolve-manual-review` accepts only `MARK_SUCCEEDED`, `MARK_FAILED`, `RETRY`, or `REJECT`; `POST /{reference}/recover-stale-processing` applies only after the configured timeout. `GET /{reference}/consistency` is diagnostic and never repairs state. `GET /api/admin/refund-reports/summary?from=&to=` performs bounded database aggregation and keeps currencies separate. CSV export and global consistency scans are intentionally deferred.
 
 Admin refund detail embeds sanitized attempt summaries. Customer refund detail includes a safe requested/approved/processing/manual-review/rejected/completed timeline without retry diagnostics, worker identity, provider status, or internal failure codes. Summary reports include status, reason, method, and provider breakdowns plus retry/exhaustion counts, success/failure rates, and distinct succeeded bookings/payments.

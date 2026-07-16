@@ -26,6 +26,10 @@ server:
   shutdown: graceful
 
 management:
+  metrics:
+    tags:
+      application: hamro-chalchitraghar
+      environment: ${APP_ENVIRONMENT:local}
   prometheus:
     metrics:
       export:

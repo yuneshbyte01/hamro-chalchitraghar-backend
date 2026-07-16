@@ -9,6 +9,9 @@ import com.chalchitraghar.modules.audit.service.AuditLogService;
 import com.chalchitraghar.modules.audit.specification.AuditLogSpecification;
 import com.chalchitraghar.modules.audit.validation.AuditSnapshotValidator;
 import com.chalchitraghar.shared.exception.ResourceNotFoundException;
+import com.chalchitraghar.shared.observability.BusinessMetric;
+import com.chalchitraghar.shared.observability.BusinessMetrics;
+import com.chalchitraghar.shared.observability.BusinessOperation;
 import com.chalchitraghar.shared.response.PageResponse;
 import java.time.*;
 import java.util.Locale;
@@ -26,10 +29,16 @@ public class AuditLogServiceImpl implements AuditLogService {
     private final AuditLogMapper mapper;
     private final com.chalchitraghar.modules.audit.service.AuditIntegrityService integrity;
     private final Clock clock;
+    private final BusinessMetrics metrics;
 
     @Override
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public AdminAuditLogDetailResponse append(CreateAuditLogCommand c) {
+        return metrics.observe(
+                BusinessMetric.AUDIT, BusinessOperation.APPEND, () -> appendObserved(c));
+    }
+
+    private AdminAuditLogDetailResponse appendObserved(CreateAuditLogCommand c) {
         if (c == null) throw new IllegalArgumentException("Audit command is required");
         require(c.actorType(), "Actor type");
         require(c.action(), "Action");

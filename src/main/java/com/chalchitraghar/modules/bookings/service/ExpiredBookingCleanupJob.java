@@ -1,6 +1,8 @@
 package com.chalchitraghar.modules.bookings.service;
 
 import com.chalchitraghar.modules.bookings.repository.BookingRepository;
+import com.chalchitraghar.shared.observability.JobName;
+import com.chalchitraghar.shared.observability.ScheduledJobObserver;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
@@ -15,12 +17,17 @@ public class ExpiredBookingCleanupJob {
     private final BookingRepository bookingRepository;
     private final BookingLifecycleService bookingLifecycleService;
     private final Clock clock;
+    private final ScheduledJobObserver jobs;
 
     @Value("${app.bookings.expiry-batch-size:100}")
     private int batchSize;
 
     @Scheduled(fixedDelayString = "${app.bookings.expiry-cleanup-interval-ms:60000}")
     public int expireBatch() {
+        return jobs.observe(JobName.BOOKING_EXPIRY, this::expireBatchObserved);
+    }
+
+    private int expireBatchObserved() {
         var batch =
                 bookingRepository.findExpiredInitiatedBookings(
                         LocalDateTime.now(clock), PageRequest.of(0, batchSize));

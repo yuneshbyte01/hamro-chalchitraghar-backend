@@ -567,6 +567,17 @@ block show cancellation; Refund-1 records no automatic intent for that existing 
 
 ## Refund-2 business integration
 
+## Observability-2 metric flow
+
+```text
+Authoritative service -> bounded Micrometer counter/timer -> Prometheus registry
+Scheduled job -> ScheduledJobObserver -> execution/duration/processed/failure/last-success meters
+Notification executor -> Micrometer executor binder + stable rejection counter
+```
+
+Custom names use `chalchitraghar.<domain>.<operation>`. Job and tag values come from enums, and last-success
+gauges use the injected application `Clock`. Metrics are process-local telemetry, not durable audit history.
+
 Customer cancellation follows `owner lookup -> successful Payment lock -> Booking lock -> cutoff and
 ticket validation -> REQUESTED intent -> ticket revocation -> seat release -> Booking CANCELLED ->
 commit -> notification/audit`. Show cancellation locks Show/tickets, validates every active booking,

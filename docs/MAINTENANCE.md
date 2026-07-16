@@ -621,6 +621,16 @@ untrusted unless deployment topology guarantees a trusted proxy boundary.
 
 ### Refund-2 workflow invariants
 
+## Observability-2 maintenance
+
+- Name custom meters `chalchitraghar.<domain>.<operation>` and treat released names as contracts.
+- Use only enum/fixed tags such as operation, outcome, job, executor, provider, method, or channel.
+- Never tag identity/reference IDs, raw paths, exception messages, tokens, recipients, or worker IDs.
+- Instrument authoritative services once; do not duplicate metrics in controllers or repositories.
+- Wrap scheduled work with `ScheduledJobObserver`, preserve exception behavior, and use injected `Clock`.
+- Register executors once, retain bounded queues and context decorators, and reuse stable meter IDs.
+- Admin reports answer business questions; Prometheus meters answer operational questions.
+
 - Confirmed paid cancellation uses the refund-request orchestration; initiated cancel remains unpaid-only.
 - Require exactly one locked successful Payment, then lock Booking/tickets; checked-in tickets abort.
 - Preserve `CUSTOMER_CANCELLATION:{bookingId}` and `SHOW_CANCELLATION:{bookingId}:{showId}`.

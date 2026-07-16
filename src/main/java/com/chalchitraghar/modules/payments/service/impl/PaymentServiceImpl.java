@@ -19,6 +19,9 @@ import com.chalchitraghar.modules.shows.service.ShowLifecycleService;
 import com.chalchitraghar.modules.users.entity.User;
 import com.chalchitraghar.shared.exception.PaymentConflictException;
 import com.chalchitraghar.shared.exception.ResourceNotFoundException;
+import com.chalchitraghar.shared.observability.BusinessMetric;
+import com.chalchitraghar.shared.observability.BusinessMetrics;
+import com.chalchitraghar.shared.observability.BusinessOperation;
 import java.time.*;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -43,6 +46,7 @@ public class PaymentServiceImpl implements PaymentService {
     private final EsewaProperties esewaProperties;
     private final ApplicationEventPublisher events;
     private final AuditBusinessPublisher audit;
+    private final BusinessMetrics metrics;
 
     @Value("${app.payments.attempt-expiration-minutes:10}")
     private long expirationMinutes;
@@ -93,6 +97,14 @@ public class PaymentServiceImpl implements PaymentService {
 
     @Transactional
     public Object initiate(
+            String reference, String rawKey, PaymentInitiationRequest request, User user) {
+        return metrics.observe(
+                BusinessMetric.PAYMENT,
+                BusinessOperation.INITIATE,
+                () -> initiateObserved(reference, rawKey, request, user));
+    }
+
+    private Object initiateObserved(
             String reference, String rawKey, PaymentInitiationRequest request, User user) {
         String key = validateKey(rawKey);
         Booking booking =
@@ -180,6 +192,14 @@ public class PaymentServiceImpl implements PaymentService {
 
     @Transactional(noRollbackFor = PaymentConflictException.class)
     public CustomerPaymentDetailResponse processLocal(
+            String reference, LocalPaymentProcessRequest request, User user) {
+        return metrics.observe(
+                BusinessMetric.PAYMENT,
+                BusinessOperation.PROCESS,
+                () -> processLocalObserved(reference, request, user));
+    }
+
+    private CustomerPaymentDetailResponse processLocalObserved(
             String reference, LocalPaymentProcessRequest request, User user) {
         Payment p = findPaymentForUpdate(reference, user);
         lifecycle.reconcileExpiry(p);

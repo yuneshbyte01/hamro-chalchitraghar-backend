@@ -12,6 +12,9 @@ import com.chalchitraghar.modules.tickets.enums.*;
 import com.chalchitraghar.modules.tickets.repository.*;
 import com.chalchitraghar.modules.tickets.service.*;
 import com.chalchitraghar.modules.users.entity.User;
+import com.chalchitraghar.shared.observability.BusinessMetric;
+import com.chalchitraghar.shared.observability.BusinessMetrics;
+import com.chalchitraghar.shared.observability.BusinessOperation;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
@@ -28,9 +31,22 @@ public class TicketValidationServiceImpl implements TicketValidationService {
     private final TicketQrProperties properties;
     private final Clock clock;
     private final AuditBusinessPublisher audit;
+    private final BusinessMetrics metrics;
 
     @Transactional
     public TicketScanResponse scan(
+            TicketScanRequest request,
+            User staff,
+            String device,
+            String location,
+            String requestId) {
+        return metrics.observe(
+                BusinessMetric.TICKET_VALIDATION,
+                BusinessOperation.VALIDATE,
+                () -> scanObserved(request, staff, device, location, requestId));
+    }
+
+    private TicketScanResponse scanObserved(
             TicketScanRequest request,
             User staff,
             String device,

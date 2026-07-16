@@ -16,6 +16,9 @@ import com.chalchitraghar.modules.tickets.repository.TicketRepository;
 import com.chalchitraghar.modules.users.entity.User;
 import com.chalchitraghar.modules.users.repository.UserRepository;
 import com.chalchitraghar.shared.exception.*;
+import com.chalchitraghar.shared.observability.BusinessMetric;
+import com.chalchitraghar.shared.observability.BusinessMetrics;
+import com.chalchitraghar.shared.observability.BusinessOperation;
 import com.chalchitraghar.shared.response.PageResponse;
 import java.math.BigDecimal;
 import java.time.*;
@@ -43,6 +46,7 @@ public class RefundServiceImpl implements RefundService {
     private final Clock clock;
     private final ApplicationEventPublisher events;
     private final RefundProcessingProperties processingProperties;
+    private final BusinessMetrics metrics;
 
     /**
      * Lock order is Payment then Booking. No external operation is performed in this transaction.
@@ -50,6 +54,13 @@ public class RefundServiceImpl implements RefundService {
     @Override
     @Transactional
     public Refund createRefundIntent(CreateRefundIntentCommand command) {
+        return metrics.observe(
+                BusinessMetric.REFUND,
+                BusinessOperation.CREATE,
+                () -> createRefundIntentObserved(command));
+    }
+
+    private Refund createRefundIntentObserved(CreateRefundIntentCommand command) {
         validateCommand(command);
         Refund existing =
                 refunds.findByIdempotencyKey(command.idempotencyKey().trim()).orElse(null);
@@ -140,6 +151,13 @@ public class RefundServiceImpl implements RefundService {
     @Override
     @Transactional
     public AdminRefundDetailResponse approveRefund(String reference, User admin) {
+        return metrics.observe(
+                BusinessMetric.REFUND,
+                BusinessOperation.APPROVE,
+                () -> approveRefundObserved(reference, admin));
+    }
+
+    private AdminRefundDetailResponse approveRefundObserved(String reference, User admin) {
         Refund refund = lockRefund(reference);
         if (refund.getStatus() == RefundStatus.APPROVED) return detail(refund);
         if (refund.getStatus() != RefundStatus.REQUESTED)
@@ -175,6 +193,14 @@ public class RefundServiceImpl implements RefundService {
     @Override
     @Transactional
     public AdminRefundDetailResponse rejectRefund(
+            String reference, AdminRejectRefundRequest request, User admin) {
+        return metrics.observe(
+                BusinessMetric.REFUND,
+                BusinessOperation.REJECT,
+                () -> rejectRefundObserved(reference, request, admin));
+    }
+
+    private AdminRefundDetailResponse rejectRefundObserved(
             String reference, AdminRejectRefundRequest request, User admin) {
         Refund refund = lockRefund(reference);
         if (refund.getStatus() == RefundStatus.REJECTED) return detail(refund);

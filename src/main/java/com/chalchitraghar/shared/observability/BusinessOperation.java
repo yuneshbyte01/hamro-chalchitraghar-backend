@@ -1,0 +1,31 @@
+package com.chalchitraghar.shared.observability;
+
+public enum BusinessOperation {
+    CREATE,
+    CONFIRM,
+    CANCEL,
+    EXPIRE,
+    ACQUIRE,
+    RELEASE,
+    INITIATE,
+    PROCESS,
+    VERIFY,
+    RECONCILE,
+    ISSUE,
+    VALIDATE,
+    PDF,
+    REVOKE,
+    DELIVER,
+    RETRY,
+    REMIND,
+    RETAIN,
+    APPEND,
+    EXPORT,
+    INTEGRITY,
+    APPROVE,
+    REJECT,
+    RECOVER_STALE,
+    CONSISTENCY,
+    SEND,
+    SKIP
+}

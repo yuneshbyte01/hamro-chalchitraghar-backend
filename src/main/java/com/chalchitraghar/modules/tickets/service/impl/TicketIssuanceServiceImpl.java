@@ -12,6 +12,9 @@ import com.chalchitraghar.modules.tickets.service.TicketIssuanceService;
 import com.chalchitraghar.modules.tickets.service.TicketReferenceGenerator;
 import com.chalchitraghar.shared.exception.InvalidBookingStateException;
 import com.chalchitraghar.shared.exception.ResourceNotFoundException;
+import com.chalchitraghar.shared.observability.BusinessMetric;
+import com.chalchitraghar.shared.observability.BusinessMetrics;
+import com.chalchitraghar.shared.observability.BusinessOperation;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -32,10 +35,18 @@ public class TicketIssuanceServiceImpl implements TicketIssuanceService {
     private final Clock clock;
     private final com.chalchitraghar.modules.tickets.service.QrTokenService qrTokens;
     private final ApplicationEventPublisher events;
+    private final BusinessMetrics metrics;
 
     @Override
     @Transactional
     public List<Ticket> issueTicketsForConfirmedBooking(Booking supplied) {
+        return metrics.observe(
+                BusinessMetric.TICKET,
+                BusinessOperation.ISSUE,
+                () -> issueTicketsObserved(supplied));
+    }
+
+    private List<Ticket> issueTicketsObserved(Booking supplied) {
         if (supplied == null || supplied.getId() == null)
             throw new ResourceNotFoundException("Booking not found");
         Booking booking =

@@ -5,6 +5,10 @@ import com.chalchitraghar.modules.notifications.entity.NotificationDelivery;
 import com.chalchitraghar.modules.notifications.enums.NotificationDeliveryStatus;
 import com.chalchitraghar.modules.notifications.repository.NotificationDeliveryRepository;
 import com.chalchitraghar.modules.notifications.service.*;
+import com.chalchitraghar.shared.observability.BusinessMetric;
+import com.chalchitraghar.shared.observability.BusinessMetrics;
+import com.chalchitraghar.shared.observability.BusinessOperation;
+import com.chalchitraghar.shared.observability.MetricOutcome;
 import java.net.*;
 import java.time.*;
 import java.util.UUID;
@@ -25,6 +29,7 @@ public class NotificationEmailDispatcherImpl implements NotificationEmailDispatc
     private final NotificationEmailProperties properties;
     private final PlatformTransactionManager transactionManager;
     private final Clock clock;
+    private final BusinessMetrics metrics;
     private final String workerId = "notification-" + UUID.randomUUID().toString().substring(0, 8);
 
     @Override
@@ -41,8 +46,10 @@ public class NotificationEmailDispatcherImpl implements NotificationEmailDispatc
                             claim.message());
             mailSender.send(claim.recipient(), rendered);
             requiresNew().executeWithoutResult(status -> complete(claim.id()));
+            metrics.increment(BusinessMetric.EMAIL, BusinessOperation.SEND, MetricOutcome.SUCCESS);
         } catch (RuntimeException failure) {
             requiresNew().executeWithoutResult(status -> fail(claim.id(), failure));
+            metrics.increment(BusinessMetric.EMAIL, BusinessOperation.SEND, MetricOutcome.FAILURE);
         }
     }
 

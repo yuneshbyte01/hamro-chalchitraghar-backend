@@ -15,6 +15,9 @@ import com.chalchitraghar.modules.notifications.specification.NotificationSpecif
 import com.chalchitraghar.modules.users.entity.User;
 import com.chalchitraghar.modules.users.repository.UserRepository;
 import com.chalchitraghar.shared.exception.ResourceNotFoundException;
+import com.chalchitraghar.shared.observability.BusinessMetric;
+import com.chalchitraghar.shared.observability.BusinessMetrics;
+import com.chalchitraghar.shared.observability.BusinessOperation;
 import com.chalchitraghar.shared.response.PageResponse;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -45,9 +48,26 @@ public class NotificationServiceImpl implements NotificationService {
     private final ObjectMapper objectMapper;
     private final Clock clock;
     private final PlatformTransactionManager transactionManager;
+    private final BusinessMetrics metrics;
 
     @Override
     public Notification createInAppNotification(
+            Long userId,
+            NotificationType type,
+            String eventKey,
+            String title,
+            String message,
+            String payload,
+            LocalDateTime occurredAt) {
+        return metrics.observe(
+                BusinessMetric.NOTIFICATION,
+                BusinessOperation.CREATE,
+                () ->
+                        createInAppNotificationObserved(
+                                userId, type, eventKey, title, message, payload, occurredAt));
+    }
+
+    private Notification createInAppNotificationObserved(
             Long userId,
             NotificationType type,
             String eventKey,
