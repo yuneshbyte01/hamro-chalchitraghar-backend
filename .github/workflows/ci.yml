@@ -31,4 +31,18 @@ jobs:
       - name: Run observability tests in UTC
         env:
           TZ: UTC
-        run: ./mvnw -B -Dtest=ObservabilityApiIntegrationTest,ObservabilityMetricsIntegrationTest,ExecutorRejectionMetricsTest,OperationalLoggingTest,EmailServiceLoggingTest test
+        run: ./mvnw -B -Dtest=ObservabilityApiIntegrationTest,ObservabilityMetricsIntegrationTest,ExecutorRejectionMetricsTest,OperationalLoggingTest,MonitoringConfigurationTest,EmailServiceLoggingTest test
+
+      - name: Validate Prometheus configuration and rules
+        run: |
+          docker run --rm --entrypoint /bin/promtool -v "$PWD/monitoring/prometheus:/etc/prometheus:ro" prom/prometheus:v3.5.0 check config /etc/prometheus/prometheus.yml
+          docker run --rm --entrypoint /bin/promtool -v "$PWD/monitoring/prometheus:/etc/prometheus:ro" prom/prometheus:v3.5.0 check rules /etc/prometheus/rules/application-alerts.yml /etc/prometheus/rules/infrastructure-alerts.yml /etc/prometheus/rules/business-alerts.yml /etc/prometheus/rules/job-alerts.yml
+
+      - name: Validate dashboards and Compose model
+        env:
+          GRAFANA_ADMIN_PASSWORD: ci-only-not-a-secret
+        run: |
+          find monitoring/grafana/dashboards -name '*.json' -print0 | xargs -0 -n1 jq empty
+          mkdir -p monitoring/secrets
+          printf '%s' 'ci-only-scrape-secret' > monitoring/secrets/prometheus_scrape_password
+          docker compose -f docker-compose.yml -f docker-compose.observability.yml config --quiet

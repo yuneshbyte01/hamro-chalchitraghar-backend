@@ -602,3 +602,12 @@ Request / scheduled job / provider operation
 ```
 
 Scheduled jobs clear inherited MDC, create a server-side run/correlation ID, and restore context in `finally`. Provider timing uses Micrometer's monotonic timer. Database diagnostics combine HTTP/service timers, Hikari metrics, focused operation timers, and deployment-managed PostgreSQL query fingerprints; application SQL and bind logging remain disabled.
+
+## Monitoring deployment
+
+```text
+Application -> Actuator/Micrometer -> authenticated Prometheus scrape
+            -> bounded retention -> alert rules -> Grafana -> operators
+```
+
+The monitoring credential is injected as a Docker/platform secret and grants only scrape access. Prometheus/Grafana share a private monitoring network and bind to loopback locally. Logs provide diagnostics, database/audit records remain business authority, Prometheus provides restart-sensitive operational series, and Grafana provides no source-of-truth persistence.

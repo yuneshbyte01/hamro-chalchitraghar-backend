@@ -1,0 +1,10 @@
+{
+  "annotations": {"list": []}, "description": "Restart-sensitive operational rates for bounded business outcomes; database reports remain authoritative.", "editable": false,
+  "panels": [
+    {"id": 1, "title": "Booking operations", "description": "Booking operation rate by operation and bounded outcome.", "type": "timeseries", "datasource": {"type": "prometheus", "uid": "hamro-prometheus"}, "targets": [{"refId": "A", "expr": "sum by (operation, outcome) (rate(chalchitraghar_booking_operations_total[5m]))", "legendFormat": "{{operation}} {{outcome}}"}], "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0}},
+    {"id": 2, "title": "Ticket validation", "description": "Ticket validation operation rate by outcome.", "type": "timeseries", "datasource": {"type": "prometheus", "uid": "hamro-prometheus"}, "targets": [{"refId": "A", "expr": "sum by (outcome) (rate(chalchitraghar_ticket_validation_total[5m]))", "legendFormat": "{{outcome}}"}], "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0}},
+    {"id": 3, "title": "Notification operations", "description": "Notification creation/processing rate by outcome.", "type": "timeseries", "datasource": {"type": "prometheus", "uid": "hamro-prometheus"}, "targets": [{"refId": "A", "expr": "sum by (operation, outcome) (rate(chalchitraghar_notification_operations_total[5m]))"}], "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8}},
+    {"id": 4, "title": "Email delivery outcomes", "description": "General email delivery rate; recipient data is never a label.", "type": "timeseries", "datasource": {"type": "prometheus", "uid": "hamro-prometheus"}, "targets": [{"refId": "A", "expr": "sum by (outcome) (rate(chalchitraghar_email_delivery_total[5m]))"}], "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8}}
+  ],
+  "refresh": "30s", "schemaVersion": 41, "tags": ["observability", "business"], "templating": {"list": []}, "time": {"from": "now-6h", "to": "now"}, "timezone": "browser", "title": "Hamro Chalchitraghar — Business Operations", "uid": "hamro-business-operations", "version": 1
+}

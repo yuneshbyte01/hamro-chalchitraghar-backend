@@ -8,6 +8,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.chalchitraghar.modules.users.enums.Role;
 import io.micrometer.core.instrument.MeterRegistry;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
@@ -102,6 +104,23 @@ class ObservabilityApiIntegrationTest extends AbstractIntegrationTest {
         assertThat(meterRegistry.find("jvm.memory.used").meters()).isNotEmpty();
         assertThat(meterRegistry.find("process.uptime").meters()).isNotEmpty();
         assertThat(meterRegistry.find("hikaricp.connections").meters()).isNotEmpty();
+    }
+
+    @Test
+    void dedicatedMonitoringCredentialCanScrapePrometheusButCannotAccessApplicationApis()
+            throws Exception {
+        String basic =
+                "Basic "
+                        + Base64.getEncoder()
+                                .encodeToString(
+                                        "prometheus-test:scrape-test-password"
+                                                .getBytes(StandardCharsets.UTF_8));
+
+        mockMvc.perform(get("/actuator/prometheus").header("Authorization", basic))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith("text/plain"));
+        mockMvc.perform(get("/api/admin/users").header("Authorization", basic))
+                .andExpect(status().isUnauthorized());
     }
 
     @Test

@@ -155,3 +155,9 @@ app:
 google:
   client-id: test-google-client-id
   client-secret: test-google-client-secret
+
+management:
+  prometheus:
+    security:
+      username: prometheus-test
+      password: scrape-test-password

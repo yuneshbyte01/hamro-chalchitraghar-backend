@@ -364,3 +364,7 @@ The corresponding validated prefixes are `app.refunds.reports`, `app.refunds.con
 Development/test use the readable console pattern; production uses native ECS JSON (`LOG_FORMAT=ecs`) on stdout. `LOG_LEVEL_ROOT` and `LOG_LEVEL_APP` default to `INFO`, while production SQL and bind logging are off. Docker Compose applies bounded `json-file` rotation; other platforms own collection and retention. Inspect locally with `docker compose logs -f app`.
 
 For production database investigation, choose a deployment-appropriate PostgreSQL `log_min_duration_statement` threshold and enable `pg_stat_statements` where approved. SQL can contain personal data, so keep bind logging disabled, restrict access/retention, and prefer fingerprints. The application does not configure these PostgreSQL server settings.
+
+## Prometheus and Grafana
+
+Create `monitoring/secrets/prometheus_scrape_password` without a trailing newline, set a non-placeholder `GRAFANA_ADMIN_PASSWORD`, and start the base and observability Compose files together. Provisioning is automatic. Prometheus/Grafana use loopback ports 9090/3000 by default; named volumes and 15-day/5-GB retention defaults bound storage. Validate with promtool, JSON parsing, and `docker compose ... config`. The readiness script is `monitoring/check-readiness.sh`. Never publish the scrape or Grafana anonymously, commit credentials, or treat monitoring volumes as financial/audit history.

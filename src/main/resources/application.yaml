@@ -31,6 +31,9 @@ management:
       application: hamro-chalchitraghar
       environment: ${APP_ENVIRONMENT:local}
   prometheus:
+    security:
+      username: ${PROMETHEUS_SCRAPE_USERNAME:}
+      password: ${PROMETHEUS_SCRAPE_PASSWORD:}
     metrics:
       export:
         enabled: true

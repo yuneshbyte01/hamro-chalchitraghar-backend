@@ -652,3 +652,7 @@ Event names are stable lowercase dot-separated values. Expected validation/not-f
 - **Email failure:** inspect delivery state/retries, bounded SMTP category, executor queue and rejection metrics—never email content.
 - **Payment/refund uncertainty:** inspect audit, attempts, provider-operation events and reconciliation/manual review, not raw payloads.
 - **Job failure:** search by job-run correlation, check the single summary, failure and last-success metrics, and retryable rows.
+
+## Dashboards, alerts, and SLO operations
+
+Five provisioned dashboards cover application/HTTP, JVM/database/executor capacity, bounded business outcomes, jobs/workers, and payments/refunds. New alerts require a stable existing metric, bounded labels, severity, sustained `for`, dashboard, and runbook. Never add entity/reference variables or financial PromQL reports. Initial targets—99.5% availability, latency once histograms are validated, 98% eligible payment success, 97% notification delivery, and critical jobs within 3× interval—require production baselining and tuning. Review resource, pool, executor, job-duration and throughput trends for capacity. Full thresholds, security boundaries, upgrades and runbooks live in `monitoring/README.md`.

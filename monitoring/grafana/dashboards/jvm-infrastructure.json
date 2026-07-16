@@ -1,0 +1,11 @@
+{
+  "annotations": {"list": []}, "description": "JVM, process, database-pool, and executor capacity headroom.", "editable": false,
+  "panels": [
+    {"id": 1, "title": "Process CPU", "description": "Process CPU utilization trend.", "type": "timeseries", "fieldConfig": {"defaults": {"unit": "percentunit"}}, "datasource": {"type": "prometheus", "uid": "hamro-prometheus"}, "targets": [{"refId": "A", "expr": "process_cpu_usage"}], "gridPos": {"h": 8, "w": 8, "x": 0, "y": 0}},
+    {"id": 2, "title": "GC pause rate", "description": "GC pause event rate by action/cause.", "type": "timeseries", "datasource": {"type": "prometheus", "uid": "hamro-prometheus"}, "targets": [{"refId": "A", "expr": "sum by (action, cause) (rate(jvm_gc_pause_seconds_count[5m]))"}], "gridPos": {"h": 8, "w": 8, "x": 8, "y": 0}},
+    {"id": 3, "title": "Live threads", "description": "Current live and daemon JVM threads.", "type": "timeseries", "datasource": {"type": "prometheus", "uid": "hamro-prometheus"}, "targets": [{"refId": "A", "expr": "jvm_threads_live_threads", "legendFormat": "live"}, {"refId": "B", "expr": "jvm_threads_daemon_threads", "legendFormat": "daemon"}], "gridPos": {"h": 8, "w": 8, "x": 16, "y": 0}},
+    {"id": 4, "title": "Hikari utilization", "description": "Active connections relative to configured maximum.", "type": "timeseries", "fieldConfig": {"defaults": {"unit": "percentunit"}}, "datasource": {"type": "prometheus", "uid": "hamro-prometheus"}, "targets": [{"refId": "A", "expr": "hikaricp_connections_active / clamp_min(hikaricp_connections_max, 1)"}], "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8}},
+    {"id": 5, "title": "Notification executor", "description": "Active and queued notification-email work.", "type": "timeseries", "datasource": {"type": "prometheus", "uid": "hamro-prometheus"}, "targets": [{"refId": "A", "expr": "executor_active_threads{name=\"notification_email\"}", "legendFormat": "active"}, {"refId": "B", "expr": "executor_queued{name=\"notification_email\"}", "legendFormat": "queued"}], "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8}}
+  ],
+  "refresh": "30s", "schemaVersion": 41, "tags": ["observability", "capacity"], "templating": {"list": []}, "time": {"from": "now-6h", "to": "now"}, "timezone": "browser", "title": "Hamro Chalchitraghar — JVM and Infrastructure", "uid": "hamro-jvm-infrastructure", "version": 1
+}

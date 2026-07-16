@@ -290,3 +290,7 @@ prohibited. Scheduled-job last-success timestamps are in-memory and reset when t
 ## Observability-3 logging
 
 Development and test profiles write readable correlation-aware console logs. The `prod` profile writes ECS-compatible structured JSON to stdout using Spring Boot's native encoder. Scheduled jobs use isolated run correlation IDs and emit one completion or failure summary. Logs exclude request bodies, credentials, tokens, OTPs, provider payloads, email content, and QR data; collection remains a deployment concern.
+
+## Observability-4 monitoring stack
+
+The optional Compose overlay provisions pinned Prometheus and Grafana services, bounded persistent retention, five version-controlled dashboards, and actionable alert rules. Create the ignored scrape secret and set `GRAFANA_ADMIN_PASSWORD`, then run `docker compose -f docker-compose.yml -f docker-compose.observability.yml up --build`. Prometheus and Grafana bind to loopback ports 9090 and 3000 by default; anonymous Grafana is disabled. See `monitoring/README.md` for dashboards, initial SLOs, security, validation, synthetic readiness, capacity guidance, and runbooks. Prometheus is operational telemetry, not financial reporting.

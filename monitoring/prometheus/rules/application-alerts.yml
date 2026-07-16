@@ -1,0 +1,33 @@
+groups:
+  - name: application
+    rules:
+      - alert: ApplicationTargetDown
+        expr: up{job="hamro-chalchitraghar"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: Application metrics target is unavailable
+          description: Prometheus has failed to scrape the application for two minutes.
+          runbook_url: monitoring/README.md#application-down
+          dashboard: hamro-application-overview
+      - alert: ElevatedHttp5xxRatio
+        expr: sum(rate(http_server_requests_seconds_count{job="hamro-chalchitraghar",status=~"5.."}[5m])) / clamp_min(sum(rate(http_server_requests_seconds_count{job="hamro-chalchitraghar"}[5m])), 0.001) > 0.05 and sum(rate(http_server_requests_seconds_count{job="hamro-chalchitraghar"}[5m])) > 0.1
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: Sustained HTTP 5xx ratio above 5 percent
+          description: Check correlation-aware exception logs and recent deployment changes.
+          runbook_url: monitoring/README.md#high-5xx-rate
+          dashboard: hamro-application-overview
+      - alert: HighJvmHeapUsage
+        expr: sum(jvm_memory_used_bytes{area="heap"}) / clamp_min(sum(jvm_memory_max_bytes{area="heap"}), 1) > 0.85
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: JVM heap usage is persistently high
+          description: Inspect allocation, GC, traffic, and heap headroom before changing limits.
+          runbook_url: monitoring/README.md#capacity-and-jvm-pressure
+          dashboard: hamro-jvm-infrastructure

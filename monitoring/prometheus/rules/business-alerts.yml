@@ -1,0 +1,23 @@
+groups:
+  - name: business-operations
+    rules:
+      - alert: ElevatedPaymentFailureRatio
+        expr: sum(rate(chalchitraghar_payment_operations_total{outcome="failure"}[10m])) / clamp_min(sum(rate(chalchitraghar_payment_operations_total[10m])), 0.001) > 0.20 and sum(rate(chalchitraghar_payment_operations_total[10m])) > 0.02
+        for: 15m
+        labels:
+          severity: critical
+        annotations:
+          summary: Payment operation failure ratio is elevated
+          description: Inspect provider outcomes and reconciliation; do not replay callbacks blindly.
+          runbook_url: monitoring/README.md#payment-provider-failure
+          dashboard: hamro-payments-refunds
+      - alert: ElevatedEmailDeliveryFailures
+        expr: sum(increase(chalchitraghar_email_delivery_total{outcome="failure"}[15m])) > 5
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: Email delivery failures are elevated
+          description: Inspect SMTP failure categories, retry state, and executor capacity.
+          runbook_url: monitoring/README.md#notification-delivery-outage
+          dashboard: hamro-business-operations

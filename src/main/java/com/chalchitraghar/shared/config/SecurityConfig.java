@@ -4,6 +4,7 @@ import com.chalchitraghar.modules.audit.service.AuditSecurityRecorder;
 import com.chalchitraghar.shared.audit.RequestAuditContextFilter;
 import com.chalchitraghar.shared.response.ApiResponse;
 import com.chalchitraghar.shared.security.JwtAuthenticationFilter;
+import com.chalchitraghar.shared.security.MonitoringBasicAuthenticationFilter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Arrays;
 import java.util.List;
@@ -35,6 +36,7 @@ public class SecurityConfig {
     private final ObjectMapper objectMapper;
     private final RequestAuditContextFilter requestAuditContextFilter;
     private final AuditSecurityRecorder auditSecurity;
+    private final MonitoringBasicAuthenticationFilter monitoringAuthenticationFilter;
 
     @Value("${cors.allowed-origins}")
     private String allowedOrigins;
@@ -106,8 +108,10 @@ public class SecurityConfig {
                                                 "/actuator/health/liveness",
                                                 "/actuator/health/readiness")
                                         .permitAll()
-                                        .requestMatchers("/actuator/info", "/actuator/prometheus")
+                                        .requestMatchers("/actuator/info")
                                         .hasRole("ADMIN")
+                                        .requestMatchers("/actuator/prometheus")
+                                        .hasAnyRole("ADMIN", "MONITORING")
                                         .requestMatchers(
                                                 org.springframework.http.HttpMethod.POST,
                                                 "/api/payments/esewa/verify")
@@ -148,6 +152,7 @@ public class SecurityConfig {
                                                 }))
                 .addFilterBefore(
                         jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(monitoringAuthenticationFilter, JwtAuthenticationFilter.class)
                 .addFilterBefore(requestAuditContextFilter, JwtAuthenticationFilter.class);
 
         return http.build();

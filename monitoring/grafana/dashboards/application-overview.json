@@ -1,0 +1,22 @@
+{
+  "annotations": {"list": []},
+  "description": "Availability, HTTP, JVM, pool, executor, and recent worker signals. Operational telemetry is not business reporting.",
+  "editable": false,
+  "panels": [
+    {"id": 1, "title": "Application target up", "description": "Prometheus scrape availability.", "type": "stat", "datasource": {"type": "prometheus", "uid": "hamro-prometheus"}, "targets": [{"refId": "A", "expr": "min(up{job=\"hamro-chalchitraghar\"})"}], "gridPos": {"h": 6, "w": 6, "x": 0, "y": 0}},
+    {"id": 2, "title": "HTTP request rate", "description": "Eligible request throughput by status class.", "type": "timeseries", "datasource": {"type": "prometheus", "uid": "hamro-prometheus"}, "targets": [{"refId": "A", "expr": "sum by (status) (rate(http_server_requests_seconds_count{job=\"hamro-chalchitraghar\"}[5m]))", "legendFormat": "{{status}}"}], "gridPos": {"h": 8, "w": 9, "x": 6, "y": 0}},
+    {"id": 3, "title": "HTTP 5xx ratio", "description": "Five-minute server error ratio with low-traffic caveats.", "type": "timeseries", "fieldConfig": {"defaults": {"unit": "percentunit"}}, "datasource": {"type": "prometheus", "uid": "hamro-prometheus"}, "targets": [{"refId": "A", "expr": "sum(rate(http_server_requests_seconds_count{status=~\"5..\"}[5m])) / clamp_min(sum(rate(http_server_requests_seconds_count[5m])), 0.001)"}], "gridPos": {"h": 8, "w": 9, "x": 15, "y": 0}},
+    {"id": 4, "title": "Heap usage", "description": "JVM heap used versus maximum.", "type": "timeseries", "fieldConfig": {"defaults": {"unit": "percentunit"}}, "datasource": {"type": "prometheus", "uid": "hamro-prometheus"}, "targets": [{"refId": "A", "expr": "sum(jvm_memory_used_bytes{area=\"heap\"}) / clamp_min(sum(jvm_memory_max_bytes{area=\"heap\"}), 1)"}], "gridPos": {"h": 8, "w": 8, "x": 0, "y": 8}},
+    {"id": 5, "title": "Hikari active and pending", "description": "Database connection pool pressure.", "type": "timeseries", "datasource": {"type": "prometheus", "uid": "hamro-prometheus"}, "targets": [{"refId": "A", "expr": "hikaricp_connections_active", "legendFormat": "active"}, {"refId": "B", "expr": "hikaricp_connections_pending", "legendFormat": "pending"}], "gridPos": {"h": 8, "w": 8, "x": 8, "y": 8}},
+    {"id": 6, "title": "Executor rejections", "description": "Persisted notification work rejected by the in-process executor.", "type": "timeseries", "datasource": {"type": "prometheus", "uid": "hamro-prometheus"}, "targets": [{"refId": "A", "expr": "increase(chalchitraghar_executor_rejected_total[10m])"}], "gridPos": {"h": 8, "w": 8, "x": 16, "y": 8}}
+  ],
+  "refresh": "30s",
+  "schemaVersion": 41,
+  "tags": ["observability", "overview"],
+  "templating": {"list": [{"name": "environment", "type": "query", "datasource": {"type": "prometheus", "uid": "hamro-prometheus"}, "query": {"query": "label_values(up{job=\"hamro-chalchitraghar\"}, environment)", "refId": "variable"}, "includeAll": true, "multi": true}]},
+  "time": {"from": "now-6h", "to": "now"},
+  "timezone": "browser",
+  "title": "Hamro Chalchitraghar — Application Overview",
+  "uid": "hamro-application-overview",
+  "version": 1
+}

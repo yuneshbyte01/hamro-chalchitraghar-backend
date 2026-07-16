@@ -396,3 +396,7 @@ Final customer visibility includes an ownership-scoped lifecycle timeline, while
 ## Observability-3
 
 Production emits native ECS structured JSON to stdout while development retains readable console logs. Request correlation is preserved, jobs receive isolated run context and one summary event, provider status enquiries expose safe latency/failure diagnostics, exception severity is normalized, and startup/shutdown state is reported without configuration secrets. Docker rotation and PostgreSQL slow-query guidance are documented. External collectors, tracing, p6spy, bind logging, and persistent job history remain deferred.
+
+## Observability-4
+
+The final phase adds an optional pinned Prometheus/Grafana Compose overlay, authenticated secret-backed scraping, bounded retention, provisioned datasource and five dashboards, sustained alert rules, provisional SLIs/SLOs and error-budget guidance, capacity indicators, synthetic readiness, CI validation, monitoring security, and incident runbooks. No tracing backend or centralized log collector is deployed; Prometheus is not financial authority, and thresholds require real-traffic baseline tuning.

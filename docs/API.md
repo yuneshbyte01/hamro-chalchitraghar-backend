@@ -1861,3 +1861,5 @@ Admin refund detail embeds sanitized attempt summaries. Customer refund detail i
 ## Operational logging
 
 Existing `X-Request-ID` and `X-Correlation-ID` values appear in operational logs but logs are not API responses. Provider payloads, signatures, credentials, tokens, email content, and QR payloads are never logged. Actuator endpoint contracts and protection are unchanged.
+
+Prometheus continues to use `GET /actuator/prometheus`. ADMIN bearer tokens remain supported, while deployment scraping may use the dedicated secret-injected monitoring Basic credential. That credential has no business-API authority. Grafana dashboards and Prometheus queries are operational tools, not application APIs.

@@ -1,0 +1,23 @@
+groups:
+  - name: scheduled-jobs
+    rules:
+      - alert: ScheduledJobFailures
+        expr: increase(chalchitraghar_job_failures_total[15m]) > 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: A scheduled job has failed
+          description: Search structured logs by fixed job name and job-run correlation ID.
+          runbook_url: monitoring/README.md#scheduled-job-stale-or-failing
+          dashboard: hamro-jobs-workers
+      - alert: CriticalJobStale
+        expr: time() - chalchitraghar_job_last_success_timestamp{job=~"booking_expiry|payment_reconciliation|ticket_expiry|notification_delivery_retry|refund_retry"} > 1800 and chalchitraghar_job_last_success_timestamp > 0
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: Critical scheduled job has not succeeded recently
+          description: The initial 30-minute threshold requires tuning against each production schedule.
+          runbook_url: monitoring/README.md#scheduled-job-stale-or-failing
+          dashboard: hamro-jobs-workers

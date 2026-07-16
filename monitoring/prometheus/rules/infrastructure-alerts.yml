@@ -1,0 +1,23 @@
+groups:
+  - name: infrastructure
+    rules:
+      - alert: HikariConnectionsPending
+        expr: max(hikaricp_connections_pending{job="hamro-chalchitraghar"}) > 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: Database connections are persistently pending
+          description: Inspect PostgreSQL health, slow queries, and pool utilization.
+          runbook_url: monitoring/README.md#database-unavailable-or-pool-saturated
+          dashboard: hamro-jvm-infrastructure
+      - alert: NotificationExecutorRejectedTasks
+        expr: increase(chalchitraghar_executor_rejected_total{executor="notification_email"}[10m]) > 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: Notification executor rejected work
+          description: Persisted delivery work remains retryable; inspect queue saturation and completion rate.
+          runbook_url: monitoring/README.md#notification-delivery-outage
+          dashboard: hamro-jobs-workers
