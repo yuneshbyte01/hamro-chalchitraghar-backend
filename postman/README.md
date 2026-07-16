@@ -75,6 +75,9 @@ postman/environments/
 | seat_id_1 | First available seat |
 | seat_id_2 | Second available seat |
 | booking_id | Created booking ID |
+| report_start_date | Inclusive reporting start date |
+| report_end_date | Inclusive reporting end date |
+| report_currency | Optional three-letter reporting currency |
 
 ---
 

@@ -1,5 +1,16 @@
 # Architecture
 
+## Reporting module
+
+Reporting 1 adds a read-only `modules.reporting` boundary. `AdminReportingController` builds a
+Clock-derived `ReportingDateRange` and delegates to `DashboardReportService`,
+`BookingReportService`, and `RevenueReportService`. `ReportingQueryRepository` executes grouped
+JPQL over bookings, payments, refunds, users, movies, and shows without full-table entity loading or
+one-to-many financial joins. Projection interfaces carry aggregate rows and response records remain
+API-only. Services fill absent booking statuses with zero and merge payment-only/refund-only
+currencies without combining currencies. Prometheus/Grafana remains operational telemetry, not the
+financial source of truth.
+
 Hamro Chalchitraghar Backend is a Spring Boot modular monolith. It is deployed as one application, but the code is organized by domain modules and API audience boundaries.
 
 ## Overall Architecture

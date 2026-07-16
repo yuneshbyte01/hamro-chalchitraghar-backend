@@ -1,0 +1,8 @@
+$kind: http-request
+name: Dashboard Summary
+description: Combined ADMIN business KPI dashboard. Dates are inclusive in the application timezone.
+url: "{{base_url}}/api/admin/reports/dashboard?startDate={{report_start_date}}&endDate={{report_end_date}}"
+method: GET
+headers:
+  Authorization: Bearer {{admin_token}}
+order: 6900

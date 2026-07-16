@@ -1,5 +1,27 @@
 # API Reference
 
+## Admin business reports (Reporting 1)
+
+All routes require an ADMIN bearer token and return `ApiResponse<T>`.
+
+| Method | Route | Result |
+| --- | --- | --- |
+| GET | `/api/admin/reports/dashboard` | Combined booking/revenue/customer and snapshot KPIs |
+| GET | `/api/admin/reports/dashboard/bookings` | Complete booking-status counts and rates |
+| GET | `/api/admin/reports/dashboard/revenue` | Currency-separated gross, refund, net, count and average KPIs |
+
+Every route requires ISO `startDate` and `endDate`; `currency` is optional on combined and revenue
+reports. Both dates are inclusive to callers and become `startInclusive` at local midnight and
+`endExclusive` at midnight after `endDate` in the configured application timezone. Same-day ranges
+are valid and the maximum is 366 calendar days. Currency is trimmed, uppercased, and must be three
+letters. Unfiltered reports return every observed currency; an unmatched filtered currency returns
+one zero-valued entry.
+
+Gross revenue sums payments currently `SUCCESS` or `REFUNDED` by `completedAt`, counting every
+payment attempt once. Refund amount includes only `SUCCEEDED` refunds by `processedAt`; net may be
+negative. Active movies means `NOW_SHOWING` plus `UPCOMING`; movie and show-status counts are current
+snapshots. Validation, authentication, and authorization failures return 400, 401, and 403.
+
 Responses include `X-Request-ID` (one request) and `X-Correlation-ID` (related work). Safe client IDs
 are accepted; missing, invalid, or oversized values are replaced. Audit detail includes masked IP when
 enabled, bounded user agent, method, and path; summaries omit IP/user agent. Filters support request ID,

@@ -1,0 +1,8 @@
+$kind: http-request
+name: Revenue KPIs by Currency
+description: Revenue KPIs filtered to one normalized three-letter currency.
+url: "{{base_url}}/api/admin/reports/dashboard/revenue?startDate={{report_start_date}}&endDate={{report_end_date}}&currency={{report_currency}}"
+method: GET
+headers:
+  Authorization: Bearer {{admin_token}}
+order: 6930

@@ -1,5 +1,15 @@
 # Hamro Chalchitraghar Backend
 
+## Reporting 1 business dashboard
+
+ADMIN users can query `GET /api/admin/reports/dashboard`, `/dashboard/bookings`, and
+`/dashboard/revenue` under `/api/admin/reports`. These database-aggregated APIs report booking,
+revenue, registered-customer, active-movie, running-show, and scheduled-show KPIs. API dates are
+inclusive local dates evaluated as `[startDate 00:00, endDate + 1 day 00:00)` in `app.time-zone`.
+Revenue includes completed `SUCCESS` and `REFUNDED` payments, subtracts only `SUCCEEDED` refunds,
+and remains separated by currency. Occupancy, trends, rankings, exports, scheduled reports, and
+reporting caches remain deferred.
+
 Refund-1 provides a database-backed full-refund intent foundation. Trusted internal callers can
 create idempotent `REQUESTED` intents for eligible successful payments; customer APIs expose only
 refunds owned through the authenticated user's bookings, while ADMIN APIs provide sanitized

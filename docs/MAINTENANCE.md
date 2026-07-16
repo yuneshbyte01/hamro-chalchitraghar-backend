@@ -1,5 +1,16 @@
 # Maintenance Guide
 
+## Maintaining business reports
+
+Add KPIs inside `modules.reporting`, expose database aggregate projections from
+`ReportingQueryRepository`, and map them in read-only services. Controllers should only parse
+parameters, build the Clock-derived range, and wrap `ApiResponse`. Never use `findAll()` or lazy
+entity traversal for KPIs. Monetary aggregates must use `BigDecimal`, group by currency, preserve
+zero/null handling, and avoid joins that multiply amounts. Date predicates remain
+`>= startInclusive` and `< endExclusive`. Every KPI needs empty, exact-boundary, authorization, and
+OpenAPI tests using Clock-derived or explicit deterministic timestamps, including Kathmandu/UTC
+boundary coverage.
+
 ## Notification-4 operations
 
 Preference types belong in the centralized preference policy and affect only future EMAIL rows.

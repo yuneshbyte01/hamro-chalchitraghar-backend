@@ -1,0 +1,8 @@
+$kind: http-request
+name: Revenue KPIs
+description: Currency-separated gross, successful-refund, net, count, and average KPIs.
+url: "{{base_url}}/api/admin/reports/dashboard/revenue?startDate={{report_start_date}}&endDate={{report_end_date}}"
+method: GET
+headers:
+  Authorization: Bearer {{admin_token}}
+order: 6920

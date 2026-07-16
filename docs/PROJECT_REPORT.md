@@ -1,5 +1,16 @@
 # Project Report
 
+## Reporting 1 — dashboard summary and core KPIs
+
+Reporting 1 completes the first unified ADMIN business dashboard. Three secured APIs provide a
+combined summary, complete booking-status counts and rates, and currency-separated gross/refund/net
+revenue with payment/refund counts and averages. The combined response adds period customer
+registrations and current active-movie/running-show/scheduled-show snapshots. Database aggregation,
+inclusive local-date inputs with exclusive internal boundaries, injected Clock timestamps,
+BigDecimal financial values, Swagger, authorization tests, and Postman requests are included.
+Occupancy, trends, rankings, exports, scheduled delivery, caching, and advanced analytics remain
+deferred to Reporting 2–4.
+
 ## Observability-1
 
 The platform now includes Spring Boot Actuator and the Prometheus registry with explicit exposure of only

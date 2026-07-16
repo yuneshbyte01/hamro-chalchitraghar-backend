@@ -1,0 +1,8 @@
+$kind: http-request
+name: Booking KPIs
+description: Complete booking-status counts and percentage rates for the selected inclusive dates.
+url: "{{base_url}}/api/admin/reports/dashboard/bookings?startDate={{report_start_date}}&endDate={{report_end_date}}"
+method: GET
+headers:
+  Authorization: Bearer {{admin_token}}
+order: 6910

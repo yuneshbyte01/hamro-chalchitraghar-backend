@@ -1,5 +1,12 @@
 # Setup Guide
 
+## Reporting 1 configuration
+
+Reporting 1 requires no migration, dependency, scheduler, cache, or new environment variable. It
+uses existing `app.time-zone`/`APP_TIME_ZONE` (default `Asia/Kathmandu`) to convert inclusive API
+dates into local-midnight boundaries. Set the deployment timezone explicitly and keep database
+timestamp handling consistent. Existing `/api/admin/**` security provides ADMIN-only access.
+
 This guide explains how to run Hamro Chalchitraghar Backend locally, with Docker, and in tests.
 
 ## Requirements

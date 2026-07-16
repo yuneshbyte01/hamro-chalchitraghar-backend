@@ -1,5 +1,15 @@
 # Database
 
+## Reporting 1 read model
+
+Reporting 1 adds no schema object or migration. Booking KPIs group `bookings` by status using
+`booking_time >= startInclusive AND booking_time < endExclusive`. Gross revenue groups
+`SUCCESS`/`REFUNDED` payments by currency and in-range `completed_at`; refunds group only
+`SUCCEEDED` rows by currency and in-range `processed_at`. Period customer registrations use
+`users.role = CUSTOMER` and `created_at`; movie and show counts are snapshots. Occupancy and
+generated-seat aggregation are deferred to Reporting 2. Financial queries do not join booking
+seats, tickets, or refund attempts.
+
 Hamro Chitralekha Backend uses PostgreSQL in development and production. The schema is managed by Flyway SQL migrations in `src/main/resources/db/migration`.
 
 Hibernate is configured with `ddl-auto: validate`, so the application validates the schema at startup instead of generating it.
