@@ -385,14 +385,14 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
         User user = userRepository.findByEmail("lock-after-failures@example.com").orElseThrow();
         assertThat(user.getFailedLoginAttempts()).isEqualTo(5);
         assertThat(user.isLocked()).isTrue();
-        assertThat(user.getLockedUntil()).isAfter(LocalDateTime.now());
+        assertThat(user.getLockedUntil()).isAfter(LocalDateTime.now(clock));
     }
 
     @Test
     void lockedAccountCannotLogin() throws Exception {
         User user = saveCustomerWithPassword("locked-login@example.com", "OldPass@123");
         user.setLocked(true);
-        user.setLockedUntil(LocalDateTime.now().plusMinutes(15));
+        user.setLockedUntil(LocalDateTime.now(clock).plusMinutes(15));
         userRepository.save(user);
 
         mockMvc.perform(
@@ -405,9 +405,14 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
                                                         "password", "OldPass@123"))))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.data").value(nullValue()))
                 .andExpect(
                         jsonPath("$.message")
                                 .value("Account is temporarily locked. Please try again later."));
+
+        User unchanged = userRepository.findByEmail("locked-login@example.com").orElseThrow();
+        assertThat(unchanged.isLocked()).isTrue();
+        assertThat(unchanged.getLastLoginAt()).isNull();
     }
 
     @Test
@@ -415,7 +420,7 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
         User user = saveCustomerWithPassword("expired-lock@example.com", "OldPass@123");
         user.setFailedLoginAttempts(5);
         user.setLocked(true);
-        user.setLockedUntil(LocalDateTime.now().minusMinutes(1));
+        user.setLockedUntil(LocalDateTime.now(clock).minusMinutes(1));
         userRepository.save(user);
 
         mockMvc.perform(
@@ -477,7 +482,7 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
     @Test
     void passwordChangeUpdatesPasswordChangedAt() throws Exception {
         User user = saveCustomerWithPassword("tracked-change@example.com", "OldPass@123");
-        user.setPasswordChangedAt(LocalDateTime.now().minusDays(1));
+        user.setPasswordChangedAt(LocalDateTime.now(clock).minusDays(1));
         userRepository.save(user);
         String token = loginTokenWithPassword("tracked-change@example.com", "OldPass@123");
 
@@ -499,7 +504,7 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
     @Test
     void otpResetUpdatesPasswordChangedAt() throws Exception {
         User user = saveCustomerWithPassword("tracked-reset@example.com", "OldPass@123");
-        user.setPasswordChangedAt(LocalDateTime.now().minusDays(1));
+        user.setPasswordChangedAt(LocalDateTime.now(clock).minusDays(1));
         userRepository.save(user);
         String otp = requestPasswordResetOtp("tracked-reset@example.com");
 
@@ -574,7 +579,7 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
                         "locked-google",
                         "https://example.com/avatar.png");
         user.setLocked(true);
-        user.setLockedUntil(LocalDateTime.now().plusMinutes(15));
+        user.setLockedUntil(LocalDateTime.now(clock).plusMinutes(15));
         userRepository.save(user);
         when(googleTokenVerifier.verify("locked-google-token"))
                 .thenReturn(googleUser("locked-google", "locked-google@example.com", true));
@@ -584,9 +589,15 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
                                 .contentType("application/json")
                                 .content(json(Map.of("idToken", "locked-google-token"))))
                 .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.data").value(nullValue()))
                 .andExpect(
                         jsonPath("$.message")
                                 .value("Account is temporarily locked. Please try again later."));
+
+        User unchanged = userRepository.findByEmail("locked-google@example.com").orElseThrow();
+        assertThat(unchanged.isLocked()).isTrue();
+        assertThat(unchanged.getLastLoginAt()).isNull();
     }
 
     @Test
@@ -756,7 +767,7 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
         saveCustomerWithPassword("expired-reset@example.com", "OldPass@123");
         String otp = requestPasswordResetOtp("expired-reset@example.com");
         PasswordResetOtp resetOtp = passwordResetOtpRepository.findAll().getFirst();
-        resetOtp.setExpiresAt(LocalDateTime.now().minusMinutes(1));
+        resetOtp.setExpiresAt(LocalDateTime.now(clock).minusMinutes(1));
         passwordResetOtpRepository.save(resetOtp);
 
         mockMvc.perform(

@@ -1,21 +1,33 @@
 package com.chalchitraghar.modules.payments.service;
 
-import com.chalchitraghar.modules.notifications.event.RefundSucceededEvent;
-import com.chalchitraghar.modules.payments.config.RefundProcessingProperties;
-import com.chalchitraghar.modules.payments.dto.request.AdminManualRefundSuccessRequest;
-import com.chalchitraghar.modules.payments.dto.response.AdminRefundAttemptResponse;
-import com.chalchitraghar.modules.payments.entity.*;
-import com.chalchitraghar.modules.payments.enums.*;
-import com.chalchitraghar.modules.payments.gateway.*;
-import com.chalchitraghar.modules.payments.repository.*;
-import com.chalchitraghar.modules.users.entity.User;
-import com.chalchitraghar.shared.exception.*;
-import java.time.*;
-import java.util.*;
-import lombok.RequiredArgsConstructor;
+import java.time.Clock;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
+
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import com.chalchitraghar.modules.notifications.event.RefundSucceededEvent;
+import com.chalchitraghar.modules.payments.dto.request.AdminManualRefundSuccessRequest;
+import com.chalchitraghar.modules.payments.dto.response.AdminRefundAttemptResponse;
+import com.chalchitraghar.modules.payments.entity.Payment;
+import com.chalchitraghar.modules.payments.entity.Refund;
+import com.chalchitraghar.modules.payments.entity.RefundAttempt;
+import com.chalchitraghar.modules.payments.enums.PaymentStatus;
+import com.chalchitraghar.modules.payments.enums.RefundAttemptStatus;
+import com.chalchitraghar.modules.payments.enums.RefundMethod;
+import com.chalchitraghar.modules.payments.enums.RefundStatus;
+import com.chalchitraghar.modules.payments.repository.PaymentRepository;
+import com.chalchitraghar.modules.payments.repository.RefundAttemptRepository;
+import com.chalchitraghar.modules.payments.repository.RefundRepository;
+import com.chalchitraghar.modules.users.entity.User;
+import com.chalchitraghar.shared.exception.PaymentConflictException;
+import com.chalchitraghar.shared.exception.ResourceNotFoundException;
+
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
@@ -24,7 +36,6 @@ public class RefundOperationsService {
     private final RefundAttemptRepository attempts;
     private final PaymentRepository payments;
     private final PaymentLifecycleService paymentLifecycle;
-    private final RefundProcessingProperties properties;
     private final Clock clock;
     private final ApplicationEventPublisher events;
 
