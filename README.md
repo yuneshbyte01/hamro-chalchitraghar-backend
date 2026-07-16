@@ -209,6 +209,18 @@ Run all tests:
 
 The test profile uses H2 in PostgreSQL compatibility mode with Flyway disabled and validates authentication, authorization, catalog management, show scheduling, seat generation, seat holds, and booking lifecycle behavior.
 
+## Observability
+
+Spring Boot Actuator exposes status-only health endpoints at `/actuator/health`,
+`/actuator/health/liveness`, and `/actuator/health/readiness`. Liveness reports application process
+state; readiness also requires the database because core booking operations depend on it. The compatibility
+endpoint `/api/public/health` remains available but proves only HTTP/controller responsiveness.
+
+`/actuator/info` and `/actuator/prometheus` require an ADMIN JWT. Prometheus exports built-in HTTP,
+JVM, process, datasource, and Hikari metrics; custom business metrics are deferred. Only `health`, `info`,
+and `prometheus` are exposed. Graceful shutdown allows a bounded 30-second drain, and Docker checks the
+readiness endpoint.
+
 ## API Overview
 
 | Group | Endpoints |

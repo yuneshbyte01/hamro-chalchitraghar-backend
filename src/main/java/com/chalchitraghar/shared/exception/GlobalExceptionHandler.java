@@ -19,6 +19,7 @@ import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 /** Global exception handler providing centralized error handling for the application. */
 @RestControllerAdvice
@@ -133,6 +134,12 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<Void>> handleEmptyResultDataAccessException(
             EmptyResultDataAccessException ex) {
         logger.warn("No result found: {}", ex.getMessage());
+        return error(HttpStatus.NOT_FOUND, "The requested resource does not exist");
+    }
+
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ApiResponse<Void>> handleNoResourceFoundException(
+            NoResourceFoundException ex) {
         return error(HttpStatus.NOT_FOUND, "The requested resource does not exist");
     }
 

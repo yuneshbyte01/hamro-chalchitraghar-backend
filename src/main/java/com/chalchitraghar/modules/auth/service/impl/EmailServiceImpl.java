@@ -6,7 +6,6 @@ import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.env.Environment;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
@@ -18,7 +17,6 @@ public class EmailServiceImpl implements EmailService {
     private static final Logger logger = LoggerFactory.getLogger(EmailServiceImpl.class);
 
     private final JavaMailSender mailSender;
-    private final Environment environment;
 
     @Value("${app.mail.from}")
     private String mailFrom;
@@ -32,11 +30,7 @@ public class EmailServiceImpl implements EmailService {
     @Override
     public void sendPasswordResetOtpEmail(User user, String otp) {
         if (!mailEnabled) {
-            if (isDevelopmentProfile()) {
-                logger.info("Password reset mail disabled. OTP for {}: {}", user.getEmail(), otp);
-            } else {
-                logger.info("Password reset mail disabled for {}", user.getEmail());
-            }
+            logger.info("Password reset mail delivery skipped because mail is disabled");
             return;
         }
 
@@ -62,14 +56,5 @@ public class EmailServiceImpl implements EmailService {
                         .formatted(user.getName(), otp, otpExpirationMinutes));
 
         mailSender.send(message);
-    }
-
-    private boolean isDevelopmentProfile() {
-        for (String profile : environment.getActiveProfiles()) {
-            if ("dev".equals(profile)) {
-                return true;
-            }
-        }
-        return false;
     }
 }

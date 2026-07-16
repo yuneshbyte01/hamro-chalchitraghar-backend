@@ -362,6 +362,26 @@ Response `200`:
 }
 ```
 
+This is a compatibility endpoint that proves controller responsiveness only. Deployment systems should use
+the Actuator probes below.
+
+## Operational Actuator Endpoints
+
+Actuator responses use Spring Boot's standard format and are not wrapped in `ApiResponse<T>`. Health details
+and component names are hidden from public responses.
+
+| Endpoint | Access | Purpose |
+| --- | --- | --- |
+| `GET /actuator/health` | Public | Aggregate status only |
+| `GET /actuator/health/liveness` | Public | Process/application availability; excludes database and optional providers |
+| `GET /actuator/health/readiness` | Public | Serving readiness; includes application readiness and database health |
+| `GET /actuator/info` | ADMIN JWT | Safe name, description, and version metadata |
+| `GET /actuator/prometheus` | ADMIN JWT | Prometheus-formatted built-in runtime metrics |
+
+An UP response uses HTTP 200; DOWN or OUT_OF_SERVICE uses HTTP 503. SMTP, eSewa, notification workers,
+and refund workers are intentionally excluded from readiness. Prometheus remains application-protected until
+a private monitoring-network design is introduced.
+
 ### `GET /api/public/movies`
 
 | Field | Value |

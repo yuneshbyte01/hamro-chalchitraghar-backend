@@ -155,6 +155,28 @@ Build and run the backend with PostgreSQL:
 docker compose up --build
 ```
 
+PostgreSQL must become healthy before the application starts. The application container then checks
+`/actuator/health/readiness`; this requires database readiness but not SMTP or eSewa availability.
+
+## Observability configuration
+
+The application includes Actuator and the Prometheus registry. Safe defaults are:
+
+```text
+APP_VERSION=local
+MANAGEMENT_ENDPOINTS_EXPOSED=health,info,prometheus
+HEALTH_SHOW_DETAILS=never
+HEALTH_PROBES_ENABLED=true
+GRACEFUL_SHUTDOWN_TIMEOUT=30s
+```
+
+Health, liveness and readiness are public status-only endpoints. Use an ADMIN bearer token for
+`/actuator/info` and `/actuator/prometheus`. Do not expose all Actuator endpoints. Prometheus and Grafana
+servers are not part of this phase.
+
+Shutdown is bounded by `GRACEFUL_SHUTDOWN_TIMEOUT`. The notification executor drains for at most 20 seconds;
+persisted interrupted deliveries and refund claims remain recoverable through existing retry/stale-recovery flows.
+
 Services:
 
 | Service | Container | Port |

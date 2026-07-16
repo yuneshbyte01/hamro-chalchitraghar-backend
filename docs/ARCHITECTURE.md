@@ -527,6 +527,20 @@ exist only at authoritative service/event boundaries to avoid controller duplica
 
 `RequestAuditContextFilter -> immutable holder/MDC -> JWT/security -> business event snapshot ->
 AFTER_COMMIT append`. The filter runs before JWT and clears all thread-local/MDC state in `finally`.
+
+## Observability foundation
+
+```text
+Application -> Actuator -> liveness/readiness -> Micrometer -> protected Prometheus endpoint
+```
+
+Liveness contains only `livenessState` and `ping`, so a database or optional-provider outage does not cause
+restart loops. Readiness contains `readinessState` and `db`, because PostgreSQL is required for core booking
+operations. Public health output contains status only. `info` and `prometheus` require ADMIN through the
+central `SecurityConfig`; sensitive Actuator endpoints are not exposed.
+
+Micrometer supplies built-in HTTP, JVM, process, datasource and Hikari telemetry without custom duplicates.
+Booking, payment, ticket, notification, audit, refund, scheduler and executor business metrics remain deferred.
 Invalid JWT and access denial use sanitized, deduplicated, `REQUIRES_NEW` failure audits. The email
 executor explicitly copies low-risk context and restores/clears worker state; scheduled work may create
 fresh SYSTEM contexts rather than inherit request state.

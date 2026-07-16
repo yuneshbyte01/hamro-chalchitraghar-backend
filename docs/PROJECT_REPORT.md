@@ -1,5 +1,18 @@
 # Project Report
 
+## Observability-1
+
+The platform now includes Spring Boot Actuator and the Prometheus registry with explicit exposure of only
+health, info, and Prometheus endpoints. Public base health, liveness, and readiness responses hide component
+details; readiness includes PostgreSQL while liveness remains process-only. Info and Prometheus require ADMIN
+authorization through the existing centralized security chain. Built-in HTTP, JVM, process, datasource and
+Hikari meters are available without custom business-meter duplication.
+
+Graceful shutdown is bounded to 30 seconds, the notification executor drains for at most 20 seconds, and the
+application container checks readiness after PostgreSQL startup. The original public health API remains a
+lightweight compatibility route. Password-reset OTP logging was removed. Custom domain/job metrics,
+structured logging, slow-query diagnostics, monitoring servers, dashboards, alerts, SLOs and tracing remain deferred.
+
 ## Final notification module
 
 Notifications now include the Notification-1 in-app and ownership foundation, Notification-2 typed

@@ -102,6 +102,13 @@ public class SecurityConfig {
                                         .requestMatchers("/api/public/**")
                                         .permitAll()
                                         .requestMatchers(
+                                                "/actuator/health",
+                                                "/actuator/health/liveness",
+                                                "/actuator/health/readiness")
+                                        .permitAll()
+                                        .requestMatchers("/actuator/info", "/actuator/prometheus")
+                                        .hasRole("ADMIN")
+                                        .requestMatchers(
                                                 org.springframework.http.HttpMethod.POST,
                                                 "/api/payments/esewa/verify")
                                         .permitAll()

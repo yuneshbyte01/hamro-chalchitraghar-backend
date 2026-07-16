@@ -14,6 +14,19 @@ This guide describes how to extend and maintain Hamro Chalchitraghar Backend whi
 
 ## Development Workflow
 
+## Observability maintenance
+
+- Keep Actuator exposure limited to `health`, `info`, and `prometheus`; never use wildcard exposure.
+- Keep liveness independent of databases, SMTP, eSewa, schedulers, and workers.
+- Add a readiness dependency only when its loss prevents core requests from being served.
+- Health indicators must be bounded, read-only, non-destructive, and must not expose configuration details.
+- Keep Prometheus ADMIN-protected until a private monitoring network provides equivalent access control.
+- Prefer built-in JVM, process, HTTP, datasource and Hikari meters over custom duplicates.
+- Keep shutdown waits bounded. Persisted notification/refund state is the recovery mechanism for interruption.
+- Never log passwords, OTPs, reset tokens, JWTs, QR tokens, signatures, credentials, or provider payloads.
+- Custom business/job metrics, structured logging, dashboards, alerts, and tracing belong to later phases.
+
+
 1. Create or update code in the relevant module under `src/main/java/com/chalchitraghar/modules`.
 2. Add or update the controller under the correct audience package in `applications`.
 3. Add DTO validation with Jakarta Bean Validation.

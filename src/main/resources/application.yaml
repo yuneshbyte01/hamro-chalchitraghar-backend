@@ -19,6 +19,44 @@ spring:
     baseline-on-migrate: true
     baseline-version: 8
 
+  lifecycle:
+    timeout-per-shutdown-phase: ${GRACEFUL_SHUTDOWN_TIMEOUT:30s}
+
+server:
+  shutdown: graceful
+
+management:
+  prometheus:
+    metrics:
+      export:
+        enabled: true
+  info:
+    env:
+      enabled: true
+  endpoints:
+    web:
+      exposure:
+        include: ${MANAGEMENT_ENDPOINTS_EXPOSED:health,info,prometheus}
+  endpoint:
+    prometheus:
+      enabled: true
+    health:
+      show-details: ${HEALTH_SHOW_DETAILS:never}
+      show-components: never
+      probes:
+        enabled: ${HEALTH_PROBES_ENABLED:true}
+      group:
+        liveness:
+          include: livenessState,ping
+        readiness:
+          include: readinessState,db
+
+info:
+  app:
+    name: Hamro Chalchitraghar
+    description: Movie ticket booking backend
+    version: ${APP_VERSION:local}
+
 app:
   time-zone: ${APP_TIME_ZONE:Asia/Kathmandu}
   refunds:
