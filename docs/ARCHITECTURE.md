@@ -590,3 +590,15 @@ Refund and revalidate Payment, Booking, tickets, exact amount/currency, and bala
 stable `REFUND_*:{refundId}` identities. No SMTP or provider call occurs inside the transaction.
 Refund-3 uses `APPROVED -> claim transaction -> gateway/manual execution -> finalization transaction -> notifications/audit after commit`. The claim commits before execution, so no database lock is held across provider work. The provider-neutral gateway carries immutable scalar commands, never JPA entities or raw payloads. Because this repository has no verified eSewa merchant refund API, manual review is authoritative.
 Final operations use three bounded flows: `MANUAL_REVIEW -> explicit admin decision -> locked financial finalization`; `refund reference -> Refund/Payment/Booking/Ticket/attempt inspection -> read-only diagnostic`; and `disabled-by-default scheduler -> oldest terminal candidates -> bounded anonymization`. Reporting is database-aggregated and currency-separated.
+
+## Structured operational logging
+
+```text
+Request / scheduled job / provider operation
+  -> bounded MDC and structured fields
+  -> pattern console (development) or ECS JSON (production)
+  -> stdout
+  -> deployment-managed collector later
+```
+
+Scheduled jobs clear inherited MDC, create a server-side run/correlation ID, and restore context in `finally`. Provider timing uses Micrometer's monotonic timer. Database diagnostics combine HTTP/service timers, Hikari metrics, focused operation timers, and deployment-managed PostgreSQL query fingerprints; application SQL and bind logging remain disabled.

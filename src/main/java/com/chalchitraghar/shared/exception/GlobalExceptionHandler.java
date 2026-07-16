@@ -1,5 +1,6 @@
 package com.chalchitraghar.shared.exception;
 
+import com.chalchitraghar.shared.observability.LogSanitizer;
 import com.chalchitraghar.shared.response.ApiResponse;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.ConstraintViolationException;
@@ -30,20 +31,29 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<ApiResponse<Void>> handleResourceNotFoundException(
             ResourceNotFoundException ex) {
-        logger.warn("Resource not found: {}", ex.getMessage());
+        logger.atInfo()
+                .addKeyValue("event", "request.failed")
+                .addKeyValue("failureCode", "resource_not_found")
+                .log("Resource not found: {}", LogSanitizer.safe(ex.getMessage()));
         return error(HttpStatus.NOT_FOUND, messageOrDefault(ex, "Resource not found"));
     }
 
     @ExceptionHandler(AuthenticationException.class)
     public ResponseEntity<ApiResponse<Void>> handleAuthenticationException(
             AuthenticationException ex) {
-        logger.warn("Authentication failed: {}", ex.getMessage());
+        logger.atWarn()
+                .addKeyValue("event", "security.authentication_failed")
+                .addKeyValue("failureCode", "authentication_failed")
+                .log("Authentication failed");
         return error(HttpStatus.UNAUTHORIZED, messageOrDefault(ex, "Authentication failed"));
     }
 
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ApiResponse<Void>> handleAccessDeniedException(AccessDeniedException ex) {
-        logger.warn("Access denied: {}", ex.getMessage());
+        logger.atWarn()
+                .addKeyValue("event", "security.access_denied")
+                .addKeyValue("failureCode", "access_denied")
+                .log("Access denied");
         return error(HttpStatus.FORBIDDEN, messageOrDefault(ex, "Access denied"));
     }
 
@@ -57,20 +67,29 @@ public class GlobalExceptionHandler {
         InvalidBookingStateException.class
     })
     public ResponseEntity<ApiResponse<Void>> handleConflictExceptions(RuntimeException ex) {
-        logger.warn("Conflict: {}", ex.getMessage());
+        logger.atWarn()
+                .addKeyValue("event", "request.failed")
+                .addKeyValue("failureCode", "conflict")
+                .log("Request conflict: {}", LogSanitizer.safe(ex.getMessage()));
         return error(HttpStatus.CONFLICT, messageOrDefault(ex, "Conflict error"));
     }
 
     @ExceptionHandler({InvalidSeatSelectionException.class, IllegalArgumentException.class})
     public ResponseEntity<ApiResponse<Void>> handleBadRequestExceptions(RuntimeException ex) {
-        logger.warn("Bad request: {}", ex.getMessage());
+        logger.atInfo()
+                .addKeyValue("event", "request.failed")
+                .addKeyValue("failureCode", "bad_request")
+                .log("Bad request: {}", LogSanitizer.safe(ex.getMessage()));
         return error(HttpStatus.BAD_REQUEST, messageOrDefault(ex, "Bad request"));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiResponse<Void>> handleValidationExceptions(
             MethodArgumentNotValidException ex) {
-        logger.warn("Validation error: {}", ex.getMessage());
+        logger.atInfo()
+                .addKeyValue("event", "request.failed")
+                .addKeyValue("failureCode", "validation_failed")
+                .log("Request validation failed");
         List<String> errors =
                 ex.getBindingResult().getFieldErrors().stream()
                         .map(error -> error.getField() + ": " + error.getDefaultMessage())
@@ -81,7 +100,10 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ConstraintViolationException.class)
     public ResponseEntity<ApiResponse<Void>> handleConstraintViolationException(
             ConstraintViolationException ex) {
-        logger.warn("Constraint violation: {}", ex.getMessage());
+        logger.atInfo()
+                .addKeyValue("event", "request.failed")
+                .addKeyValue("failureCode", "constraint_violation")
+                .log("Request constraint validation failed");
         List<String> errors =
                 ex.getConstraintViolations().stream()
                         .map(
@@ -112,7 +134,10 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<ApiResponse<Void>> handleHttpMessageNotReadableException(
             HttpMessageNotReadableException ex) {
-        logger.warn("Malformed request body: {}", ex.getMessage());
+        logger.atInfo()
+                .addKeyValue("event", "request.failed")
+                .addKeyValue("failureCode", "malformed_body")
+                .log("Malformed request body");
         return error(HttpStatus.BAD_REQUEST, "The request body is invalid or cannot be parsed");
     }
 
@@ -146,20 +171,33 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ApiResponse<Void>> handleDataIntegrityViolationException(
             DataIntegrityViolationException ex) {
-        logger.error("Data integrity violation: ", ex);
+        logger.atWarn()
+                .addKeyValue("event", "request.failed")
+                .addKeyValue("failureCode", "data_integrity_conflict")
+                .log("Database integrity conflict");
         return error(HttpStatus.CONFLICT, getDetails(ex));
     }
 
     @ExceptionHandler(DataAccessException.class)
     public ResponseEntity<ApiResponse<Void>> handleDataAccessException(DataAccessException ex) {
-        logger.error("Data access error: ", ex);
+        logger.atError()
+                .setCause(ex)
+                .addKeyValue("event", "request.failed")
+                .addKeyValue("failureCode", "database_unavailable")
+                .addKeyValue("exceptionType", ex.getClass().getSimpleName())
+                .log("Unexpected database access failure");
         return error(
                 HttpStatus.INTERNAL_SERVER_ERROR, "An error occurred while accessing the database");
     }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Void>> handleGenericException(Exception ex) {
-        logger.error("Unexpected error: ", ex);
+        logger.atError()
+                .setCause(ex)
+                .addKeyValue("event", "request.failed")
+                .addKeyValue("failureCode", "internal_error")
+                .addKeyValue("exceptionType", ex.getClass().getSimpleName())
+                .log("Unexpected request processing failure");
         return error(
                 HttpStatus.INTERNAL_SERVER_ERROR,
                 "An unexpected error occurred while processing your request");

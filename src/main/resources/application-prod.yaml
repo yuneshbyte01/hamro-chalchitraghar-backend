@@ -38,3 +38,18 @@ app:
 google:
   client-id: ${GOOGLE_CLIENT_ID}
   client-secret: ${GOOGLE_CLIENT_SECRET}
+
+logging:
+  structured:
+    format:
+      console: ${LOG_FORMAT:ecs}
+    ecs:
+      service:
+        name: hamro-chalchitraghar-backend
+        environment: ${APP_ENVIRONMENT:production}
+  level:
+    root: ${LOG_LEVEL_ROOT:INFO}
+    com.chalchitraghar: ${LOG_LEVEL_APP:INFO}
+    org.springframework.security: WARN
+    org.hibernate.SQL: OFF
+    org.hibernate.orm.jdbc.bind: OFF

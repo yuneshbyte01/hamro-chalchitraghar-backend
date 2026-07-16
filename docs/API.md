@@ -1857,3 +1857,7 @@ customer identifiers, references, request/correlation IDs, QR data, recipients, 
 `GET /api/admin/refunds` supports combined lifecycle, amount, currency, attempt, manual-review, retry, provider-reference, and requested/approved/processed/failed/created time filters with bounded stable pagination. `POST /{reference}/resolve-manual-review` accepts only `MARK_SUCCEEDED`, `MARK_FAILED`, `RETRY`, or `REJECT`; `POST /{reference}/recover-stale-processing` applies only after the configured timeout. `GET /{reference}/consistency` is diagnostic and never repairs state. `GET /api/admin/refund-reports/summary?from=&to=` performs bounded database aggregation and keeps currencies separate. CSV export and global consistency scans are intentionally deferred.
 
 Admin refund detail embeds sanitized attempt summaries. Customer refund detail includes a safe requested/approved/processing/manual-review/rejected/completed timeline without retry diagnostics, worker identity, provider status, or internal failure codes. Summary reports include status, reason, method, and provider breakdowns plus retry/exhaustion counts, success/failure rates, and distinct succeeded bookings/payments.
+
+## Operational logging
+
+Existing `X-Request-ID` and `X-Correlation-ID` values appear in operational logs but logs are not API responses. Provider payloads, signatures, credentials, tokens, email content, and QR payloads are never logged. Actuator endpoint contracts and protection are unchanged.

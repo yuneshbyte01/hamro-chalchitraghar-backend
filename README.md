@@ -286,3 +286,7 @@ Custom `chalchitraghar.*` metrics cover booking, seat-lock, payment, ticket, not
 audit, refund, scheduled-job, and notification-executor activity through the protected Prometheus scrape.
 Tags use only fixed operations, outcomes, jobs, and executor names; customer and business identifiers are
 prohibited. Scheduled-job last-success timestamps are in-memory and reset when the process restarts.
+
+## Observability-3 logging
+
+Development and test profiles write readable correlation-aware console logs. The `prod` profile writes ECS-compatible structured JSON to stdout using Spring Boot's native encoder. Scheduled jobs use isolated run correlation IDs and emit one completion or failure summary. Logs exclude request bodies, credentials, tokens, OTPs, provider payloads, email content, and QR data; collection remains a deployment concern.

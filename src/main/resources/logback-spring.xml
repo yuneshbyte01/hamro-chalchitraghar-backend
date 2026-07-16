@@ -1,7 +1,24 @@
 <configuration>
-    <property name="CONSOLE_PATTERN" value="%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX} %-5level [%thread] [requestId=%X{requestId}] [correlationId=%X{correlationId}] %logger{36} - %msg%n"/>
-    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
-        <encoder><pattern>${CONSOLE_PATTERN}</pattern></encoder>
-    </appender>
-    <root level="INFO"><appender-ref ref="CONSOLE"/></root>
+    <springProperty name="ROOT_LEVEL" source="logging.level.root" defaultValue="INFO"/>
+    <springProperty name="APP_LEVEL" source="logging.level.com.chalchitraghar" defaultValue="INFO"/>
+
+    <springProfile name="!prod">
+        <property name="CONSOLE_PATTERN" value="%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX} %-5level [%thread] [requestId=%X{requestId}] [correlationId=%X{correlationId}] [actorRole=%X{actorRole}] %logger{36} - %msg%n"/>
+        <appender name="PATTERN_CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder><pattern>${CONSOLE_PATTERN}</pattern></encoder>
+        </appender>
+        <root level="${ROOT_LEVEL}"><appender-ref ref="PATTERN_CONSOLE"/></root>
+    </springProfile>
+
+    <springProfile name="prod">
+        <springProperty name="STRUCTURED_FORMAT" source="logging.structured.format.console" defaultValue="ecs"/>
+        <appender name="JSON_CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder class="org.springframework.boot.logging.logback.StructuredLogEncoder">
+                <format>${STRUCTURED_FORMAT}</format>
+            </encoder>
+        </appender>
+        <root level="${ROOT_LEVEL}"><appender-ref ref="JSON_CONSOLE"/></root>
+    </springProfile>
+
+    <logger name="com.chalchitraghar" level="${APP_LEVEL}"/>
 </configuration>

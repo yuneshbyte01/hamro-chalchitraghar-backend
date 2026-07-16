@@ -392,3 +392,7 @@ Refund-3 adds database-backed processing claims, append-only attempts, bounded r
 Refund-4 completes advanced filtering, explicit operational resolution, stale recovery, consistency diagnostics, database-aggregated reporting, and privacy retention. Across Refund-1 through Refund-4 the system supports full refunds only, cancellation coordination, manual-first processing, bounded retry, Payment REFUNDED finalization, notifications, and append-only audit foundations. Partial/seat refunds, chargebacks, speculative provider execution, global consistency scans, and CSV export remain deferred.
 
 Final customer visibility includes an ownership-scoped lifecycle timeline, while admin detail includes sanitized attempt history and processing claim context. Reports remain bounded, database-first, and currency-separated.
+
+## Observability-3
+
+Production emits native ECS structured JSON to stdout while development retains readable console logs. Request correlation is preserved, jobs receive isolated run context and one summary event, provider status enquiries expose safe latency/failure diagnostics, exception severity is normalized, and startup/shutdown state is reported without configuration secrets. Docker rotation and PostgreSQL slow-query guidance are documented. External collectors, tracing, p6spy, bind logging, and persistent job history remain deferred.

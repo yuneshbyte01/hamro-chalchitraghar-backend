@@ -642,3 +642,13 @@ untrusted unless deployment topology guarantees a trusted proxy boundary.
 - Never describe REQUESTED/APPROVED as completed or change Payment before Refund-3.
 Refund claims are persisted before execution and attempts are append-only. Retry only stable transient classifications, never unknown outcomes; stale PROCESSING claims move to MANUAL_REVIEW because dispatch cannot be proven absent. Operators must reconcile externally and use manual success only with a verified reference. Never store/log provider payloads, signatures, QR data, credentials, or raw exceptions. All refund timestamps and delays use the injected Spring Clock. Payment REFUNDED requires a full amount/currency match and confirmed Refund SUCCEEDED.
 Use per-refund consistency diagnostics before manual financial intervention. A stale recovery always produces manual review, never assumed success. Manual-review success requires independently verified completion and an external reference; exhausted work cannot silently reset attempts. Reports are bounded and currency-separated. Retention is opt-in, oldest-first, bounded, preserves the financial core, and skips active or uncertain records. Global scans and CSV export remain deferred until safe database-first/export infrastructure exists.
+
+## Structured logging policy and runbooks
+
+Event names are stable lowercase dot-separated values. Expected validation/not-found failures do not receive ERROR stack traces; unexpected failures log once at ERROR. Provider failures use bounded categories, not payloads or exception messages. External strings must pass control/newline removal and length bounding. Never log passwords, OTPs, tokens, authorization/cookies, signatures/provider payloads, email bodies/attachments, QR material, or database bind values. Job summaries contain only job/run correlation, outcome, counts and duration.
+
+- **5xx:** search by correlation ID, inspect the unexpected-failure event, complementary audit/persisted work, health and metrics.
+- **Slow request:** compare HTTP/business/provider timers, Hikari pending connections, executor/job saturation, and approved PostgreSQL fingerprints.
+- **Email failure:** inspect delivery state/retries, bounded SMTP category, executor queue and rejection metrics—never email content.
+- **Payment/refund uncertainty:** inspect audit, attempts, provider-operation events and reconciliation/manual review, not raw payloads.
+- **Job failure:** search by job-run correlation, check the single summary, failure and last-success metrics, and retryable rows.

@@ -358,3 +358,9 @@ Refund processing uses `REFUND_PROCESSING_ENABLED`, `REFUND_AUTO_PROCESS_ENABLED
 Refund-4 settings include `REFUND_REPORTS_MAX_RANGE_DAYS`, `REFUND_CONSISTENCY_BATCH_SIZE`, and disabled-by-default retention settings in `.env.example`. Retention periods are operational defaults, not claims about legal requirements. Refund operational metrics are exported through the protected Prometheus endpoint.
 
 The corresponding validated prefixes are `app.refunds.reports`, `app.refunds.consistency`, and `app.refunds.retention`. Retention supports only `ANONYMIZE`; it performs no hard deletion.
+
+## Logging and database diagnostics
+
+Development/test use the readable console pattern; production uses native ECS JSON (`LOG_FORMAT=ecs`) on stdout. `LOG_LEVEL_ROOT` and `LOG_LEVEL_APP` default to `INFO`, while production SQL and bind logging are off. Docker Compose applies bounded `json-file` rotation; other platforms own collection and retention. Inspect locally with `docker compose logs -f app`.
+
+For production database investigation, choose a deployment-appropriate PostgreSQL `log_min_duration_statement` threshold and enable `pg_stat_statements` where approved. SQL can contain personal data, so keep bind logging disabled, restrict access/retention, and prefer fingerprints. The application does not configure these PostgreSQL server settings.

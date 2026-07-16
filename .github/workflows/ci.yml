@@ -31,4 +31,4 @@ jobs:
       - name: Run observability tests in UTC
         env:
           TZ: UTC
-        run: ./mvnw -B -Dtest=ObservabilityApiIntegrationTest,ObservabilityMetricsIntegrationTest,ExecutorRejectionMetricsTest,EmailServiceLoggingTest test
+        run: ./mvnw -B -Dtest=ObservabilityApiIntegrationTest,ObservabilityMetricsIntegrationTest,ExecutorRejectionMetricsTest,OperationalLoggingTest,EmailServiceLoggingTest test
