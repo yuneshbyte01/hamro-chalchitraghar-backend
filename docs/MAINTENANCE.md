@@ -11,6 +11,12 @@ zero/null handling, and avoid joins that multiply amounts. Date predicates remai
 OpenAPI tests using Clock-derived or explicit deterministic timestamps, including Kathmandu/UTC
 boundary coverage.
 
+New groupings belong in `ReportGrouping` and `ReportPeriodBuckets`; always emit clipped empty
+buckets. New sorts must map from a typed enum to an allowlisted SQL expression and retain a stable
+name/ID tie breaker. Add dimensions by extending the pre-aggregated dimension metadata rather than
+building a flat payment/seat/refund join. Test at least two seats, two payments, one refund, and
+multiple refund attempts to prove financial sums remain independent.
+
 ## Notification-4 operations
 
 Preference types belong in the centralized preference policy and affect only future EMAIL rows.

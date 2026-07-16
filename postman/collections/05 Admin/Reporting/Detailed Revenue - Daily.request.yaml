@@ -1,0 +1,7 @@
+$kind: http-request
+name: Detailed Revenue - Daily
+url: "{{base_url}}/api/admin/reports/revenue?startDate={{report_start_date}}&endDate={{report_end_date}}&groupBy=DAY"
+method: GET
+headers:
+  Authorization: Bearer {{admin_token}}
+order: 6940

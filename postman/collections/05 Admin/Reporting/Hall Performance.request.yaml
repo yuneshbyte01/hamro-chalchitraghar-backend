@@ -1,0 +1,7 @@
+$kind: http-request
+name: Hall Performance
+url: "{{base_url}}/api/admin/reports/halls?startDate={{report_start_date}}&endDate={{report_end_date}}&currency={{report_currency}}&sort=OCCUPANCY&direction=DESC&page=0&size=20"
+method: GET
+headers:
+  Authorization: Bearer {{admin_token}}
+order: 7010

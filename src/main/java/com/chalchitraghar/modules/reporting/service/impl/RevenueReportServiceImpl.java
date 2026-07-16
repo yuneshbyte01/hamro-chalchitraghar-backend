@@ -1,11 +1,12 @@
 package com.chalchitraghar.modules.reporting.service.impl;
 
 import com.chalchitraghar.modules.payments.enums.*;
-import com.chalchitraghar.modules.reporting.dto.request.ReportingDateRange;
+import com.chalchitraghar.modules.reporting.dto.request.*;
 import com.chalchitraghar.modules.reporting.dto.response.*;
 import com.chalchitraghar.modules.reporting.projection.*;
+import com.chalchitraghar.modules.reporting.repository.ReportingAnalyticsRepository;
 import com.chalchitraghar.modules.reporting.repository.ReportingQueryRepository;
-import com.chalchitraghar.modules.reporting.service.RevenueReportService;
+import com.chalchitraghar.modules.reporting.service.*;
 import java.math.*;
 import java.util.*;
 import lombok.RequiredArgsConstructor;
@@ -19,10 +20,13 @@ public class RevenueReportServiceImpl implements RevenueReportService {
     private static final Set<PaymentStatus> RECOGNIZED =
             Set.of(PaymentStatus.SUCCESS, PaymentStatus.REFUNDED);
     private final ReportingQueryRepository repository;
+    private final ReportingAnalyticsRepository analytics;
+    private final ReportingRateCalculator calculator;
+    private final ReportPeriodBuckets buckets;
 
     @Override
     public AdminRevenueKpiResponse getKpis(ReportingDateRange range, String currency) {
-        String normalized = normalizeCurrency(currency);
+        String normalized = calculator.currency(currency);
         Map<String, RevenueValues> values = new TreeMap<>();
         repository
                 .paymentRevenue(
@@ -51,13 +55,84 @@ public class RevenueReportServiceImpl implements RevenueReportService {
         return new AdminRevenueKpiResponse(ReportingPeriodResponse.from(range), currencies);
     }
 
-    private String normalizeCurrency(String currency) {
-        if (currency == null) return null;
-        String normalized = currency.trim().toUpperCase(Locale.ROOT);
-        if (!normalized.matches("[A-Z]{3}")) {
-            throw new IllegalArgumentException("currency must contain exactly three letters");
+    @Override
+    public DetailedRevenueReportResponse getDetailedReport(
+            ReportingDateRange range, String currency, ReportGrouping grouping) {
+        String normalized = calculator.currency(currency);
+        ReportGrouping effective = grouping == null ? ReportGrouping.DAY : grouping;
+        AdminRevenueKpiResponse total = getKpis(range, normalized);
+        Map<Key, Values> values = new HashMap<>();
+        Set<String> currencies = new TreeSet<>();
+        analytics
+                .dailyPayments(range.startInclusive(), range.endExclusive(), normalized)
+                .forEach(
+                        row -> {
+                            currencies.add(row.currency());
+                            values.computeIfAbsent(
+                                            new Key(
+                                                    buckets.key(row.day(), effective),
+                                                    row.currency()),
+                                            key -> new Values())
+                                    .payment(row.count(), row.amount());
+                        });
+        analytics
+                .dailyRefunds(range.startInclusive(), range.endExclusive(), normalized)
+                .forEach(
+                        row -> {
+                            currencies.add(row.currency());
+                            values.computeIfAbsent(
+                                            new Key(
+                                                    buckets.key(row.day(), effective),
+                                                    row.currency()),
+                                            key -> new Values())
+                                    .refund(row.count(), row.amount());
+                        });
+        if (normalized != null) currencies.add(normalized);
+        List<RevenueTrendBucketResponse> trends = new ArrayList<>();
+        for (var period : buckets.periods(range.startDate(), range.endDate(), effective)) {
+            for (String code : currencies) {
+                Values v = values.getOrDefault(new Key(period.key(), code), new Values());
+                trends.add(v.response(period.start(), period.end(), code, calculator));
+            }
         }
-        return normalized;
+        return new DetailedRevenueReportResponse(
+                ReportingPeriodResponse.from(range), effective, total.currencies(), trends);
+    }
+
+    private record Key(java.time.LocalDate period, String currency) {}
+
+    private static final class Values {
+        private BigDecimal gross = BigDecimal.ZERO;
+        private BigDecimal refunds = BigDecimal.ZERO;
+        private long payments;
+        private long refundCount;
+
+        void payment(long count, BigDecimal amount) {
+            payments += count;
+            gross = gross.add(amount);
+        }
+
+        void refund(long count, BigDecimal amount) {
+            refundCount += count;
+            refunds = refunds.add(amount);
+        }
+
+        RevenueTrendBucketResponse response(
+                java.time.LocalDate start,
+                java.time.LocalDate end,
+                String currency,
+                ReportingRateCalculator calculator) {
+            return new RevenueTrendBucketResponse(
+                    start,
+                    end,
+                    currency,
+                    gross.setScale(2),
+                    refunds.setScale(2),
+                    gross.subtract(refunds).setScale(2),
+                    payments,
+                    refundCount,
+                    calculator.average(gross, payments));
+        }
     }
 
     private static final class RevenueValues {

@@ -1,0 +1,7 @@
+$kind: http-request
+name: Show Performance
+url: "{{base_url}}/api/admin/reports/shows?startDate={{report_start_date}}&endDate={{report_end_date}}&currency={{report_currency}}&sort=SHOW_DATE&direction=DESC&page=0&size=20"
+method: GET
+headers:
+  Authorization: Bearer {{admin_token}}
+order: 7020

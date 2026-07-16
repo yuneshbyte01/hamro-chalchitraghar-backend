@@ -79,6 +79,10 @@ postman/environments/
 | report_end_date | Inclusive reporting end date |
 | report_currency | Optional three-letter reporting currency |
 
+The ADMIN Reporting folder includes Reporting 1 dashboards plus daily/weekly/monthly revenue,
+booking trends, occupancy, and movie/hall/show performance examples. Performance requests show
+pagination and deterministic sorting parameters.
+
 ---
 
 # Demo Users

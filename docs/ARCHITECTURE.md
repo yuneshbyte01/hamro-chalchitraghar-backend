@@ -11,6 +11,13 @@ API-only. Services fill absent booking statuses with zero and merge payment-only
 currencies without combining currencies. Prometheus/Grafana remains operational telemetry, not the
 financial source of truth.
 
+Reporting 2 adds `ReportingAnalyticsRepository`, which uses bounded JDBC aggregate queries for daily
+trend inputs and database-paginated occupancy/performance rows. The flow is
+`AdminReportingController -> revenue/booking/occupancy/performance services -> aggregate query
+repository`. Capacity, sold seats, confirmed bookings, payments, and refunds are aggregated
+independently. Services merge only aggregate-sized results, preventing one-to-many joins from
+multiplying money. Page totals are separate database counts and never represent only the page.
+
 Hamro Chalchitraghar Backend is a Spring Boot modular monolith. It is deployed as one application, but the code is organized by domain modules and API audience boundaries.
 
 ## Overall Architecture

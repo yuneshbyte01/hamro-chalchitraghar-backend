@@ -10,6 +10,16 @@ Reporting 1 adds no schema object or migration. Booking KPIs group `bookings` by
 generated-seat aggregation are deferred to Reporting 2. Financial queries do not join booking
 seats, tickets, or refund attempts.
 
+## Reporting 2 indexes and aggregation
+
+Flyway `V38__add_reporting_query_indexes.sql` adds `(booking_time,status)`,
+`payments(status,completed_at,currency)`, `refunds(status,processed_at,currency)`,
+`shows(show_date,status)`, movie/hall show-date composites, and `(show_id,seat_status)` for generated
+seats. These support the implemented bounded trend, show selection, dimension, and occupancy
+queries. Generated `seats` are historical capacity; distinct `booking_seats.seat_id` attached to
+confirmed bookings are sold seats. Payments/refunds are aggregated separately from seats and refund
+attempts. No reporting tables were added.
+
 Hamro Chitralekha Backend uses PostgreSQL in development and production. The schema is managed by Flyway SQL migrations in `src/main/resources/db/migration`.
 
 Hibernate is configured with `ddl-auto: validate`, so the application validates the schema at startup instead of generating it.

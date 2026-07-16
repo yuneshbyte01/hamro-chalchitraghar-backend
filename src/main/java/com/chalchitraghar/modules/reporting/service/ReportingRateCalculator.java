@@ -2,6 +2,7 @@ package com.chalchitraghar.modules.reporting.service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.Locale;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -11,5 +12,18 @@ public class ReportingRateCalculator {
         return BigDecimal.valueOf(numerator)
                 .multiply(BigDecimal.valueOf(100))
                 .divide(BigDecimal.valueOf(denominator), 2, RoundingMode.HALF_UP);
+    }
+
+    public BigDecimal average(BigDecimal numerator, long denominator) {
+        if (denominator == 0) return BigDecimal.ZERO.setScale(2);
+        return numerator.divide(BigDecimal.valueOf(denominator), 2, RoundingMode.HALF_UP);
+    }
+
+    public String currency(String currency) {
+        if (currency == null) return null;
+        String normalized = currency.trim().toUpperCase(Locale.ROOT);
+        if (!normalized.matches("[A-Z]{3}"))
+            throw new IllegalArgumentException("currency must contain exactly three letters");
+        return normalized;
     }
 }

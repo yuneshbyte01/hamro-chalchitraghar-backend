@@ -7,6 +7,10 @@ uses existing `app.time-zone`/`APP_TIME_ZONE` (default `Asia/Kathmandu`) to conv
 dates into local-midnight boundaries. Set the deployment timezone explicitly and keep database
 timestamp handling consistent. Existing `/api/admin/**` security provides ADMIN-only access.
 
+Reporting 2 introduces no runtime setting or dependency. Flyway applies V38 reporting indexes on
+the next normal startup. Trend boundaries continue to use `app.time-zone`; page size is API-bounded
+to 100 and needs no configuration.
+
 This guide explains how to run Hamro Chalchitraghar Backend locally, with Docker, and in tests.
 
 ## Requirements

@@ -1,0 +1,7 @@
+$kind: http-request
+name: Occupancy Summary
+url: "{{base_url}}/api/admin/reports/occupancy?startDate={{report_start_date}}&endDate={{report_end_date}}&sort=OCCUPANCY&direction=DESC&page=0&size=20"
+method: GET
+headers:
+  Authorization: Bearer {{admin_token}}
+order: 6990

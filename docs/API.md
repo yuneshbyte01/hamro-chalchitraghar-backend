@@ -22,6 +22,28 @@ payment attempt once. Refund amount includes only `SUCCEEDED` refunds by `proces
 negative. Active movies means `NOW_SHOWING` plus `UPCOMING`; movie and show-status counts are current
 snapshots. Validation, authentication, and authorization failures return 400, 401, and 403.
 
+## Detailed analytical reports (Reporting 2)
+
+| Route | Important parameters | Meaning |
+| --- | --- | --- |
+| `/api/admin/reports/revenue` | `groupBy=DAY|WEEK|MONTH`, optional `currency` | Complete revenue/refund trend buckets |
+| `/api/admin/reports/bookings` | `groupBy=DAY|WEEK|MONTH` | Complete booking-status trend buckets |
+| `/api/admin/reports/occupancy` | movie/hall/status filters, sort, direction, page, size | Summary plus show occupancy page |
+| `/api/admin/reports/movies` | currency, sort, direction, page, size | Movie performance |
+| `/api/admin/reports/halls` | currency, sort, direction, page, size | Hall performance |
+| `/api/admin/reports/shows` | movie/hall/status/currency, sort, direction, page, size | Show performance |
+
+Weeks are ISO Monday–Sunday and outer buckets are clipped to the requested inclusive date range.
+Empty booking buckets are returned; revenue produces a complete zero series for every currency seen
+in the period or for the requested currency. Occupancy is distinct confirmed booking seats divided
+by generated show seats. Zero-capacity shows return `0.00` and `measurable=false`. Cancelled shows
+are excluded unless explicitly requested by the occupancy/show endpoints.
+
+Performance selects shows by `showDate`. Recognized payments and successful refunds attached to
+those shows are included regardless of transaction date, answering “how did shows scheduled in this
+period perform?” Financial aggregates never combine currencies. Pages default to 0/20, have maximum
+size 100, and use stable dimension-ID tie breakers.
+
 Responses include `X-Request-ID` (one request) and `X-Correlation-ID` (related work). Safe client IDs
 are accepted; missing, invalid, or oversized values are replaced. Audit detail includes masked IP when
 enabled, bounded user agent, method, and path; summaries omit IP/user agent. Filters support request ID,

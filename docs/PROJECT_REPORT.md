@@ -11,6 +11,16 @@ BigDecimal financial values, Swagger, authorization tests, and Postman requests 
 Occupancy, trends, rankings, exports, scheduled delivery, caching, and advanced analytics remain
 deferred to Reporting 2–4.
 
+## Reporting 2 — detailed performance analytics
+
+Reporting 2 adds complete daily/ISO-week/month booking and financial series, show occupancy, and
+paginated movie, hall, and show performance. Generated seats remain the capacity authority, sold
+seats come only from confirmed booking-seat snapshots, and show-date-selected performance merges
+independent currency aggregates for recognized payments and successful refunds. Stable typed sorts,
+filters, page bounds, Swagger, Postman, multiplication-proof tests, and query-specific V38 indexes
+are included. Exports, comparisons, scheduled delivery, caching, and advanced analytics remain
+deferred.
+
 ## Observability-1
 
 The platform now includes Spring Boot Actuator and the Prometheus registry with explicit exposure of only

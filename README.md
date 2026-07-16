@@ -10,6 +10,14 @@ Revenue includes completed `SUCCESS` and `REFUNDED` payments, subtracts only `SU
 and remains separated by currency. Occupancy, trends, rankings, exports, scheduled reports, and
 reporting caches remain deferred.
 
+## Reporting 2 analytical reports
+
+ADMIN reporting now also includes detailed revenue and booking trends grouped by day, ISO week, or
+month; generated-seat occupancy; and paginated movie, hall, and show performance. Performance is
+selected by show date, excludes cancelled shows by default, counts distinct seats on confirmed
+bookings, and aggregates payments and refunds independently by currency. Supported endpoints expose
+typed filtering, stable sorting, and bounded pagination under `/api/admin/reports`.
+
 Refund-1 provides a database-backed full-refund intent foundation. Trusted internal callers can
 create idempotent `REQUESTED` intents for eligible successful payments; customer APIs expose only
 refunds owned through the authenticated user's bookings, while ADMIN APIs provide sanitized
