@@ -1,0 +1,6 @@
+$kind: http-request
+name: Analytics - Booking Patterns
+url: "{{base_url}}/api/admin/reports/analytics/booking-patterns?startDate={{report_start_date}}&endDate={{report_end_date}}&groupBy=HOUR_OF_DAY"
+method: GET
+headers: {Authorization: "Bearer {{admin_token}}"}
+order: 7210

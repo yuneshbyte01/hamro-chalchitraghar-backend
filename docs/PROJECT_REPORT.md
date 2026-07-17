@@ -424,3 +424,6 @@ The final phase adds an optional pinned Prometheus/Grafana Compose overlay, auth
 # Reporting 3 status
 
 Reporting 3 exports, comparisons, scheduled configuration, completed-period generation, attachment delivery, retry tracking, and database idempotency are implemented. Reporting 4 predictive and customer analytics remain deferred.
+# Reporting completion
+
+Reporting 1–4 are implemented: dashboard KPIs, detailed/performance reports, exports/comparisons/scheduling, and explainable advanced analytics. The system does not claim page-view funnels, machine learning, validated forecasting, currency conversion, or a BI warehouse.

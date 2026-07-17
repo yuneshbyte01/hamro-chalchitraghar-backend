@@ -1,0 +1,6 @@
+$kind: http-request
+name: Analytics - Revenue Concentration
+url: "{{base_url}}/api/admin/reports/analytics/revenue-concentration?startDate={{report_start_date}}&endDate={{report_end_date}}&currency=NPR&dimension=MOVIE&top=5"
+method: GET
+headers: {Authorization: "Bearer {{admin_token}}"}
+order: 7270

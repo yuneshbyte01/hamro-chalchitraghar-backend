@@ -612,3 +612,6 @@ Refund-4 migration V37 adds `retention_status`, refund/attempt `anonymized_at`, 
 # Reporting 3 persistence
 
 `scheduled_reports` stores type, frequency, format, normalized recipient/currency, enablement, and run timestamps. `report_deliveries` stores the completed period, bounded status/attempt metadata, safe filename, and SHA-256 idempotency key. The key is unique. Due-schedule, retry, and schedule-period indexes keep dispatcher reads bounded.
+# Reporting 4 query support
+
+`V40__optimize_reporting_analytics_queries.sql` adds `bookings(user_id,status,booking_time)` for within-period customer grouping and `refunds(requested_at,status,currency)` for refund status/currency analytics. Existing Reporting 2 indexes continue to support booking time, payment completion, refund processing, show date/dimension, and generated-seat scans. Reporting remains read-through over operational tables; there is no reporting warehouse or materialized view.

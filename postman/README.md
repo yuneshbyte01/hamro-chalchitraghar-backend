@@ -265,3 +265,6 @@ Planned additions include:
 # Reporting 3
 
 The Admin/Reporting collection includes CSV/XLSX exports, period and entity comparisons, and scheduled-report create/list/update/enable/disable/manual-run examples.
+# Advanced Analytics
+
+The reporting collection includes examples for booking patterns, show-time performance, seat utilization, customer behavior, conversion, refunds, revenue concentration, performance extremes, data quality, and delivery history.

@@ -315,3 +315,6 @@ The optional Compose overlay provisions pinned Prometheus and Grafana services, 
 # Reporting 3
 
 ADMIN reporting now supports formula-safe CSV and XLSX exports, previous/custom-period comparisons, movie and hall comparisons, and persistent daily/weekly/monthly report schedules. Scheduled delivery uses completed local periods, bounded retries, attachment email delivery, and a unique deterministic delivery key.
+# Reporting 4
+
+The completed reporting module now includes explainable booking-pattern, show-time, seat-utilization, aggregate customer, conversion, refund, revenue-concentration, performance-extreme, and compact data-quality analytics. All business analytics are ADMIN-only, timezone-aware, currency-isolated, and backed by bounded aggregate queries.

@@ -632,3 +632,8 @@ The monitoring credential is injected as a Docker/platform secret and grants onl
 # Reporting 3 architecture
 
 Reporting services feed flat export-row mapping and formula-safe CSV/SXSSF exporters. The scheduled dispatcher selects a bounded due batch, invokes reporting services directly, generates an attachment, delivers through JavaMail, and updates persistent delivery state. Payments, refunds, and seats retain Reporting 2's independent aggregation.
+# Complete reporting architecture
+
+Admin reporting controllers call reporting and analytics services, which use grouped JDBC/JPA projections and PostgreSQL source tables. Payments, refunds, booking seats, and generated seats are aggregated independently. Performance projections also feed CSV/XLSX downloads and scheduled attachments. The scheduler uses deterministic delivery idempotency before generation, mail delivery, and persistent tracking.
+
+No reporting warehouse or cache is present. Cache introduction remains measurement-driven so it cannot become a stale source of truth.

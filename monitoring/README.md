@@ -95,6 +95,8 @@ Check last-success telemetry, the fixed job name and job-run correlation log, sc
 
 Reporting adds `scheduled_report_dispatch` and `scheduled_report_retry` job telemetry plus bounded `report_delivery_total` and `report_delivery_failures_total` counters tagged only by status/format. Alert on repeated failures or stale dispatcher success; never tag recipient, schedule ID, filename, or error text.
 
+Reporting HTTP telemetry includes request counts, duration, and query failures tagged by stable route template and status. Export/generation/delivery metrics remain bounded by report type, format, and status. Date ranges, recipients, filenames, entity titles, and identifiers must never become metric labels. Establish duration or failure alerts only after observing a representative baseline.
+
 ## Audit integrity failure
 
 Preserve database and log evidence, restrict access, compare append-only audit history with correlated operational events, and escalate immediately to the system owner. Do not repair/delete audit rows or rotate evidence during investigation.

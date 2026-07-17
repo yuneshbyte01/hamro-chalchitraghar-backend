@@ -9,6 +9,7 @@ import com.chalchitraghar.modules.reporting.schedule.ScheduledReportService;
 import com.chalchitraghar.modules.reporting.schedule.dto.*;
 import com.chalchitraghar.modules.shows.enums.ShowStatus;
 import com.chalchitraghar.shared.response.ApiResponse;
+import com.chalchitraghar.shared.response.PageResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -221,6 +222,20 @@ public class AdminReportOperationsController {
     @Operation(summary = "Idempotently generate and deliver the latest completed period")
     public ResponseEntity<ApiResponse<ReportDeliveryResponse>> run(@PathVariable long id) {
         return ok("Scheduled report run completed", schedules.run(id));
+    }
+
+    @GetMapping("/deliveries")
+    @Operation(summary = "List report delivery history without recipient or stack-trace disclosure")
+    public ResponseEntity<ApiResponse<PageResponse<ReportDeliveryResponse>>> deliveries(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return ok("Report deliveries fetched", schedules.deliveries(page, size));
+    }
+
+    @GetMapping("/deliveries/{id}")
+    @Operation(summary = "Get one report delivery")
+    public ResponseEntity<ApiResponse<ReportDeliveryResponse>> delivery(@PathVariable long id) {
+        return ok("Report delivery fetched", schedules.delivery(id));
     }
 
     private ReportingDateRange range(LocalDate start, LocalDate end) {

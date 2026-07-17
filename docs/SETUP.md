@@ -382,3 +382,6 @@ Create `monitoring/secrets/prometheus_scrape_password` without a trailing newlin
 # Reporting operations
 
 Defaults: 50,000 export rows, 20 MB generated file, 25 schedules per scan, five delivery attempts, five-minute retry/scan intervals. Set `REPORTING_SCHEDULE_EMAIL_ENABLED=true` only with working Spring Mail configuration. The in-process dispatcher is single-instance scheduled; database idempotency remains mandatory protection against duplicate delivery rows.
+# Reporting 4 operations
+
+Reporting 4 introduces no mandatory environment variables and no cache dependency. Apply Flyway through V40. Existing Reporting 3 export, file-size, batch, retry, scan, and email properties remain authoritative. PostgreSQL plan validation should use representative non-production data before changing indexes or cache policy.

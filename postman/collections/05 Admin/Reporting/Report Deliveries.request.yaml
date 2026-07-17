@@ -1,0 +1,6 @@
+$kind: http-request
+name: Report Deliveries
+url: "{{base_url}}/api/admin/reports/deliveries?page=0&size=20"
+method: GET
+headers: {Authorization: "Bearer {{admin_token}}"}
+order: 7300

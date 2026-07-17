@@ -676,3 +676,6 @@ Five provisioned dashboards cover application/HTTP, JVM/database/executor capaci
 # Maintaining Reporting 3
 
 New export formats belong behind `ReportExporter`; new report types map existing service results to flat rows. Preserve formula protection and row/file limits. New frequencies must define the previous completed period and next run from the injected `Clock`. Never change the idempotency key inputs without a migration and duplicate-delivery review.
+# Maintaining advanced analytics
+
+Add KPIs with bounded grouped projections, reuse `ReportingDateRange`, `ReportingRateCalculator`, and currency normalization, and merge independent money/seat aggregates by stable IDs. New dimensions require allowlisted SQL expressions, deterministic ties, timezone tests, and `EXPLAIN` review against representative PostgreSQL data. Do not add caches or indexes without plan/latency evidence.

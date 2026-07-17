@@ -1914,3 +1914,8 @@ Prometheus continues to use `GET /actuator/prometheus`. ADMIN bearer tokens rema
 `/api/admin/reports/comparisons/periods` supports `PREVIOUS_PERIOD` and `CUSTOM`. Previous periods have identical inclusive-day length. A zero comparison value is non-comparable when the current value is nonzero. Movie and hall comparisons accept two to five unique IDs; revenue rank is omitted without a currency filter.
 
 Schedule CRUD is under `/api/admin/reports/schedules`. Manual run generates the most recently completed local day, ISO week, or calendar month and reuses the same delivery record for an identical period and recipient.
+# Reporting 4 analytics
+
+Advanced analytics live under `/api/admin/reports/analytics`: `overview`, `booking-patterns`, `show-times`, `seats`, `customers`, `conversion`, `refunds`, `revenue-concentration`, `performance-extremes`, and `data-quality`. API dates are inclusive local dates. Concentration requires one currency and `top` is 1–20. Performance extremes default to one eligible show. Delivery history is available at `/api/admin/reports/deliveries` and `/{id}`.
+
+Booking conversion means confirmed stored booking attempts divided by bookings created; it is not website conversion. Repeat customers have at least two confirmed bookings inside the period. Refund amount rates are per currency. Projection remains omitted because no statistically validated forecasting model is present.

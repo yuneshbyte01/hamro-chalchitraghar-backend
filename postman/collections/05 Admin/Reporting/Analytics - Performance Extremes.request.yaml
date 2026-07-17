@@ -1,0 +1,6 @@
+$kind: http-request
+name: Analytics - Performance Extremes
+url: "{{base_url}}/api/admin/reports/analytics/performance-extremes?startDate={{report_start_date}}&endDate={{report_end_date}}&currency=NPR&minimumShows=1"
+method: GET
+headers: {Authorization: "Bearer {{admin_token}}"}
+order: 7280

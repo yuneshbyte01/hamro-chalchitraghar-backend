@@ -1,6 +1,7 @@
 package com.chalchitraghar.modules.reporting.schedule;
 
 import com.chalchitraghar.modules.reporting.schedule.dto.*;
+import com.chalchitraghar.shared.response.PageResponse;
 import java.util.List;
 
 public interface ScheduledReportService {
@@ -21,4 +22,8 @@ public interface ScheduledReportService {
     int dispatchDue();
 
     int retryFailed();
+
+    PageResponse<ReportDeliveryResponse> deliveries(int page, int size);
+
+    ReportDeliveryResponse delivery(long id);
 }

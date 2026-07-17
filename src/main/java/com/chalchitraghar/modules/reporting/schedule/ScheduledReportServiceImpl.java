@@ -8,6 +8,7 @@ import com.chalchitraghar.modules.reporting.schedule.dto.*;
 import com.chalchitraghar.modules.reporting.schedule.entity.*;
 import com.chalchitraghar.modules.reporting.schedule.repository.*;
 import com.chalchitraghar.shared.exception.ResourceNotFoundException;
+import com.chalchitraghar.shared.response.PageResponse;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import java.nio.charset.StandardCharsets;
@@ -16,6 +17,7 @@ import java.time.*;
 import java.util.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -114,6 +116,29 @@ public class ScheduledReportServiceImpl implements ScheduledReportService {
                                 PageRequest.of(0, properties.schedule().batchSize()));
         due.forEach(this::attempt);
         return due.size();
+    }
+
+    @Transactional(readOnly = true)
+    public PageResponse<ReportDeliveryResponse> deliveries(int page, int size) {
+        if (page < 0 || size < 1 || size > 100)
+            throw new IllegalArgumentException(
+                    "page must be non-negative and size must be between 1 and 100");
+        var result =
+                deliveries.findAll(
+                        PageRequest.of(
+                                page,
+                                size,
+                                Sort.by(Sort.Direction.DESC, "createdAt")
+                                        .and(Sort.by(Sort.Direction.DESC, "id"))));
+        return PageResponse.from(result, result.getContent().stream().map(this::response).toList());
+    }
+
+    @Transactional(readOnly = true)
+    public ReportDeliveryResponse delivery(long id) {
+        return response(
+                deliveries
+                        .findById(id)
+                        .orElseThrow(() -> new ResourceNotFoundException("Report delivery", id)));
     }
 
     private ReportDelivery generate(ScheduledReport schedule) {
