@@ -1,0 +1,7 @@
+$kind: http-request
+name: Revenue Export CSV
+url: "{{base_url}}/api/admin/reports/exports/revenue?startDate={{report_start_date}}&endDate={{report_end_date}}&currency=NPR&groupBy=DAY&format=CSV"
+method: GET
+headers:
+  Authorization: Bearer {{admin_token}}
+order: 7000

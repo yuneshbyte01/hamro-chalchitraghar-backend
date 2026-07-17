@@ -1907,3 +1907,10 @@ Admin refund detail embeds sanitized attempt summaries. Customer refund detail i
 Existing `X-Request-ID` and `X-Correlation-ID` values appear in operational logs but logs are not API responses. Provider payloads, signatures, credentials, tokens, email content, and QR payloads are never logged. Actuator endpoint contracts and protection are unchanged.
 
 Prometheus continues to use `GET /actuator/prometheus`. ADMIN bearer tokens remain supported, while deployment scraping may use the dedicated secret-injected monitoring Basic credential. That credential has no business-API authority. Grafana dashboards and Prometheus queries are operational tools, not application APIs.
+# Reporting 3 API
+
+`/api/admin/reports/exports/{revenue|bookings|occupancy|movies|halls|shows}` accepts the matching report filters plus required `format=CSV|XLSX`. Exports contain all filtered rows up to 50,000 and use deterministic filenames.
+
+`/api/admin/reports/comparisons/periods` supports `PREVIOUS_PERIOD` and `CUSTOM`. Previous periods have identical inclusive-day length. A zero comparison value is non-comparable when the current value is nonzero. Movie and hall comparisons accept two to five unique IDs; revenue rank is omitted without a currency filter.
+
+Schedule CRUD is under `/api/admin/reports/schedules`. Manual run generates the most recently completed local day, ISO week, or calendar month and reuses the same delivery record for an identical period and recipient.

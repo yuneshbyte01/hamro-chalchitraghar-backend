@@ -629,3 +629,6 @@ Application -> Actuator/Micrometer -> authenticated Prometheus scrape
 ```
 
 The monitoring credential is injected as a Docker/platform secret and grants only scrape access. Prometheus/Grafana share a private monitoring network and bind to loopback locally. Logs provide diagnostics, database/audit records remain business authority, Prometheus provides restart-sensitive operational series, and Grafana provides no source-of-truth persistence.
+# Reporting 3 architecture
+
+Reporting services feed flat export-row mapping and formula-safe CSV/SXSSF exporters. The scheduled dispatcher selects a bounded due batch, invokes reporting services directly, generates an attachment, delivers through JavaMail, and updates persistent delivery state. Payments, refunds, and seats retain Reporting 2's independent aggregation.

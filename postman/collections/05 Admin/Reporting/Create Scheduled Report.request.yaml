@@ -1,0 +1,11 @@
+$kind: http-request
+name: Create Scheduled Report
+url: "{{base_url}}/api/admin/reports/schedules"
+method: POST
+headers:
+  Authorization: Bearer {{admin_token}}
+  Content-Type: application/json
+body:
+  type: json
+  content: '{"name":"Daily revenue","reportType":"REVENUE","scheduleFrequency":"DAILY","deliveryFormat":"CSV","recipientEmail":"reports@example.com","currency":"NPR","enabled":false}'
+order: 7060

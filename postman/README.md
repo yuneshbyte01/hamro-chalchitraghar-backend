@@ -262,3 +262,6 @@ Planned additions include:
 **Backend:** Java 21 · Spring Boot · PostgreSQL · JWT · Flyway · Docker
 
 **Collection Version:** MVP v1.0
+# Reporting 3
+
+The Admin/Reporting collection includes CSV/XLSX exports, period and entity comparisons, and scheduled-report create/list/update/enable/disable/manual-run examples.

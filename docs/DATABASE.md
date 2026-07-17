@@ -609,3 +609,6 @@ timestamp fields record approval/rejection. `REQUESTED` and `APPROVED` reserve t
 total, provider execution, attempt, retry, or completion field is added.
 Refund-3 migration V36 adds claim, attempt, retry, failure, provider-status, and completion fields to `refunds`, plus append-only `refund_attempts` with unique `(refund_id, attempt_number)`. Indexed status/due-time and status/claim-time scans support bounded retry and stale recovery. A confirmed full success is the only transition that changes Payment `SUCCESS -> REFUNDED`.
 Refund-4 migration V37 adds `retention_status`, refund/attempt `anonymized_at`, and reporting/retention indexes. Retention preserves references, relationships, amount, currency, lifecycle state, provider identifiers, and timestamps while removing free-form operational text and correlation/worker metadata. Active, retry-pending, processing, and manual-review records are excluded.
+# Reporting 3 persistence
+
+`scheduled_reports` stores type, frequency, format, normalized recipient/currency, enablement, and run timestamps. `report_deliveries` stores the completed period, bounded status/attempt metadata, safe filename, and SHA-256 idempotency key. The key is unique. Due-schedule, retry, and schedule-period indexes keep dispatcher reads bounded.

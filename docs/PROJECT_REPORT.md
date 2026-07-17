@@ -421,3 +421,6 @@ Production emits native ECS structured JSON to stdout while development retains 
 ## Observability-4
 
 The final phase adds an optional pinned Prometheus/Grafana Compose overlay, authenticated secret-backed scraping, bounded retention, provisioned datasource and five dashboards, sustained alert rules, provisional SLIs/SLOs and error-budget guidance, capacity indicators, synthetic readiness, CI validation, monitoring security, and incident runbooks. No tracing backend or centralized log collector is deployed; Prometheus is not financial authority, and thresholds require real-traffic baseline tuning.
+# Reporting 3 status
+
+Reporting 3 exports, comparisons, scheduled configuration, completed-period generation, attachment delivery, retry tracking, and database idempotency are implemented. Reporting 4 predictive and customer analytics remain deferred.

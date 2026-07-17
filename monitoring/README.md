@@ -93,6 +93,8 @@ Inspect executor queue/active/completion/rejections, SMTP failure category, pers
 
 Check last-success telemetry, the fixed job name and job-run correlation log, scheduler enablement, duration versus interval, row locks/claims, and persisted retryable rows. Remember restart resets freshness. Restart only when safe and avoid concurrent manual invocation that can duplicate work.
 
+Reporting adds `scheduled_report_dispatch` and `scheduled_report_retry` job telemetry plus bounded `report_delivery_total` and `report_delivery_failures_total` counters tagged only by status/format. Alert on repeated failures or stale dispatcher success; never tag recipient, schedule ID, filename, or error text.
+
 ## Audit integrity failure
 
 Preserve database and log evidence, restrict access, compare append-only audit history with correlated operational events, and escalate immediately to the system owner. Do not repair/delete audit rows or rotate evidence during investigation.

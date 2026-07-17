@@ -13,7 +13,9 @@ public enum JobName {
     NOTIFICATION_RETENTION,
     AUDIT_RETENTION,
     REFUND_RETRY,
-    REFUND_RETENTION;
+    REFUND_RETENTION,
+    SCHEDULED_REPORT_DISPATCH,
+    SCHEDULED_REPORT_RETRY;
 
     String tag() {
         return name().toLowerCase(java.util.Locale.ROOT);

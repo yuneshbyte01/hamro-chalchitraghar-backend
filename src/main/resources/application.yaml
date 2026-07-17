@@ -161,6 +161,16 @@ app:
     expiry-cleanup-interval-ms: ${BOOKING_EXPIRY_CLEANUP_INTERVAL_MS:60000}
     expiry-batch-size: ${BOOKING_EXPIRY_BATCH_SIZE:100}
     cancellation-cutoff-minutes: ${BOOKING_CANCELLATION_CUTOFF_MINUTES:0}
+  reporting:
+    export:
+      max-rows: ${REPORTING_EXPORT_MAX_ROWS:50000}
+      max-file-size-bytes: ${REPORTING_EXPORT_MAX_FILE_SIZE_BYTES:20000000}
+    schedule:
+      batch-size: ${REPORTING_SCHEDULE_BATCH_SIZE:25}
+      max-attempts: ${REPORTING_SCHEDULE_MAX_ATTEMPTS:5}
+      retry-delay: ${REPORTING_SCHEDULE_RETRY_DELAY:PT5M}
+      scan-interval: ${REPORTING_SCHEDULE_SCAN_INTERVAL:PT5M}
+      email-enabled: ${REPORTING_SCHEDULE_EMAIL_ENABLED:false}
   payments:
     attempt-expiration-minutes: ${PAYMENT_ATTEMPT_EXPIRATION_MINUTES:10}
     local-enabled: ${PAYMENT_LOCAL_ENABLED:false}

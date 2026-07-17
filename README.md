@@ -312,3 +312,6 @@ Development and test profiles write readable correlation-aware console logs. The
 ## Observability-4 monitoring stack
 
 The optional Compose overlay provisions pinned Prometheus and Grafana services, bounded persistent retention, five version-controlled dashboards, and actionable alert rules. Create the ignored scrape secret and set `GRAFANA_ADMIN_PASSWORD`, then run `docker compose -f docker-compose.yml -f docker-compose.observability.yml up --build`. Prometheus and Grafana bind to loopback ports 9090 and 3000 by default; anonymous Grafana is disabled. See `monitoring/README.md` for dashboards, initial SLOs, security, validation, synthetic readiness, capacity guidance, and runbooks. Prometheus is operational telemetry, not financial reporting.
+# Reporting 3
+
+ADMIN reporting now supports formula-safe CSV and XLSX exports, previous/custom-period comparisons, movie and hall comparisons, and persistent daily/weekly/monthly report schedules. Scheduled delivery uses completed local periods, bounded retries, attachment email delivery, and a unique deterministic delivery key.

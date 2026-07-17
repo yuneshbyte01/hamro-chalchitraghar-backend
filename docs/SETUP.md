@@ -379,3 +379,6 @@ For production database investigation, choose a deployment-appropriate PostgreSQ
 ## Prometheus and Grafana
 
 Create `monitoring/secrets/prometheus_scrape_password` without a trailing newline, set a non-placeholder `GRAFANA_ADMIN_PASSWORD`, and start the base and observability Compose files together. Provisioning is automatic. Prometheus/Grafana use loopback ports 9090/3000 by default; named volumes and 15-day/5-GB retention defaults bound storage. Validate with promtool, JSON parsing, and `docker compose ... config`. The readiness script is `monitoring/check-readiness.sh`. Never publish the scrape or Grafana anonymously, commit credentials, or treat monitoring volumes as financial/audit history.
+# Reporting operations
+
+Defaults: 50,000 export rows, 20 MB generated file, 25 schedules per scan, five delivery attempts, five-minute retry/scan intervals. Set `REPORTING_SCHEDULE_EMAIL_ENABLED=true` only with working Spring Mail configuration. The in-process dispatcher is single-instance scheduled; database idempotency remains mandatory protection against duplicate delivery rows.

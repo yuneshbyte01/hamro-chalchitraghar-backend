@@ -1,0 +1,7 @@
+$kind: http-request
+name: Previous Period Comparison
+url: "{{base_url}}/api/admin/reports/comparisons/periods?currentStartDate={{report_start_date}}&currentEndDate={{report_end_date}}&comparisonMode=PREVIOUS_PERIOD&currency=NPR"
+method: GET
+headers:
+  Authorization: Bearer {{admin_token}}
+order: 7020

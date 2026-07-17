@@ -1,0 +1,7 @@
+$kind: http-request
+name: Movie Export XLSX
+url: "{{base_url}}/api/admin/reports/exports/movies?startDate={{report_start_date}}&endDate={{report_end_date}}&sort=REVENUE&direction=DESC&format=XLSX"
+method: GET
+headers:
+  Authorization: Bearer {{admin_token}}
+order: 7010
